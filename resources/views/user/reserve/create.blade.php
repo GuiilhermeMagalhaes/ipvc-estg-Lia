@@ -1,0 +1,220 @@
+@extends('index')
+
+@section('content')
+<link href="/css/custom.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js/dist/css/shepherd.css">
+<div class="page-title">
+    <nav class="breadcrumbs">
+        <div class="container d-flex justify-content-between align-items-center">
+            <ol class="d-flex mb-0">
+                <li><a href="/"><i class="bi bi-house"></i></a></li>
+                <li><a class="current" href="#">Iniciar Reserva de Equipamentos</a></li>
+            </ol>
+        </div>
+        <div class="container d-flex justify-content-end align-items-center">
+            <a href="{{ route('download.pdf') }}">
+                <button class="btn btn-info">PDF <i class="bi bi-download"></i></button>
+            </a>
+            <button id="start-tutorial" class="btn btn-info" style="float: right; margin-right: 10px; margin-left:10px;">Ajuda</button>
+        </div>
+    </nav>
+</div>
+<br>
+<div class="card card-dark card-outline">
+    <form action="{{ route('reserve.create') }}" method="post">
+        @csrf
+        @method('POST')
+        <div class="card-body">
+            <div class="form-group">
+                <label for="startDate">Data de Início</label>
+                <input name="start_date" id="start_date" type="date" class="form-control">
+                @error('start_date')
+                <span style="color:red" class="error">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label for="endDate">Data de Fim</label>
+                <input name="end_date" id="end_date" type="date" class="form-control">
+                @error('end_date')
+                <span style="color:red" class="error">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label for="description">Motivo de Requisição</label>
+                <input name="description" type="text" class="form-control" id="reason">
+                @error('description')
+                <span style="color:red" class="error">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label for="ciclica_id">Reserva Cíclica</label>
+                <select class="form-control" name="ciclica_id" id="ciclica">
+                    @foreach ($ciclica as $ciclica)
+                    <option value="{{ $ciclica->id }}">{{ $ciclica->dia_semana }}</option>
+                    @endforeach
+                </select>
+                @error('ciclica_')
+                <span class="error">{{ $message }}</span>
+                @enderror
+            </div>
+            <div class="form-group">
+                <label for="cost_center_id">Centro de Custos</label>
+                <select class="form-control" name="cost_center_id" id="cost_center">
+                    @foreach ($costCenters as $costCenter)
+                    {{-- @if ($costCenter->id != 1) --}}
+                    <option value="{{ $costCenter->id }}">{{ $costCenter->name }}</option>
+                    {{-- @endif --}}
+                    @endforeach
+                </select>
+                @error('cost_center')
+                <span class="error">{{ $message }}</span>
+                @enderror
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-outline-dark mt-auto" id="start-reservation" style="width: 140px;">Iniciar Reserva</button>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/shepherd.js/dist/js/shepherd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const tour = new Shepherd.Tour({
+        defaultStepOptions: {
+            scrollTo: true,
+            cancelIcon: {
+                enabled: true
+            },
+            classes: 'shepherd-theme-arrows',
+            modalOverlayOpeningPadding: 5,
+            modalOverlayOpeningRadius: 5
+        }
+    });
+
+    tour.addStep({
+        title: 'Data de Início - Etapa 1/5',
+        text: 'Escolha a data de início para a reserva.',
+        attachTo: {
+            element: '#start_date',
+            on: 'bottom'
+        },
+        buttons: [
+            {
+                text: 'Próximo',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        title: 'Data de Fim - Etapa 1/5',
+        text: 'Escolha a data de fim para a reserva.',
+        attachTo: {
+            element: '#end_date',
+            on: 'bottom'
+        },
+        buttons: [
+            {
+                text: 'Anterior',
+                action: tour.back
+            },
+            {
+                text: 'Próximo',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        title: 'Motivo de Requisição - Etapa 1/5',
+        text: 'Indique o motivo da reserva. (Por exemplo: "Projeto para cadeira de Produção Audiovisual"',
+        attachTo: {
+            element: '#reason',
+            on: 'bottom'
+        },
+        buttons: [
+            {
+                text: 'Anterior',
+                action: tour.back
+            },
+            {
+                text: 'Próximo',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        title: 'Reserva Cíclica - Etapa 1/5',
+        text: 'Caso pretenda reservar todas as semanas, escolha o dia da semana apropriado.',
+        attachTo: {
+            element: '#ciclica',
+            on: 'bottom'
+        },
+        buttons: [
+            {
+                text: 'Anterior',
+                action: tour.back
+            },
+            {
+                text: 'Próximo',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        title: 'Centro de Custos - Etapa 1/5',
+        text: 'Se pertencer a um centro de custos, por favor selecione o indicado.',
+        attachTo: {
+            element: '#cost_center',
+            on: 'bottom'
+        },
+        buttons: [
+            {
+                text: 'Anterior',
+                action: tour.back
+            },
+            {
+                text: 'Próximo',
+                action: tour.next
+            }
+        ]
+    });
+
+    tour.addStep({
+        title: 'Iniciar Reserva - Etapa 1/5',
+        text: 'Clique neste botão para enviar a sua reserva. Desta forma estará apto para adicionar kits/itens à sua reserva! (Através do menu consegue ver e selecionar o equipamento que deseja)',
+        attachTo: {
+            element: '#start-reservation',
+            on: 'top'
+        },
+        buttons: [
+            {
+                text: 'Anterior',
+                action: tour.back
+            },
+            {
+                text: 'Terminar',
+                action: tour.complete
+            }
+        ]
+    });
+
+    // Botão para iniciar o tutorial
+    document.getElementById('start-tutorial').addEventListener('click', function () {
+        tour.start();
+    });
+});
+
+</script>
+<script>
+    start_date.min = new Date().toISOString().split("T")[0];
+    end_date.min = new Date().toISOString().split("T")[0];
+
+    $(document).ready(function() {
+        $('[data-toggle="popover"]').popover();
+    });
+</script>
+@endsection

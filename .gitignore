@@ -1,0 +1,29 @@
+# Ambiente e Configurações Sensíveis
+.env
+.env.backup
+.env.production
+
+# Dependências (nunca subir as pastas de pacotes)
+/vendor
+/node_modules
+
+# Ficheiros de Sistema e IDE
+.phpunit.result.cache
+.vscode/
+.idea/
+Homestead.json
+Homestead.yaml
+auth.json
+
+# Logs e Cache de Runtime
+/storage/*.key
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/testing/*
+/storage/framework/views/*
+/storage/logs/*
+
+# Compilação de Assets (Vite/Mix)
+/public/build
+/public/hot
+/public/storage

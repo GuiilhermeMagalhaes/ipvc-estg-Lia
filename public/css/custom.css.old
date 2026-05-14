@@ -1,0 +1,285 @@
+.categoria-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* Adicionado para evitar overflow da imagem */}
+
+.categoria-container img {
+  opacity: 1;
+  display: block;
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  transition: transform .5s ease, opacity .5s ease;
+  backface-visibility: hidden;
+}
+
+.nome {
+  transition: opacity .5s ease, transform .5s ease;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateY(20px); /* Adicionado translateY para efeito de fade-up */
+  text-align: center;
+  padding: 16px 32px;
+  border-radius: 8px; /* Bordas arredondadas para um visual mais suave */
+}
+
+.nome-texto a {
+  color: white; /* Sempre branco */
+  font-size: 25px;
+  text-decoration: none; /* Alterado para 'none' para remover sublinhado */
+}
+
+.categoria-container:hover img {
+  opacity: 0.5;
+  transform: scale(1.1); /* Crescimento da imagem */
+}
+
+.categoria-container:hover .nome {
+  opacity: 1;
+  transform: translate(-50%, -50%) translateY(0); /* Retira o efeito translateY */
+}
+
+.categoria-container:hover .nome-texto a {
+  color: white;
+}
+
+.wrapper {
+  padding-top: 3%;
+}
+
+.imgcard {
+  width: 320px;
+  height: 240px;
+  object-fit: cover;
+}
+
+/*--------------------------------------------------------------
+# Scroll Top Button
+--------------------------------------------------------------*/
+.scroll-top {
+  position: fixed;
+  visibility: hidden;
+  opacity: 0;
+  right: 15px;
+  bottom: -15px;
+  z-index: 99999;
+  background-color:black;
+  width: 44px;
+  height: 44px;
+  border-radius: 50px;
+  transition: all 0.4s;
+}
+
+.scroll-top i {
+  font-size: 24px;
+  color: #fafafa;
+  line-height: 0;
+}
+
+.scroll-top:hover {
+  background-color: color-mix(in srgb,black, transparent 20%);
+}
+
+.scroll-top.active {
+  visibility: visible;
+  opacity: 1;
+  bottom: 15px;
+}
+
+/*--------------------------------------------------------------
+# Breadcrumbs
+--------------------------------------------------------------*/
+.page-title nav {
+  background-color: black;
+  padding: 10px 0;
+  border-radius: 10px;
+  min-height: 67px;
+  display: flex;
+  align-items: center;
+}
+
+.page-title nav ol {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  flex-grow: 1; /* Allow the list to grow */
+}
+
+.page-title nav ol li+li {
+  padding-left: 10px;
+}
+
+.page-title nav ol li+li::before {
+  content: "/";
+  display: inline-block;
+  padding-right: 10px;
+  color: color-mix(in srgb, white, transparent 70%);
+}
+
+.page-title nav ol li a:hover,
+.page-title nav ol li a.current {
+  color: white; /* Altere para a cor que você deseja no estado de hover */
+}
+
+.page-title .dropdown {
+  margin-right: 15px;
+  list-style: none;
+}
+.page-title .dropdown ul {
+  padding: 10px;
+  width: fit-content;
+  background: #161718;
+  display: block;
+  position: absolute;
+  visibility: hidden;
+  left: -30px;
+  top: 130%;
+  opacity: 0;
+  transition: 0.3s;
+  border-radius: 4px;
+  z-index: 99;
+}
+
+.page-title .dropdown ul li {
+  list-style: none; /* Remove os marcadores dos itens da lista */
+}
+
+.page-title .dropdown ul a {
+  padding: 10px;
+  font-size: 15px;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.502);
+}
+
+.page-title .dropdown ul a:hover,
+.page-title .dropdown ul .active:hover,
+.page-title .dropdown ul li:hover>a {
+  color: white;
+}
+
+.page-title .dropdown:hover>ul {
+  opacity: 1;
+  top: 100%;
+  visibility: visible;
+}
+
+.breadcrumbs a i {
+  color: #ffffff80;
+  transition: color 0.3s;
+}
+.breadcrumbs a:hover i {
+  color: #ffffff;
+}
+
+/*--------------------------------------------------------------
+# Search-Form
+--------------------------------------------------------------*/
+
+.search-form {
+  display: flex;
+  align-items: center;
+  background-color: #2c2c2c; /* Dark background color */
+  border-radius: 50px; /* Rounded corners */
+  width: 250px; /* Adjust width as needed */
+  margin-left: auto; /* Align to the right */
+}
+
+.search-input {
+  border: none;
+  background: none;
+  outline: none;
+  color: #ffffff; /* White text color */
+  flex-grow: 1;
+  padding: 5px 10px;
+}
+
+.search-input::placeholder {
+  color: #a1a1a1; /* Placeholder text color */
+}
+
+.search-input:focus {
+  background: none; /* Maintain dark background on focus */
+  color: #ffffff; /* Maintain white text color on focus */
+}
+
+.search-input:-webkit-autofill,
+.search-input:-webkit-autofill:hover,
+.search-input:-webkit-autofill:focus,
+.search-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #2c2c2c inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.search-button {
+  border: none;
+  background: none;
+  outline: none;
+  color: #ffffff; /* White icon color */
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.search-button i {
+  font-size: 18px;
+}
+
+/* Estilo para a camada de destaque */
+
+.highlight-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  opacity: 50%;
+  border-radius: 10px;
+  pointer-events: none; /* Garante que a camada não intercepte eventos de clique */
+  display: none; /* Inicialmente oculta */
+}
+
+/*--------------------------------------------------------------
+# Pikaday
+--------------------------------------------------------------*/
+
+#calendar .pika-single {
+  border: none;
+}
+
+#calendar .pika-table abbr {
+  text-decoration: none; /* Remover sublinhado */
+}
+
+#calendar .pika-button {
+  background-color: transparent !important; /* Remover cor de fundo cinza */
+  text-align: center;
+}
+
+#calendar .pika-button:hover {
+  background-color: #343a40 !important; /* Remover cor de fundo cinza */
+  color: white;
+  border-radius: 50%;
+}
+
+#calendar .is-selected .pika-button {
+  background-color: transparent !important; /* Remover cor de fundo ao clicar */
+  color: black;
+  box-shadow: none !important; /* Remover box-shadow ao clicar */
+}
+
+#calendar .has-event{
+  background-color: #343a40 !important; /* Fundo preto para dias com reservas */
+  color: white; /* Texto branco nos dias com reservas */
+  border-radius: 50%;
+}
+
+#calendar .has-event:hover{
+  background-color: black !important; /* Fundo preto para dias com reservas */
+  color: white; /* Texto branco nos dias com reservas */
+  border-radius: 50%;
+}
