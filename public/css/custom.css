@@ -1,0 +1,521 @@
+.categoria-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden; /* Adicionado para evitar overflow da imagem */}
+
+.categoria-container img {
+  opacity: 1;
+  display: block;
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  transition: transform .5s ease, opacity .5s ease;
+  backface-visibility: hidden;
+}
+
+.nome {
+  transition: opacity .5s ease, transform .5s ease;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateY(20px); /* Adicionado translateY para efeito de fade-up */
+  text-align: center;
+  padding: 16px 32px;
+  border-radius: 8px; /* Bordas arredondadas para um visual mais suave */
+}
+
+.nome-texto a {
+  color: white; /* Sempre branco */
+  font-size: 25px;
+  text-decoration: none; /* Alterado para 'none' para remover sublinhado */
+}
+
+.categoria-container:hover img {
+  opacity: 0.5;
+  transform: scale(1.1); /* Crescimento da imagem */
+}
+
+.categoria-container:hover .nome {
+  opacity: 1;
+  transform: translate(-50%, -50%) translateY(0); /* Retira o efeito translateY */
+}
+
+.categoria-container:hover .nome-texto a {
+  color: white;
+}
+
+.wrapper {
+  padding-top: 3%;
+}
+
+.imgcard {
+  width: 320px;
+  height: 240px;
+  object-fit: cover;
+}
+
+/*--------------------------------------------------------------
+# Scroll Top Button
+--------------------------------------------------------------*/
+.scroll-top {
+  position: fixed;
+  visibility: hidden;
+  opacity: 0;
+  right: 15px;
+  bottom: -15px;
+  z-index: 99999;
+  background-color:black;
+  width: 44px;
+  height: 44px;
+  border-radius: 50px;
+  transition: all 0.4s;
+}
+
+.scroll-top i {
+  font-size: 24px;
+  color: #fafafa;
+  line-height: 0;
+}
+
+.scroll-top:hover {
+  background-color: color-mix(in srgb,black, transparent 20%);
+}
+
+.scroll-top.active {
+  visibility: visible;
+  opacity: 1;
+  bottom: 15px;
+}
+
+/*--------------------------------------------------------------
+# Breadcrumbs
+--------------------------------------------------------------*/
+.page-title nav {
+  background-color: black;
+  padding: 10px 0;
+  border-radius: 10px;
+  min-height: 67px;
+  display: flex;
+  align-items: center;
+}
+
+.page-title nav ol {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  flex-grow: 1; /* Allow the list to grow */
+}
+
+.page-title nav ol li+li {
+  padding-left: 10px;
+}
+
+.page-title nav ol li+li::before {
+  content: "/";
+  display: inline-block;
+  padding-right: 10px;
+  color: color-mix(in srgb, white, transparent 70%);
+}
+
+.page-title nav ol li a:hover,
+.page-title nav ol li a.current {
+  color: white; /* Altere para a cor que você deseja no estado de hover */
+}
+
+.page-title .dropdown {
+  margin-right: 15px;
+  list-style: none;
+}
+.page-title .dropdown ul {
+  padding: 10px;
+  width: fit-content;
+  background: #161718;
+  display: block;
+  position: absolute;
+  visibility: hidden;
+  left: -30px;
+  top: 130%;
+  opacity: 0;
+  transition: 0.3s;
+  border-radius: 4px;
+  z-index: 99;
+}
+
+.page-title .dropdown ul li {
+  list-style: none; /* Remove os marcadores dos itens da lista */
+}
+
+.page-title .dropdown ul a {
+  padding: 10px;
+  font-size: 15px;
+  text-transform: none;
+  color: rgba(255, 255, 255, 0.502);
+}
+
+.page-title .dropdown ul a:hover,
+.page-title .dropdown ul .active:hover,
+.page-title .dropdown ul li:hover>a {
+  color: white;
+}
+
+.page-title .dropdown:hover>ul {
+  opacity: 1;
+  top: 100%;
+  visibility: visible;
+}
+
+.breadcrumbs a i {
+  color: #ffffff80;
+  transition: color 0.3s;
+}
+.breadcrumbs a:hover i {
+  color: #ffffff;
+}
+
+/*--------------------------------------------------------------
+# Search-Form
+--------------------------------------------------------------*/
+
+.search-form {
+  display: flex;
+  align-items: center;
+  background-color: #2c2c2c; /* Dark background color */
+  border-radius: 50px; /* Rounded corners */
+  width: 250px; /* Adjust width as needed */
+  margin-left: auto; /* Align to the right */
+}
+
+.search-input {
+  border: none;
+  background: none;
+  outline: none;
+  color: #ffffff; /* White text color */
+  flex-grow: 1;
+  padding: 5px 10px;
+}
+
+.search-input::placeholder {
+  color: #a1a1a1; /* Placeholder text color */
+}
+
+.search-input:focus {
+  background: none; /* Maintain dark background on focus */
+  color: #ffffff; /* Maintain white text color on focus */
+}
+
+.search-input:-webkit-autofill,
+.search-input:-webkit-autofill:hover,
+.search-input:-webkit-autofill:focus,
+.search-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #2c2c2c inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.search-button {
+  border: none;
+  background: none;
+  outline: none;
+  color: #ffffff; /* White icon color */
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.search-button i {
+  font-size: 18px;
+}
+
+/* Estilo para a camada de destaque */
+
+.highlight-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  opacity: 50%;
+  border-radius: 10px;
+  pointer-events: none; /* Garante que a camada não intercepte eventos de clique */
+  display: none; /* Inicialmente oculta */
+}
+
+/*--------------------------------------------------------------
+# Pikaday
+--------------------------------------------------------------*/
+
+#calendar .pika-single {
+  border: none;
+}
+
+#calendar .pika-table abbr {
+  text-decoration: none; /* Remover sublinhado */
+}
+
+#calendar .pika-button {
+  background-color: transparent !important; /* Remover cor de fundo cinza */
+  text-align: center;
+}
+
+#calendar .pika-button:hover {
+  background-color: #343a40 !important; /* Remover cor de fundo cinza */
+  color: white;
+  border-radius: 50%;
+}
+
+#calendar .is-selected .pika-button {
+  background-color: transparent !important; /* Remover cor de fundo ao clicar */
+  color: black;
+  box-shadow: none !important; /* Remover box-shadow ao clicar */
+}
+
+#calendar .has-event{
+  background-color: #343a40 !important; /* Fundo preto para dias com reservas */
+  color: white; /* Texto branco nos dias com reservas */
+  border-radius: 50%;
+}
+
+#calendar .has-event:hover{
+  background-color: black !important; /* Fundo preto para dias com reservas */
+  color: white; /* Texto branco nos dias com reservas */
+  border-radius: 50%;
+}
+
+/*--------------------------------------------------------------
+# Callendar
+--------------------------------------------------------------*/
+/* Fundo do calendário */
+.fc {
+  background-color: #f5f5f5; /* Tom claro para contraste suave */
+}
+
+/* Dias do calendário (números) */
+.fc-daygrid-day-number {
+  color: #000; /* Preto para destacar os números */
+  font-weight: bold;
+}
+
+/* Cabeçalho do calendário (barra de navegação) */
+.fc-toolbar {
+  background-color: #000; /* Fundo preto como o site */
+  color: #fff; /* Texto branco para contraste */
+  border: none;
+}
+
+/* Botões da barra de ferramentas */
+.fc-button {
+  background-color: #333; /* Tom escuro para os botões */
+  color: #fff; /* Texto branco */
+  border: none;
+}
+
+.fc-button:hover {
+  background-color: #444; /* Realce ao passar o mouse */
+}
+
+.fc-button.fc-button-active {
+  background-color: #555; /* Cor ativa */
+  color: #fff;
+}
+
+/* Dias com destaque (por exemplo, hoje) */
+.fc-day-today {
+  background-color: #ececec; /* Fundo suave */
+  color: #000; /* Texto escuro */
+}
+
+/* Eventos do calendário */
+.fc-event {
+  background-color: #007bff; /* Azul para os eventos */
+  color: #fff; /* Texto branco */
+  border-radius: 5px; /* Bordas arredondadas */
+  padding: 5px;
+}
+
+/* Tooltip de eventos (se for usado) */
+.fc-event:hover {
+  filter: brightness(1.2); /* Efeito de realce */
+}
+
+/* Dias da semana (dom, seg, ter, etc.) */
+.fc-col-header-cell {
+  background-color: #333; /* Fundo escuro para combinar com o site */
+  color: #fff; /* Texto branco para visibilidade */
+  font-weight: bold; /* Para maior destaque */
+  border: 1px solid #444; /* Linha de separação para contraste */
+}
+
+.fc-daygrid-event-dot, .fc-event-time {
+  display: none; /* Esconde o ponto e o ID */
+}
+
+/*--------------------------------------------------------------
+# Callendar - Select
+--------------------------------------------------------------*/
+.post-select {
+  display: flex; /* Alinha os itens na mesma linha */
+  align-items: center; /* Centraliza verticalmente os itens */
+  gap: 8px; /* Espaço entre o label e o select */
+}
+
+label {
+  font-size: 14px; /* Tamanho do texto */
+  font-weight: bold; /* Negrito */
+  color: #333; /* Cor do texto */
+  margin: 0; /* Remove margens */
+}
+
+/* Container geral */
+select {
+  background-color: #f7f7f7; /* Cor de fundo suave */
+  border: 1px solid #ccc; /* Borda fina */
+  border-radius: 5px; /* Cantos arredondados */
+  color: #333; /* Cor do texto */
+  padding: 8px 12px; /* Espaçamento interno */
+  font-size: 14px; /* Tamanho da fonte */
+  font-family: Arial, sans-serif; /* Fonte simples */
+  outline: none; /* Remove borda ao focar */
+  cursor: pointer; /* Mostra cursor de pointer */
+  transition: all 0.3s ease; /* Transição suave */
+}
+
+/* Muda ao passar o rato */
+select:hover {
+  background-color: #eaeaea; /* Fundo mais escuro ao passar o rato */
+  border-color: #999; /* Borda ligeiramente mais escura */
+}
+
+/* Muda ao focar */
+select:focus {
+  border-color: #065294; /* Borda azul ao focar */
+  box-shadow: 0 0 5px #009885; /* Glow azul */
+}
+
+/* Opções dentro do posto-select */
+option {
+  background-color: #fff; /* Fundo das opções */
+  color: #333; /* Cor do texto */
+}
+
+
+/* Estilos básicos do modal */
+.modal {
+  display: none; /* Oculto por padrão */
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.4); /* Fundo escurecido */
+  animation: fadeIn 0.3s; /* Animação para aparecer */
+  z-index: 1050;
+}
+
+/* Conteúdo do modal */
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 100%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transform: scale(0.9); /* Efeito de "zoom out" inicial */
+  animation: zoomIn 0.3s forwards; /* Animação para aumentar */
+}
+
+/* Botão de fechar */
+.fechar {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.fechar:hover {
+  color: #000;
+}
+
+/* Lista de equipamentos dentro do modal */
+.modal-content ul {
+  list-style: none;
+  padding: 0;
+}
+
+.modal-content li {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.modal-content li:last-child {
+  border-bottom: none;
+}
+
+.modal-content li:hover {
+  background-color: #f9f9f9;
+}
+
+/* Animação de fade-in para o fundo */
+@keyframes fadeIn {
+  from {
+      opacity: 0;
+  }
+  to {
+      opacity: 1;
+  }
+}
+
+/* Animação de zoom-in para o conteúdo */
+@keyframes zoomIn {
+  from {
+      transform: scale(0.9);
+      opacity: 0;
+  }
+  to {
+      transform: scale(1);
+      opacity: 1;
+  }
+}
+
+/* Animação de fade-out para fechar o modal */
+@keyframes fadeOut {
+  from {
+      opacity: 1;
+  }
+  to {
+      opacity: 0;
+  }
+}
+
+/* Animação de zoom-out para fechar o conteúdo */
+@keyframes zoomOut {
+  from {
+      transform: scale(1);
+      opacity: 1;
+  }
+  to {
+      transform: scale(0.9);
+      opacity: 0;
+  }
+}
+
+.button_equip{
+  width: 100%;
+  position: relative;
+  display: block;
+  padding: .75rem 1.25rem;
+  background-color: #fff;
+  border: 2px solid rgba(0,0,0,.125);
+}
+
+/*--------------------------------------------------------------
+# Callendar - Info
+--------------------------------------------------------------*/
+#reservationModal{
+  z-index: 1050;
+}

@@ -1,0 +1,74 @@
+@php
+$i = 0
+@endphp
+@extends('adminlte::page')
+
+@section('title', 'Editar Kit')
+
+@section('content')
+<br>
+    <div class="d-flex flex-column">
+        <form action="{{ route('kits.update', $kit->id) }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            @method('PUT')
+            <div class="form-group">
+                <label for="name">Nome</label>
+                <input type="text" name="name" class="form-control" value="{{ old('name', $kit->name) }}">
+                <span style="color:red">{{$errors->first('name')}}</span>
+            </div>
+            <div class="form-group">
+                <label for="descricao">Descrição</label>
+                <input type="text" name="description" class="form-control" value="{{ old('description', $kit->description) }}">
+                <span style="color:red">{{$errors->first('description')}}</span>
+            </div>
+            <div class="form-group">
+                <label for="lia_code">Codigo LIA</label>
+                <input type="text" name="lia_code" class="form-control" value="{{ old('lia_code', $kit->lia_code) }}">
+                <span style="color:red">{{$errors->first('lia_code')}}</span>
+            </div>
+            <div class="form-group">
+                <label for="ref_ipvc">Referência IPVC</label>
+                <input type="number" name="ipvc_ref" class="form-control" value="{{ old('ipvc_ref', $kit->ipvc_ref) }}">
+                <span style="color:red">{{$errors->first('ref_ipvc')}}</span>
+            </div>
+            <div class="form-group">
+                <label for="preco">Preço</label>
+                <input type="number" name="price" id="preco" step="0.01" class="form-control" value="{{ old('price', $kit->price) }}">
+                <span style="color:red">{{$errors->first('price')}}</span>
+            </div>
+            <div class="form-group">
+                <label for="state">Estado</label>
+                <br>
+                <select id="state" name="state">
+                    <option value=1 <?php if($kit->kit_state_id == '1'){echo("selected");}?>>Visível</option>
+                    <option value=2 <?php if($kit->kit_state_id == '2'){echo("selected");}?>>Oculto</option>
+                    <option value=3 <?php if($kit->kit_state_id == '3'){echo("selected");}?>>Anulado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="">Imagem para Kit</label>
+                <input type="file" class="form-control-file" name="image" id="image">
+            </div>
+            <div class="form-group">
+                <label for="categoria_id">Categoria</label>
+                <br>
+                <select id="categoria_id" name="categoria_id">
+                    @foreach ($categorias as $cat)
+                        <option value={{ $cat->id }} <?php if($kit->categoria_id == $cat->id){echo("selected");}?>>{{ $cat->description }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="itens">Itens</label><br/>
+                    @foreach ($itensKit as $itemKit)
+                        <input type="checkbox" name="itens[]" value={{  $itemKit->id  }} checked> {{  $itemKit->nome  }}  - código: {{  $itemKit->lia_code  }} <br/>
+                    @endforeach
+                    @foreach ($itens as $item)
+                        <input type="checkbox" name="itens[]" value={{  $item->id  }}> {{  $item->nome  }}  - código: {{  $item->lia_code  }} <br/>
+                    @endforeach
+            </div>
+            <button type="submit" class="btn btn-success" style="width: 140px;">Atualizar Kit</button>
+        </form>
+        <br>
+    </div>
+@endsection
