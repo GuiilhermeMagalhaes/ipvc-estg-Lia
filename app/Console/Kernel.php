@@ -26,6 +26,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('reservas:verificar-atrasos')->dailyAt('08:00');
+
+        $schedule->command('reservas:lembrete-entrega')->dailyAt('08:30');
     }
 
     /**
