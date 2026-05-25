@@ -25,9 +25,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        $schedule->call(function(){
-            Reserve::where('end_date', '<', now()->toDateString())->update(['reserve_state_id' => '4']);
-        })->daily();
+        $schedule->command('reservas:verificar-atrasos')->dailyAt('08:00');
     }
 
     /**
