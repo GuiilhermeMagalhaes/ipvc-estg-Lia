@@ -16,6 +16,66 @@ use Illuminate\Support\Facades\Auth;
 
 class KitsController extends Controller
 {
+
+
+   public function index()
+{
+    $kits = Kit::all();
+
+    return view('user.kits.listAll', ['kits' => $kits]);
+}
+
+
+public function all(Request $request)
+{
+    if ($request->ajax()) {
+
+        $output = '';
+
+        $kits = Kit::where('name', 'LIKE', '%' . $request->search . '%')
+            ->get();
+
+        if ($kits->count() > 0) {
+
+            foreach ($kits as $kit) {
+
+                $output .= '<div class="col mb-5">
+                                <div class="card h-100">
+                                    <img class="card-img-top" src="../../' . $kit->image . '" alt="..." />
+                                    <div class="card-body p-4">
+                                        <div class="text-center">
+                                            <h5 class="fw-bolder">' . $kit->name . '</h5>
+                                            <h6>' . $kit->description . '</h6>
+                                            ' . $kit->price . ' € / dia
+                                        </div>
+                                    </div>
+                                    <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                                        <div class="text-center">
+                                            <a class="btn btn-outline-dark mt-auto" href="/kit/' . $kit->id . '">
+                                                Ver Detalhes
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>';
+            }
+
+        } else {
+
+            $output = '<p>Nenhum item encontrado.</p>';
+        }
+
+        return response()->json($output);
+
+    } else {
+
+        $kits = Kit::all();
+    }
+
+    return view('user.kits.listAll', ['kits' => $kits]);
+}
+
+    /*  
     public function index()
     {
         if (session()->has('reserve')) {
@@ -28,7 +88,7 @@ class KitsController extends Controller
             }
             
             $KitsDisponiveis = Kit::whereIn('id', $idsKitsDisponiveis)
-                                ->where('kit_state_id', '=', 1)
+                                #->where('kit_state_id', '=', 1)
                                 ->get();
             
             // Agrupar os kits pelo nome
@@ -38,7 +98,7 @@ class KitsController extends Controller
 
             return view('user.kits.listDisp', ['kits' => $KitsDisponiveis]);
 
-        } else {
+        }else {
             $kits = Kit::where('kit_state_id', '=', 1)
                         ->get();
 
@@ -49,6 +109,7 @@ class KitsController extends Controller
 
             return view('user.kits.listAll', ['kits' => $kits]);
         }
+            
     }
 
 
@@ -59,7 +120,7 @@ class KitsController extends Controller
 
         // Verifica quantos kits estão disponíveis com o mesmo nome
         $kitCount = Kit::where('name', $kit->name)
-            ->where('kit_state_id', 1) // Verifica se o kit está disponível
+            //->where('kit_state_id', 1) // Verifica se o kit está disponível
             ->count();
 
         $today = \Carbon\Carbon::today();
@@ -89,6 +150,7 @@ class KitsController extends Controller
             'reservas' => $reservasFormatted
         ]);
     }
+    
 
     public function disponivel(Request $request)
     {
@@ -264,6 +326,7 @@ class KitsController extends Controller
         return view('user.kits.listAll', ['kits' => $kits]);
     }
 
+
     public function checkKit($id)
     {
         $idsItens = [];
@@ -363,4 +426,5 @@ class KitsController extends Controller
         }
         return true;
     }
+*/
 }

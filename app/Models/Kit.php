@@ -14,12 +14,13 @@ class Kit extends Model
     protected $fillable = [
         'name',
         'description',
-        'lia_code',
         'ipvc_ref',
         'price',
-        'kit_state_id',
+        'price_day',
         'image',
-        'categoria_id'
+        'categoria_id',
+        'quantity', 
+        'quantity_disp'
     ];
     
     /**
