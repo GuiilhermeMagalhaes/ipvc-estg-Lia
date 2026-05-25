@@ -88,7 +88,7 @@ public function all(Request $request)
             }
             
             $KitsDisponiveis = Kit::whereIn('id', $idsKitsDisponiveis)
-                                #->where('kit_state_id', '=', 1)
+                                ->where('kit_state_id', '=', 1)
                                 ->get();
             
             // Agrupar os kits pelo nome
@@ -326,7 +326,6 @@ public function all(Request $request)
         return view('user.kits.listAll', ['kits' => $kits]);
     }
 
-
     public function checkKit($id)
     {
         $idsItens = [];
@@ -427,4 +426,4 @@ public function all(Request $request)
         return true;
     }
 */
-}
+    }
