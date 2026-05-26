@@ -7,6 +7,7 @@ use App\Models\Reserve;
 use App\Models\CostCenter;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\Item;
 use App\Models\Kit;
 use App\Models\KitReserve;
@@ -19,6 +20,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
 
+
 class HomeController extends Controller
 {
     /**
@@ -26,7 +28,7 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index()
+ public function index()
     {
         $reservas = Reserve::all();
 
@@ -79,6 +81,21 @@ class HomeController extends Controller
                 return $reserve->reserveState->id == 4;
             });
 
+           
+            $stats = Reserve::select('cost_center_id', DB::raw('count(*) as total'))
+                ->groupBy('cost_center_id')
+                ->with('costCenter')
+                ->orderByDesc('total') // Ordena do maior para o mais pequeno
+                ->limit(10) // Corta a lista nos 10 primeiros
+                ->get();
+
+            $labels = $stats->map(function($stat) {
+                return $stat->costCenter->name ?? 'Sem Centro'; 
+            })->toArray();
+
+            $values = $stats->pluck('total')->toArray();
+            
+
             return view('layouts.admin-home', [
                 'reserves' => $reserves,
                 'ongoingReserves' => $ongoingReserves,
@@ -87,7 +104,9 @@ class HomeController extends Controller
                 'delayedReserves' => $delayedReserves,
                 'totalCost' => $totalCost,
                 'totalDebt' => $totalDebt,
-                'totalUsers' => $totalUsers
+                'totalUsers' => $totalUsers,
+                'labels' => $labels, // Variável enviada para o JS do gráfico
+                'values' => $values  // Variável enviada para o JS do gráfico
             ]);
         }
         return redirect('/');
