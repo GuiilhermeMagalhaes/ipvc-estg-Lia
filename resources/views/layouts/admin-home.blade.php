@@ -253,26 +253,36 @@
     </div>
 
     <div class="row mb-4">
-        <div class="col-md-12">
+        <div class="col-md-6">
             <div class="card">
                 <div class="card-header bg-dark text-white">
-                    <h3 class="card-title m-0"><i class="bi bi-bar-chart-fill mr-2"></i> Estatística: Requisições por Centro de Custo</h3>
+                    <h3 class="card-title m-0"><i class="bi bi-bar-chart-fill mr-2"></i> Requisições por Centro de Custo</h3>
                 </div>
                 <div class="card-body">
                     <canvas id="costCenterChart" style="min-height: 350px; height: 350px; max-height: 350px; max-width: 100%;"></canvas>
                 </div>
             </div>
         </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h3 class="card-title m-0"><i class="bi bi-star-fill mr-2"></i> Top 10 Equipamentos e Kits</h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="topItemsChart" style="min-height: 350px; height: 350px; max-height: 350px; max-width: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
-</div>
 
+</div>
 @endsection
 
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    // --- Lógica do teu Progress Bar (Restaurada) ---
+    // --- Lógica do teu Progress Bar ---
     function initializeProgressBar(progressBarElement) {
         const percentPaid = progressBarElement.getAttribute('data-percent');
         const numberElement = progressBarElement.querySelector('.number');
@@ -300,19 +310,17 @@
     }
     document.querySelectorAll('.skill').forEach(initializeProgressBar);
 
-    // --- Lógica do Novo Gráfico Chart.js ---
+    // --- Lógica dos Gráficos Chart.js ---
     document.addEventListener("DOMContentLoaded", function() {
         
-        // 1. Armazenar os dados PHP em variáveis JS simples de forma segura
-        var chartLabels = {!! json_encode($labels) !!};
-        var chartValues = {!! json_encode($values) !!};
+        // --- 1. Gráfico dos Centros de Custo (Barras Verticais) ---
+        var chartLabels = {!! json_encode($labels ?? []) !!};
+        var chartValues = {!! json_encode($values ?? []) !!};
 
-        var ctx = document.getElementById('costCenterChart').getContext('2d');
-        
-        var costCenterChart = new Chart(ctx, {
-            type: 'bar', // Gráfico de barras verticais
+        var ctx1 = document.getElementById('costCenterChart').getContext('2d');
+        var costCenterChart = new Chart(ctx1, {
+            type: 'bar',
             data: {
-                // 2. Usar as variáveis JS aqui
                 labels: chartLabels, 
                 datasets: [{
                     label: 'Quantidade de Reservas',
@@ -342,18 +350,48 @@
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            stepSize: 1 // Força o eixo Y a mostrar números inteiros (1, 2, 3 reservas)
-                        }
+                        ticks: { stepSize: 1 }
                     }
                 },
                 plugins: {
-                    legend: {
-                        display: false // Oculta a legenda do topo porque os eixos X já têm os nomes
-                    }
+                    legend: { display: false }
                 }
             }
         });
+
+        // --- 2. Gráfico do Top 10 Equipamentos (Barras Horizontais) ---
+        var nomesEquipamentos = {!! json_encode($topNomes ?? []) !!};
+        var totaisEquipamentos = {!! json_encode($topValores ?? []) !!};
+
+        var ctx2 = document.getElementById('topItemsChart').getContext('2d');
+        var topItemsChart = new Chart(ctx2, {
+            type: 'bar', 
+            data: {
+                labels: nomesEquipamentos,
+                datasets: [{
+                    label: 'Vezes Requisitado',
+                    data: totaisEquipamentos,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)', // Verde-água
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Isto vira o gráfico na horizontal!
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
     });
 </script>
 @endsection

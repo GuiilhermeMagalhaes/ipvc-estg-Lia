@@ -81,7 +81,7 @@ class HomeController extends Controller
                 return $reserve->reserveState->id == 4;
             });
 
-           
+            
             $stats = Reserve::select('cost_center_id', DB::raw('count(*) as total'))
                 ->groupBy('cost_center_id')
                 ->with('costCenter')
@@ -96,6 +96,38 @@ class HomeController extends Controller
             $values = $stats->pluck('total')->toArray();
             
 
+            // 1. Contar os Itens individuais
+            $topItens = ItemReserve::select('item_id', DB::raw('count(*) as total'))
+                ->groupBy('item_id')
+                ->with('item') 
+                ->get()
+                ->map(function($row) {
+                    return [
+                        'nome' => $row->item->nome ?? 'Item Desconhecido', 
+                        'total' => $row->total
+                    ];
+                });
+
+            $topKits = KitReserve::select('kit_id', DB::raw('count(*) as total'))
+                ->groupBy('kit_id')
+                ->with('kit')
+                ->get()
+                ->map(function($row) {
+                    return [
+                        'nome' => ($row->kit->nome ?? 'Kit Desconhecido') . ' (Kit)', // Adiciona "(Kit)" para distinguir visualmente
+                        'total' => $row->total
+                    ];
+                });
+
+            $topEquipamentos = $topItens->concat($topKits)
+                ->sortByDesc('total')
+                ->take(10)
+                ->values(); 
+
+            $topNomes = $topEquipamentos->pluck('nome')->toArray();
+            $topValores = $topEquipamentos->pluck('total')->toArray();
+
+
             return view('layouts.admin-home', [
                 'reserves' => $reserves,
                 'ongoingReserves' => $ongoingReserves,
@@ -105,8 +137,10 @@ class HomeController extends Controller
                 'totalCost' => $totalCost,
                 'totalDebt' => $totalDebt,
                 'totalUsers' => $totalUsers,
-                'labels' => $labels, // Variável enviada para o JS do gráfico
-                'values' => $values  // Variável enviada para o JS do gráfico
+                'labels' => $labels, 
+                'values' => $values,
+                'topNomes' => $topNomes,   
+                'topValores' => $topValores 
             ]);
         }
         return redirect('/');
