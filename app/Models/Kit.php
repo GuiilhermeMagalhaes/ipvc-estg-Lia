@@ -22,44 +22,14 @@ class Kit extends Model
         'quantity', 
         'quantity_disp'
     ];
-    
-    /**
-     * Get all of the items for the Kit
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function items(): HasMany
-    {
-        return $this->hasMany(Item::class);
-    }
+
 
     /**
-     * Get the kit_state that owns the Kit
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function kitState(): BelongsTo
+    * @return \Illuminate\Database\Eloquent\Relations\HasMany
+    */
+    public function kitUnits(): HasMany
     {
-        return $this->belongsTo(KitState::class);
+        return $this->hasMany(kitUnity::class);
     }
 
-    /**
-     * Get the kit_state that owns the Kit
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function kitReserve(): BelongsTo
-    {
-        return $this->belongsTo(KitReserve::class);
-    }
-
-        /**
-     * Get the itemCategorie that owns the Item
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function itemCategorie(): BelongsTo
-    {
-        return $this->belongsTo(ItemCategorie::class, 'categoria_id');
-    }
 }
