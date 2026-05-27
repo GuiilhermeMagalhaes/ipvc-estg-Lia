@@ -4,6 +4,7 @@
 
 @section('content')
 <br>
+
     <div class="container-fluid">
         <table id="reserves" class="table table-hover">
             <thead>
