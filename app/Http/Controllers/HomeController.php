@@ -13,6 +13,7 @@ use App\Models\Kit;
 use App\Models\KitReserve;
 use App\Models\ItemReserve;
 use App\Models\SpaceReserve;
+use Carbon\Carbon;
 use PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromView;
@@ -46,102 +47,72 @@ class HomeController extends Controller
         return view('layouts.menu', ['categories' => ItemCategorie::all()]);
     }
 
-    public function adminIndex()
+   public function adminIndex()
     {
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-
-            // Obter todos os centros de custo
             $centros = CostCenter::all();
-
-            // Calcular total_cost de todos os centros de custo
             $totalCost = $centros->sum('total_cost');
-
-            // Calcular total_debt de todos os centros de custo
             $totalDebt = $centros->sum('total_debt');
-
-            $users = User::all();
-            // Calcula o número total de usuários
-            $totalUsers = $users->count();
-
+            $totalUsers = User::all()->count();
             $reserves = Reserve::all();
 
-            $ongoingReserves = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 7 || $reserve->reserveState->id == 8;
-            });
-            // Contar reservas em andamento (estados 7 e 8)
-            $ongoingCount = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 7 || $reserve->reserveState->id == 8;
-            })->count();
-            // Contar reservas pendentes (estado 1)
-            $pendingCount = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 1;
-            })->count();
-            // Filtrar reservas em atraso (estado 7 e todaydate > end_date)
-            $delayedReserves = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 4;
-            });
+            $ongoingReserves = $reserves->filter(fn($r) => $r->reserveState->id == 7 || $r->reserveState->id == 8);
+            $ongoingCount = $ongoingReserves->count();
+            $pendingCount = $reserves->filter(fn($r) => $r->reserveState->id == 1)->count();
+            $delayedReserves = $reserves->filter(fn($r) => $r->reserveState->id == 4);
 
-            
+            // 1. GRÁFICO CENTROS DE CUSTO
             $stats = Reserve::select('cost_center_id', DB::raw('count(*) as total'))
                 ->groupBy('cost_center_id')
                 ->with('costCenter')
-                ->orderByDesc('total') // Ordena do maior para o mais pequeno
-                ->limit(10) // Corta a lista nos 10 primeiros
+                ->orderByDesc('total')
+                ->limit(10)
                 ->get();
-
-            $labels = $stats->map(function($stat) {
-                return $stat->costCenter->name ?? 'Sem Centro'; 
-            })->toArray();
-
+            $labels = $stats->map(fn($s) => $s->costCenter->name ?? 'Sem Centro')->toArray();
             $values = $stats->pluck('total')->toArray();
-            
 
-            // 1. Contar os Itens individuais
-            $topItens = ItemReserve::select('item_id', DB::raw('count(*) as total'))
-                ->groupBy('item_id')
-                ->with('item') 
-                ->get()
-                ->map(function($row) {
-                    return [
-                        'nome' => $row->item->nome ?? 'Item Desconhecido', 
-                        'total' => $row->total
-                    ];
-                });
-
-            $topKits = KitReserve::select('kit_id', DB::raw('count(*) as total'))
-                ->groupBy('kit_id')
-                ->with('kit')
-                ->get()
-                ->map(function($row) {
-                    return [
-                        'nome' => ($row->kit->nome ?? 'Kit Desconhecido') . ' (Kit)', // Adiciona "(Kit)" para distinguir visualmente
-                        'total' => $row->total
-                    ];
-                });
-
-            $topEquipamentos = $topItens->concat($topKits)
-                ->sortByDesc('total')
-                ->take(10)
-                ->values(); 
-
+            // 2. TOP 10 EQUIPAMENTOS (QUANTIDADE)
+            $topItens = ItemReserve::with(['item', 'reserve'])->get()->groupBy('item_id')->map(fn($g) => [
+                'nome' => $g->first()->item->nome ?? 'Item Desconhecido',
+                'total' => $g->count()
+            ]);
+            $topKits = KitReserve::with(['kit', 'reserve'])->get()->groupBy('kit_id')->map(fn($g) => [
+                'nome' => ($g->first()->kit->name ?? 'Kit Desconhecido') . ' (Kit)',
+                'total' => $g->count()
+            ]);
+            $topEquipamentos = $topItens->concat($topKits)->sortByDesc('total')->take(10)->values();
             $topNomes = $topEquipamentos->pluck('nome')->toArray();
             $topValores = $topEquipamentos->pluck('total')->toArray();
 
+            // 3. MATERIAIS MAIS LUCRATIVOS (VALOR)
+            $calcLucro = function($g, $tipo) {
+                $total = 0;
+                foreach ($g as $pivot) {
+                    $res = $pivot->reserve;
+                    if ($res && $res->start_date && $res->end_date) {
+                        $dias = max(1, Carbon::parse($res->start_date)->diffInDays(Carbon::parse($res->end_date)));
+                        $preco = ($tipo == 'item' ? ($pivot->item->price_day ?? 0) : ($pivot->kit->price_day ?? 0));
+                        $total += ($dias * $preco);
+                    }
+                }
+                return $total;
+            };
 
-            return view('layouts.admin-home', [
-                'reserves' => $reserves,
-                'ongoingReserves' => $ongoingReserves,
-                'ongoingCount' => $ongoingCount,
-                'pendingCount' => $pendingCount,
-                'delayedReserves' => $delayedReserves,
-                'totalCost' => $totalCost,
-                'totalDebt' => $totalDebt,
-                'totalUsers' => $totalUsers,
-                'labels' => $labels, 
-                'values' => $values,
-                'topNomes' => $topNomes,   
-                'topValores' => $topValores 
+            $lucroItens = ItemReserve::with(['item', 'reserve'])->get()->groupBy('item_id')->map(fn($g) => [
+                'nome' => $g->first()->item->nome ?? 'Item Desconhecido',
+                'dinheiro_gerado' => $calcLucro($g, 'item')
             ]);
+            $lucroKits = KitReserve::with(['kit', 'reserve'])->get()->groupBy('kit_id')->map(fn($g) => [
+                'nome' => ($g->first()->kit->name ?? 'Kit Desconhecido') . ' (Kit)',
+                'dinheiro_gerado' => $calcLucro($g, 'kit')
+            ]);
+
+            $topDinheiro = $lucroItens->concat($lucroKits)->sortByDesc('dinheiro_gerado')->take(5)->values();
+
+            return view('layouts.admin-home', compact(
+                'reserves', 'ongoingReserves', 'ongoingCount', 'pendingCount', 'delayedReserves', 
+                'totalCost', 'totalDebt', 'totalUsers', 'labels', 'values', 'topNomes', 'topValores', 'topDinheiro'
+            ));
         }
         return redirect('/');
     }

@@ -20,6 +20,7 @@ class Item extends Model
         'model',
         'serial_number',
         'preco',
+        'price_day',
         'categoria_id' ,
         'item_state_id',
         'image',
@@ -48,7 +49,7 @@ class Item extends Model
         return $this->belongsToMany(Reserve::class, 'id');
     }
 
-        /**
+    /**
      * Get the itemCategorie that owns the Item
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

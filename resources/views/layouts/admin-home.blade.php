@@ -70,8 +70,6 @@
             <div class="card h-100">
                 <div class="card-body d-flex justify-content-center align-items-center text-center flex-column">
                     <?php
-                    // Calcular percentuais pago
-                    // Adicionei uma proteção caso $totalCost seja 0, para evitar erro de divisão por zero.
                     $percentPaid = $totalCost > 0 ? (($totalCost - $totalDebt) / $totalCost * 100) : 0;
                     ?>
                     <div class="skill" id="progress-bar-1" data-percent="<?php echo $percentPaid; ?>">
@@ -275,6 +273,50 @@
         </div>
     </div>
 
+    @if(isset($topDinheiro) && $topDinheiro->isNotEmpty())
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2"> <div class="card" style="border-top: 3px solid #28a745; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                <div class="card-header bg-white">
+                    <h3 class="card-title m-0">
+                        <i class="fas fa-euro-sign text-success mr-2"></i> 
+                        <strong style="color: #28a745;">Materiais que geram mais receita</strong>
+                    </h3>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped table-hover m-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 10%; text-align: center;">Posição</th>
+                                <th>Material / Equipamento</th>
+                                <th class="text-right pr-4">Receita Gerada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($topDinheiro as $index => $material)
+                                <tr>
+                                    <td class="align-middle text-center">
+                                        @if($index == 0) 🥇
+                                        @elseif($index == 1) 🥈
+                                        @elseif($index == 2) 🥉
+                                        @else {{ $index + 1 }}º
+                                        @endif
+                                    </td>
+                                    <td class="align-middle" style="font-weight: 500;">{{ $material['nome'] }}</td>
+                                    <td class="text-right align-middle pr-4">
+                                        <span class="badge" style="font-size: 1rem; padding: 8px; background-color: #e8f5e9; color: #28a745; border: 1px solid #28a745;">
+                                            {{ number_format($material['dinheiro_gerado'], 2, ',', '.') }} €
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>
 @endsection
 
@@ -317,80 +359,84 @@
         var chartLabels = {!! json_encode($labels ?? []) !!};
         var chartValues = {!! json_encode($values ?? []) !!};
 
-        var ctx1 = document.getElementById('costCenterChart').getContext('2d');
-        var costCenterChart = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: chartLabels, 
-                datasets: [{
-                    label: 'Quantidade de Reservas',
-                    data: chartValues,
-                    backgroundColor: [
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)',
-                        'rgba(255, 159, 64, 0.7)'
-                    ],
-                    borderColor: [
-                        'rgba(54, 162, 235, 1)',
-                        'rgba(255, 99, 132, 1)',
-                        'rgba(255, 206, 86, 1)',
-                        'rgba(75, 192, 192, 1)',
-                        'rgba(153, 102, 255, 1)',
-                        'rgba(255, 159, 64, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
+        if(document.getElementById('costCenterChart')) {
+            var ctx1 = document.getElementById('costCenterChart').getContext('2d');
+            var costCenterChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels, 
+                    datasets: [{
+                        label: 'Quantidade de Reservas',
+                        data: chartValues,
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                            'rgba(255, 159, 64, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
                 },
-                plugins: {
-                    legend: { display: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // --- 2. Gráfico do Top 10 Equipamentos (Barras Horizontais) ---
         var nomesEquipamentos = {!! json_encode($topNomes ?? []) !!};
         var totaisEquipamentos = {!! json_encode($topValores ?? []) !!};
 
-        var ctx2 = document.getElementById('topItemsChart').getContext('2d');
-        var topItemsChart = new Chart(ctx2, {
-            type: 'bar', 
-            data: {
-                labels: nomesEquipamentos,
-                datasets: [{
-                    label: 'Vezes Requisitado',
-                    data: totaisEquipamentos,
-                    backgroundColor: 'rgba(75, 192, 192, 0.7)', // Verde-água
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                indexAxis: 'y', // Isto vira o gráfico na horizontal!
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
+        if(document.getElementById('topItemsChart')) {
+            var ctx2 = document.getElementById('topItemsChart').getContext('2d');
+            var topItemsChart = new Chart(ctx2, {
+                type: 'bar', 
+                data: {
+                    labels: nomesEquipamentos,
+                    datasets: [{
+                        label: 'Vezes Requisitado',
+                        data: totaisEquipamentos,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)', // Verde-água
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
                 },
-                plugins: {
-                    legend: { display: false }
+                options: {
+                    indexAxis: 'y', // Isto vira o gráfico na horizontal!
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
                 }
-            }
-        });
+            });
+        }
 
     });
 </script>

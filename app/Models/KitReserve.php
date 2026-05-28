@@ -3,12 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Item;
+use App\Models\Kit;
 use App\Models\Reserve;
-
-
-
 
 class KitReserve extends Model
 {
@@ -21,28 +17,13 @@ class KitReserve extends Model
         'kit_id'
     ];
 
-    /**
-     * Get all of the items for the Reserve
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function reserves(): HasMany
-    {
-        return $this->HasMany(Reserve::class);
-    }
-    
-    /**
-     * Get all of the items for the Reserve
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function kits(): HasMany
-    {
-        return $this->HasMany(Kit::class);
-    }
-
     public function kit()
     {
         return $this->belongsTo(Kit::class, 'kit_id'); // Assume que a chave estrangeira se chama 'kit_id'
+    }
+
+    public function reserve()
+    {
+        return $this->belongsTo(Reserve::class, 'reserve_id');
     }
 }
