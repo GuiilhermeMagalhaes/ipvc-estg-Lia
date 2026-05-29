@@ -10,10 +10,186 @@ use App\Models\ItemReserve;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ItemUnity;
 
 class ItemController extends Controller
 {
     public function index(Request $request)
+{
+    // SE FOR A PESQUISA (AJAX)
+    if ($request->ajax()) {
+        $output = '';
+        $search = $request->search;
+
+        if (!empty($search)) {
+            // Procura em TODOS os itens apenas pelo Nome, Modelo ou Referência
+            $itens = Item::where('nome', 'LIKE', '%' . $search . '%')
+                ->orWhere('ipvc_ref', 'LIKE', '%' . $search . '%')
+                ->orWhere('model', 'LIKE', '%' . $search . '%')
+                ->get();
+        } else {
+            $itens = Item::all();
+        }
+
+        // Desenha os cartões na tela
+        if ($itens->count() > 0) {
+            foreach ($itens as $item) {
+                $output .= '<div class="col-sm-3 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-body text-center">
+                                        <h5>' . htmlspecialchars($item->nome, ENT_QUOTES, 'UTF-8') . '</h5>
+                                        <p>' . htmlspecialchars($item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</p>
+                                        <p>' . number_format($item->price_day, 2, ',', '.') . '€ / dia</p>
+                                        <a class="btn btn-primary" href="' . route('itens.show', ['id' => $item->id]) . '">VER DETALHES</a>
+                                    </div>
+                                </div>
+                            </div>';
+            }
+        } else {
+            $output = '<p>Nenhum item encontrado.</p>';
+        }
+
+        return response()->json($output);
+    } 
+    
+    // SE FOR O CARREGAMENTO NORMAL (ENTRAR NA PÁGINA)
+    else {
+        $itens = Item::all(); // Vai buscar TODOS, sem filtros de estado!
+    }
+
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        return view('admin.itens.index', ['itens' => $itens]);
+    }
+    return redirect('/');
+}
+
+    public function show($id)
+    {
+         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
+             return view('admin.itens.show', [
+                'item' => Item::find($id),
+                'categoria' => ItemCategorie::all()
+             ]);
+        }
+        return redirect('/');
+    }    
+
+    public function create()
+    {
+        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+            return view('admin.itens.create', [
+                'categorias' => ItemCategorie::all(),
+                //'itens' => Item::where('item_state_id', '=', 1)->where('kit_id', null)->get()
+            ]);
+        }
+        return redirect('/');
+    }
+
+
+    public function store(Request $request)
+    {
+        $request->validate(
+            [
+                'nome' => 'required',
+                'model' => 'required',
+                'preco' => 'required|numeric|min:0',
+                'price_day'     => 'required|numeric|min:0',
+                'quantity'      => 'required|integer|min:1',
+                'quantity_disp' => 'required|integer|min:0',
+                'categoria_id'  => 'required|exists:item_categories,id',
+               
+            ],
+            [
+                'nome.required' => 'O item deve ter um nome',
+                'model.required' => 'O item deve ter um modelo',
+                'preco.required' => 'O item deve ter um preço associado',
+                'price_day.required'     => 'O item deve ter um preço por dia associado.',
+                'quantity.required'      => 'Insira a quantidade total.',
+                'quantity_disp.required' => 'Insira a quantidade disponível para requisição.',
+            ]
+        );
+
+        if ($request->image != null) {
+            $imagePath = $request->file('image');
+            $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
+            $path = $request->file('image')->storeAs('images/itens', $imageName, 'public');
+        } else {
+            $path = "images/empty.png";
+        }
+
+            // MUDANÇA AQUI: Juntamos todos os dados do formulário num array
+        $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity', 'quantity_disp']);
+        $itemData['image'] = $path; // adiciona o caminho da imagem
+
+        // Guardamos tudo na sessão. Nada foi para a BD ainda!
+        return redirect()->route('itens.createUnities')->with([
+            'item_data' => $itemData,
+            'item_nome' => $request->nome,
+            'quantity'  => $request->quantity
+        ]);
+    }
+
+
+
+        public function createUnities()
+    {
+        $itemData  = session('item_data');
+        $item_nome = session('item_nome');
+        $quantity  = session('quantity');
+
+        if (!$itemData || !$quantity) {
+            return redirect()->route('itens.create')->with('toast_error', 'Por favor, preencha os dados do item primeiro.');
+        }
+
+        // Segura os dados do item na sessão para o próximo clique de botão
+        session()->flash('item_data', $itemData);
+        session()->flash('item_nome', $item_nome);
+        session()->flash('quantity', $quantity);
+
+        return view('admin.itens.unities', compact('item_nome', 'quantity'));
+    }
+
+    public function storeUnities(Request $request)
+{
+    // 1. Recupera os dados do item que estavam guardados na sessão
+    $itemData = session('item_data');
+
+    if (!$itemData) {
+        return redirect()->route('itens.create')->with('toast_error', 'Sessão expirada. Volte a preencher os dados do item.');
+    }
+
+    // 2. Valida os códigos LIA enviados do formulário
+    $request->validate([
+        'lia_codes'  => 'required|array',
+        'lia_codes.*'=> 'required|string|distinct|unique:item_unity,lia_code',
+    ], [
+        'lia_codes.*.required' => 'O código LIA é obrigatório.',
+        'lia_codes.*.unique'   => 'Este código LIA já existe no sistema.',
+        'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
+    ]);
+
+    // 3. ABRE A TRANSAÇÃO: Ou cria tudo com sucesso, ou não cria absolutamente nada
+    \Illuminate\Support\Facades\DB::transaction(function () use ($itemData, $request) {
+        
+        // Cria o Item Principal na BD neste momento
+        $item = Item::create($itemData);
+
+        // Cria todas as unidades associadas ao ID do item acabado de gerar
+        foreach ($request->lia_codes as $code) {
+            \App\Models\ItemUnity::create([
+                'lia_code'            => $code,
+                'item_id'             => $item->id,
+                'kit_unity_id'        => null,
+                'item_unity_state_id' => 1 
+            ]);
+        }
+    });
+
+    return redirect('admin/itens')->with('toast_success', 'Item criado com sucesso!');
+}
+
+
+   /* public function index(Request $request)
     {
         if ($request->ajax()) {
             $output = '';
@@ -287,4 +463,7 @@ class ItemController extends Controller
 
         return redirect(route('itens.show', $item->id));
     }
+
+*/
 }
+

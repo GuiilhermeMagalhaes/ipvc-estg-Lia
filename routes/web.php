@@ -69,6 +69,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/ocultos', [ItemController::class, 'ocultos'])->name('itens.ocultos');
             Route::get('/create', [ItemController::class, 'create'])->name('itens.create');
             Route::post('/', [ItemController::class, 'store'])->name('itens.store');
+            Route::get('/create-unities', [App\Http\Controllers\Admin\ItemController::class, 'createUnities'])->name('itens.createUnities');
+            Route::post('/store-unities', [App\Http\Controllers\Admin\ItemController::class, 'storeUnities'])->name('itens.storeUnities');
             Route::get('/{id}', [ItemController::class, 'show'])->name('itens.show');
             Route::get('/{id}/edit', [ItemController::class, 'edit'])->name('itens.edit');
             Route::put('/{id}', [ItemController::class, 'update'])->name('itens.update');
