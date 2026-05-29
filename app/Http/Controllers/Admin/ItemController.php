@@ -95,7 +95,7 @@ class ItemController extends Controller
                 'preco' => 'required|numeric|min:0',
                 'price_day'     => 'required|numeric|min:0',
                 'quantity'      => 'required|integer|min:1',
-                'quantity_disp' => 'required|integer|min:0',
+                'quantity_disp' => 'required|integer|min:0|lte:quantity',
                 'categoria_id'  => 'required|exists:item_categories,id',
                
             ],
@@ -106,6 +106,16 @@ class ItemController extends Controller
                 'price_day.required'     => 'O item deve ter um preço por dia associado.',
                 'quantity.required'      => 'Insira a quantidade total.',
                 'quantity_disp.required' => 'Insira a quantidade disponível para requisição.',
+
+                'quantity_disp.integer'  => 'A quantidade disponível deve ser um número inteiro.',
+                'quantity.integer'       => 'A quantidade total deve ser um número inteiro.',
+                
+                'preco.min'              => 'O preço não pode ser inferior a 0.',
+                'price_day.min'          => 'O preço por dia não pode ser inferior a 0.',
+                'quantity.min'           => 'A quantidade total deve ser pelo menos 1.',
+                'quantity_disp.min'      => 'A quantidade disponível não pode ser inferior a 0.',
+
+                'quantity_disp.lte'      => 'A quantidade disponível não pode ser superior à quantidade total.',
             ]
         );
 
@@ -176,7 +186,7 @@ class ItemController extends Controller
 
         // Cria todas as unidades associadas ao ID do item acabado de gerar
         foreach ($request->lia_codes as $code) {
-            \App\Models\ItemUnity::create([
+            ItemUnity::create([
                 'lia_code'            => $code,
                 'item_id'             => $item->id,
                 'kit_unity_id'        => null,

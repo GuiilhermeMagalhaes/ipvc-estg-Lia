@@ -57,7 +57,7 @@
             </div>
 
             <div class="form-group">
-                <label for="quantity_disp">Quantidade Disponível</label>
+                <label for="quantity_disp">Quantidade Disponível para Requisição</label>
                 <input type="number" name="quantity_disp" id="quantity_disp" class="form-control" value="{{ old('quantity_disp') }}">
                 <span style="color:red">{{$errors->first('quantity_disp')}}</span>
             </div>

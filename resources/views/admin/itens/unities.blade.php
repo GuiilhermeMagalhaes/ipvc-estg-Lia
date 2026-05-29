@@ -4,11 +4,8 @@
 
 @section('content')
 <br>
-    <div class="card card-success">
-        <div class="card-header">
-            <h3 class="card-title">Passo 2: Códigos LIA para as {{ $quantity }} Unidades de "{{ $item_nome }}"</h3>
-        </div>
-        <div class="card-body">
+    <div class="d-flex flex-column">
+            <h3 class="mb-4"> Códigos LIA para as {{ $quantity }} Unidades de "{{ $item_nome }}"</h3>
             <form action="{{ route('itens.storeUnities') }}" method="POST">
                 @csrf
 
@@ -22,8 +19,7 @@
                     </div>
                 @endfor
 
-                <button type="submit" class="btn btn-success">Criar novos itens</button>
+                <button type="submit" class="btn btn-success" style="width: 140px;">Criar itens</button>
             </form>
-        </div>
     </div>
 @endsection
