@@ -21,7 +21,7 @@
             <p class="card-text">{{ $unidade->item->ipvc_ref }}</p>
             <p class="card-text card-text-preco">{{ number_format($unidade->item->preco, 2, ',', '.') }} € / dia</p>
             
-            <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $unidade->item->id]) }}">VER DETALHES</a>
+            <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $unidade->id]) }}">VER DETALHES</a>
         </div>
     </div>
 </div>

@@ -32,9 +32,9 @@ class Item extends Model
     
 
    
-    public function itemUnity(): hasMany
+    public function itemUnities(): hasMany
     {
-        return $this->hasMany(ItemUnity::class, 'id');
+        return $this->hasMany(ItemUnity::class, 'item_id'); 
     }
 
     

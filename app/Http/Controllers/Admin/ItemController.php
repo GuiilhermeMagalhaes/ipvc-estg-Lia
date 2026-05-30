@@ -43,7 +43,7 @@ if ($unidades->count() > 0) {
                                 <small class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</small>
                                 <p class="card-text">' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</p>
                                 <p class="card-text card-text-preco">' . number_format($unidade->item->preco, 2, ',', '.') . ' € / dia</p>
-                                <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->item->id]) . '">VER DETALHES</a>
+                                <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                             </div>
                         </div>
                     </div>';
@@ -67,16 +67,26 @@ if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
 return redirect('/');
 }
 
+    
+
     public function show($id)
-    {
-         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-             return view('admin.itens.show', [
-                'item' => Item::find($id),
-                'categoria' => ItemCategorie::all()
-             ]);
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        // Buscamos a UNIDADE específica pelo ID dela, trazendo o item e o estado associados
+        $unidade = ItemUnity::with(['item', 'itemUnityState'])->find($id);
+
+        if (!$unidade) {
+            return redirect()->route('itens.index')->with('toast_error', 'Unidade não encontrada.');
         }
-        return redirect('/');
-    }    
+
+        return view('admin.itemUnities.show', [
+            'unidade'   => $unidade,
+            'item'      => $unidade->item, // Enviamos o item pai para não quebrar a tua estrutura
+            'categoria' => ItemCategorie::all()
+        ]);
+    }
+    return redirect('/');
+}
 
     public function create()
     {
@@ -267,6 +277,86 @@ public function ocultos(Request $request)
     
     return redirect('/');
 }
+
+
+public function updateUnity(Request $request, $id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        
+        // Valida se o LIA foi preenchido e se é único (ignorando o ID desta própria unidade)
+        $request->validate([
+            'lia_code' => 'required|string|unique:item_unity,lia_code,' . $id,
+            'item_unity_state_id' => 'required|exists:item_unity_states,id'
+        ], [
+            'lia_code.required' => 'O código LIA não pode ficar vazio.',
+            'lia_code.unique' => 'Este código LIA já está a ser usado noutra unidade.',
+        ]);
+
+        $unidade = ItemUnity::find($id);
+        
+        if ($unidade) {
+            // Atualiza apenas os dois campos da unidade física
+            $unidade->update($request->only(['lia_code', 'item_unity_state_id']));
+            return redirect()->route('itens.show', $id)->with('toast_success', 'Unidade atualizada com sucesso!');
+        }
+
+        return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
+    }
+    return redirect('/');
+}
+
+
+public function edit($id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        
+        $item = Item::find($id);
+        $categorias = ItemCategorie::all();
+
+        if (!$item) {
+            return redirect()->route('itens.index')->with('toast_error', 'Item não encontrado.');
+        }
+
+        return view('admin.itens.edit', compact('item', 'categorias'));
+    }
+    return redirect('/');
+}
+
+public function update(Request $request, $id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        
+        $request->validate([
+            'nome' => 'required',
+            'model' => 'required',
+            'preco' => 'required|numeric|min:0',
+            'categoria_id' => 'required|exists:item_categories,id',
+        ]);
+
+        $item = Item::find($id);
+
+        if (!$item) {
+            return redirect()->route('itens.index')->with('toast_error', 'Item não encontrado.');
+        }
+
+        // Lógica para se alterar a imagem (opcional, igual ao teu store)
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image');
+            $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
+            $path = $request->file('image')->storeAs('images/itens', $imageName, 'public');
+            $item->image = $path;
+        }
+
+        // Atualiza os restantes campos do item principal
+        $item->update($request->except(['image']));
+
+        // Redireciona para o index geral de itens
+        return redirect('admin/itens')->with('toast_success', 'Item global atualizado com sucesso!');
+    }
+    return redirect('/');
+}
+
+
 
    /* public function index(Request $request)
     {
