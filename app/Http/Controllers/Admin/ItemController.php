@@ -156,7 +156,7 @@ class ItemController extends Controller
         session()->flash('item_nome', $item_nome);
         session()->flash('quantity', $quantity);
 
-        return view('admin.itens.unities', compact('item_nome', 'quantity'));
+        return view('admin.itemUnities.create', compact('item_nome', 'quantity'));
     }
 
     public function storeUnities(Request $request)

@@ -17,7 +17,7 @@ class CreateItemUnityTable extends Migration
 
             $table->bigIncrements('id');
 
-            $table->string('lia_code');
+            $table->string('lia_code')->unique();
 
             $table->unsignedBigInteger('item_id');
 
