@@ -213,6 +213,61 @@ return redirect('/');
 }
 
 
+
+public function ocultos(Request $request)
+{
+    // 1. SE FOR A PESQUISA (AJAX)
+    if ($request->ajax()) {
+        $output = '';
+        $search = $request->search;
+
+        // FILTRO MUDA AQUI: procuramos apenas pelo estado 2 (Oculto)
+        $query = ItemUnity::with('item')->where('item_unity_state_id', 2);
+
+        if (!empty($search)) {
+            $query->whereHas('item', function($q) use ($search) {
+                $q->where('nome', 'LIKE', '%' . $search . '%')
+                  ->orWhere('ipvc_ref', 'LIKE', '%' . $search . '%')
+                  ->orWhere('model', 'LIKE', '%' . $search . '%');
+            });
+        }
+
+        $unidades = $query->get();
+
+        if ($unidades->count() > 0) {
+            foreach ($unidades as $unidade) {
+                $output .= '<div class="col-sm-3 mb-4">
+                                <div class="card h-100 bg-light"> <div class="card-body d-flex flex-column justify-content-center text-center">
+                                        <h1 class="card-title text-muted">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
+                                        <small class="text-danger mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . ' (Oculto)</small>
+                                        <p class="card-text">' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</p>
+                                        <p class="card-text card-text-preco">' . number_format($unidade->item->preco, 2, ',', '.') . ' € / dia</p>
+                                        <a class="btn btn-secondary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->item->id]) . '">VER DETALHES</a>
+                                    </div>
+                                </div>
+                            </div>';
+            }
+        } else {
+            $output = '<p>Nenhum item oculto encontrado.</p>';
+        }
+
+        return response()->json($output);
+    } 
+    
+    // 2. SE FOR O CARREGAMENTO NORMAL
+    else {
+        // FILTRO MUDA AQUI: estado 2
+        $unidades = ItemUnity::with('item')->where('item_unity_state_id', 2)->get();
+    }
+
+    // 3. SEGURANÇA E REDIRECIONAMENTO
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        return view('admin.itemUnities.ocultos', ['unidades' => $unidades]);
+    }
+    
+    return redirect('/');
+}
+
    /* public function index(Request $request)
     {
         if ($request->ajax()) {
