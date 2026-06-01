@@ -3,10 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
-
-
+use App\Models\Item;
+use App\Models\Reserve;
 
 class ItemReserve extends Model
 {
@@ -19,23 +17,13 @@ class ItemReserve extends Model
         'item_id'
     ];
 
-    /**
-     * Get all of the items for the Reserve
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function reserves(): HasMany
+    public function item()
     {
-        return $this->HasMany(Reserve::class);
+        return $this->belongsTo(Item::class, 'item_id'); 
     }
     
-    /**
-     * Get all of the items for the Reserve
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function itens(): HasMany
+    public function reserve()
     {
-        return $this->HasMany(Item::class);
+        return $this->belongsTo(Reserve::class, 'reserve_id');
     }
 }

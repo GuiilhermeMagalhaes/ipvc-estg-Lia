@@ -132,6 +132,8 @@ return redirect('/');
                     'quantity_disp.min'      => 'A quantidade disponível não pode ser inferior a 0.',
 
                     'quantity_disp.lte'      => 'A quantidade disponível não pode ser superior à quantidade total.',
+
+                    
                 ]
             );
 
@@ -405,7 +407,8 @@ public function updateUnitiesEtapa(Request $request, $id)
             'observation' => $dadosItem['observation'] ?? null,
             'acessorio' => $dadosItem['acessorio'] ?? null,
             'image' => $dadosItem['image'],
-            'categoria_id' => $dadosItem['categoria_id']
+            'categoria_id' => $dadosItem['categoria_id'], 
+            'data_aquisicao' => $request->data_aquisicao
         ]);
 
         // 4. Atualizar os LIAs das unidades antigas que foram modificados

@@ -31,6 +31,16 @@
                 <span style="color:red">{{$errors->first('serial_number')}}</span>
             </div>
             <div class="form-group">
+                <label for="preco">Preço</label>
+                <input type="number" name="preco" id="preco" class="form-control" step="0.01" value="{{ old('preco', $item->preco) }}">
+                <span style="color:red">{{$errors->first('preco')}}</span>
+            </div>
+            <div class="form-group">
+                <label for="data_aquisicao">Data de Aquisição</label>
+                <input type="date" name="data_aquisicao" id="data_aquisicao" class="form-control" value="{{ old('data_aquisicao', $item->data_aquisicao ? $item->data_aquisicao->format('Y-m-d') : '') }}">
+                <span style="color:red">{{$errors->first('data_aquisicao')}}</span>
+            </div>
+            <div class="form-group">
                 <label for="observation">Observações</label>
                 <input type="text" name="observation" class="form-control" value="{{ old('observation', $item->observation) }}">
                 <span style="color:red">{{$errors->first('observation')}}</span>

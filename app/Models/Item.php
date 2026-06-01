@@ -23,6 +23,7 @@ class Item extends Model
         'categoria_id',
         'image',
         'observation',
+        'data_aquisicao',
         'acessorio', 
         'price_day',
         'quantity',
@@ -43,5 +44,12 @@ class Item extends Model
         return $this->belongsTo(ItemCategorie::class, 'categoria_id');
     }
 
+    
+     public function getTempoDeVidaAttribute()
+{
+    if (!$this->data_aquisicao) {
+        return 'Data de aquisição desconhecida';
+    }
    
+}
 }

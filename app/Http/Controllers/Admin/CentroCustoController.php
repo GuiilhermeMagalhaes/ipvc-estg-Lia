@@ -10,14 +10,19 @@ use App\Models\Reserve;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
+// --- NOVAS IMPORTAÇÕES NECESSÁRIAS ---
+use Illuminate\Support\Facades\DB;
+use App\Models\ItemReserve;
+use App\Models\KitReserve;
+// -------------------------------------
 
 class CentroCustoController extends Controller
 {
     public function index(){
         if (Auth::user()->user_type_id == 1) {
             return view('admin.centros.index', ['centros' => CostCenter::all(), 
-                                            'cost_center_user' => CostCenterUser::all(),
-                                            'users'=>User::all()]);
+                                                'cost_center_user' => CostCenterUser::all(),
+                                                'users'=>User::all()]);
         }
         return redirect('/');
     }
@@ -114,7 +119,47 @@ class CentroCustoController extends Controller
 
     public function reservas($id){
         if (Auth::user()->user_type_id == 1) {
-            return view('admin.centros.reservas', ['reserves' => Reserve::all(), 'id' => $id]);
+            
+            // 1. Ir buscar apenas os IDs das reservas que pertencem a ESTE centro de custo
+            $reservasDoCentroIds = Reserve::where('cost_center_id', $id)->pluck('id');
+
+            // 2. Contar os Itens GERAIS, mas apenas destas reservas específicas
+            $topItens = ItemReserve::whereIn('reserve_id', $reservasDoCentroIds)
+                ->select('item_id', DB::raw('count(*) as total'))
+                ->groupBy('item_id')
+                ->with('item') 
+                ->get()
+                ->map(function($row) {
+                    return [
+                        'nome' => $row->item->nome ?? 'Item Desconhecido', 
+                        'total' => $row->total
+                    ];
+                });
+
+            // 3. Contar os Kits, mas apenas destas reservas específicas
+            $topKits = KitReserve::whereIn('reserve_id', $reservasDoCentroIds)
+                ->select('kit_id', DB::raw('count(*) as total'))
+                ->groupBy('kit_id')
+                ->with('kit') 
+                ->get()
+                ->map(function($row) {
+                    return [
+                        'nome' => ($row->kit->nome ?? 'Kit Desconhecido') . ' (Kit)', 
+                        'total' => $row->total
+                    ];
+                });
+
+            // 4. Juntar as duas listas, ordenar e apanhar apenas o "Top 5"
+            $topEquipamentos = $topItens->concat($topKits)
+                ->sortByDesc('total')
+                ->take(5)
+                ->values();
+
+            return view('admin.centros.reservas', [
+                'reserves' => Reserve::all(), // Mantive o teu Reserve::all() para não estragar a tabela que já tinhas!
+                'id' => $id,
+                'topEquipamentos' => $topEquipamentos // <-- A nova variável enviada para o Blade
+            ]);
         }
         return redirect('/');
     }

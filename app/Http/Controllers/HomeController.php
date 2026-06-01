@@ -7,16 +7,19 @@ use App\Models\Reserve;
 use App\Models\CostCenter;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\Item;
 use App\Models\Kit;
 use App\Models\KitReserve;
 use App\Models\ItemReserve;
 use App\Models\SpaceReserve;
+use Carbon\Carbon;
 use PDF;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromView;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+
 
 
 class HomeController extends Controller
@@ -26,7 +29,7 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index()
+ public function index()
     {
         $reservas = Reserve::all();
 
@@ -44,51 +47,72 @@ class HomeController extends Controller
         return view('layouts.menu', ['categories' => ItemCategorie::all()]);
     }
 
-    public function adminIndex()
+   public function adminIndex()
     {
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-
-            // Obter todos os centros de custo
             $centros = CostCenter::all();
-
-            // Calcular total_cost de todos os centros de custo
             $totalCost = $centros->sum('total_cost');
-
-            // Calcular total_debt de todos os centros de custo
             $totalDebt = $centros->sum('total_debt');
-
-            $users = User::all();
-            // Calcula o número total de usuários
-            $totalUsers = $users->count();
-
+            $totalUsers = User::all()->count();
             $reserves = Reserve::all();
 
-            $ongoingReserves = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 7 || $reserve->reserveState->id == 8;
-            });
-            // Contar reservas em andamento (estados 7 e 8)
-            $ongoingCount = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 7 || $reserve->reserveState->id == 8;
-            })->count();
-            // Contar reservas pendentes (estado 1)
-            $pendingCount = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 1;
-            })->count();
-            // Filtrar reservas em atraso (estado 7 e todaydate > end_date)
-            $delayedReserves = $reserves->filter(function ($reserve) {
-                return $reserve->reserveState->id == 4;
-            });
+            $ongoingReserves = $reserves->filter(fn($r) => $r->reserveState->id == 7 || $r->reserveState->id == 8);
+            $ongoingCount = $ongoingReserves->count();
+            $pendingCount = $reserves->filter(fn($r) => $r->reserveState->id == 1)->count();
+            $delayedReserves = $reserves->filter(fn($r) => $r->reserveState->id == 4);
 
-            return view('layouts.admin-home', [
-                'reserves' => $reserves,
-                'ongoingReserves' => $ongoingReserves,
-                'ongoingCount' => $ongoingCount,
-                'pendingCount' => $pendingCount,
-                'delayedReserves' => $delayedReserves,
-                'totalCost' => $totalCost,
-                'totalDebt' => $totalDebt,
-                'totalUsers' => $totalUsers
+            // 1. GRÁFICO CENTROS DE CUSTO
+            $stats = Reserve::select('cost_center_id', DB::raw('count(*) as total'))
+                ->groupBy('cost_center_id')
+                ->with('costCenter')
+                ->orderByDesc('total')
+                ->limit(10)
+                ->get();
+            $labels = $stats->map(fn($s) => $s->costCenter->name ?? 'Sem Centro')->toArray();
+            $values = $stats->pluck('total')->toArray();
+
+            // 2. TOP 10 EQUIPAMENTOS (QUANTIDADE)
+            $topItens = ItemReserve::with(['item', 'reserve'])->get()->groupBy('item_id')->map(fn($g) => [
+                'nome' => $g->first()->item->nome ?? 'Item Desconhecido',
+                'total' => $g->count()
             ]);
+            $topKits = KitReserve::with(['kit', 'reserve'])->get()->groupBy('kit_id')->map(fn($g) => [
+                'nome' => ($g->first()->kit->name ?? 'Kit Desconhecido') . ' (Kit)',
+                'total' => $g->count()
+            ]);
+            $topEquipamentos = $topItens->concat($topKits)->sortByDesc('total')->take(10)->values();
+            $topNomes = $topEquipamentos->pluck('nome')->toArray();
+            $topValores = $topEquipamentos->pluck('total')->toArray();
+
+            // 3. MATERIAIS MAIS LUCRATIVOS (VALOR)
+            $calcLucro = function($g, $tipo) {
+                $total = 0;
+                foreach ($g as $pivot) {
+                    $res = $pivot->reserve;
+                    if ($res && $res->start_date && $res->end_date) {
+                        $dias = max(1, Carbon::parse($res->start_date)->diffInDays(Carbon::parse($res->end_date)));
+                        $preco = ($tipo == 'item' ? ($pivot->item->price_day ?? 0) : ($pivot->kit->price_day ?? 0));
+                        $total += ($dias * $preco);
+                    }
+                }
+                return $total;
+            };
+
+            $lucroItens = ItemReserve::with(['item', 'reserve'])->get()->groupBy('item_id')->map(fn($g) => [
+                'nome' => $g->first()->item->nome ?? 'Item Desconhecido',
+                'dinheiro_gerado' => $calcLucro($g, 'item')
+            ]);
+            $lucroKits = KitReserve::with(['kit', 'reserve'])->get()->groupBy('kit_id')->map(fn($g) => [
+                'nome' => ($g->first()->kit->name ?? 'Kit Desconhecido') . ' (Kit)',
+                'dinheiro_gerado' => $calcLucro($g, 'kit')
+            ]);
+
+            $topDinheiro = $lucroItens->concat($lucroKits)->sortByDesc('dinheiro_gerado')->take(5)->values();
+
+            return view('layouts.admin-home', compact(
+                'reserves', 'ongoingReserves', 'ongoingCount', 'pendingCount', 'delayedReserves', 
+                'totalCost', 'totalDebt', 'totalUsers', 'labels', 'values', 'topNomes', 'topValores', 'topDinheiro'
+            ));
         }
         return redirect('/');
     }

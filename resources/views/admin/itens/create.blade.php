@@ -60,6 +60,9 @@
                 <label for="quantity_disp">Quantidade Disponível para Requisição</label>
                 <input type="number" name="quantity_disp" id="quantity_disp" class="form-control" value="{{ old('quantity_disp') }}">
                 <span style="color:red">{{$errors->first('quantity_disp')}}</span>
+                <label for="data_aquisicao">Data de Aquisição</label>
+                <input type="date" name="data_aquisicao" id="data_aquisicao" class="form-control" value="{{ old('data_aquisicao') }}">
+                <span style="color:red">{{$errors->first('data_aquisicao')}}</span>
             </div>
             <div class="form-group">
                 <label for="observation">Observações</label>

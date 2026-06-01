@@ -45,16 +45,19 @@
                     @endforeach
                     <p>Observação: {{ $item->observation }}</p>
                     <p>Acessórios: {{ $item->acessorio }}</p>
+                    <p>Data de Aquisição: {{ $item->data_aquisicao ? $item->data_aquisicao->format('d/m/Y') : 'N/A' }}</p>
+                    <p>Tempo de Vida: {{ $item->tempo_de_vida }}</p>
                     <hr>
                     <div class="container d-flex justify-content-center align-items-center text-center flex-column" id="calendar">
                         <div id="datepicker"></div>
                         @php
                         $reservasJS = [];
                         foreach ($reservas as $reserva) {
-                        $reservasJS[] = [
-                        'start' => $reserva['start_date'],
-                        'end' => $reserva['end_date']
-                        ];
+                            $reservasJS[] = [
+                                'start' => $reserva['start_date'],
+                                'end' => $reserva['end_date'],
+                                'ciclica_id' => $reserva['ciclica_id'] ?? 1 // Lemos o ciclica_id
+                            ];
                         }
                         @endphp
                         @if(count($reservas) == 0)
@@ -82,7 +85,7 @@
                                 <div class="form-group" style="margin-right: 10px; margin-top:15px;">
                                     <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ $itemCount }}" value="1" style="width: 50px;">
                                 </div>
-                                <button type="send" class="btn btn-outline-dark" id="item">
+                                <button type="submit" class="btn btn-outline-dark" id="item">
                                     <i class="fas fa-cart-plus fa-lg mr-2"></i>
                                     Reservar
                                 </button>
@@ -147,14 +150,21 @@
     var reservas = @json($reservasJS);
 
     function parseDate(dateStr) {
-        var parts = dateStr.split('/');
-        return new Date(parts[2], parts[1] - 1, parts[0]);
+        // Se a data vier com -, é formato Y-m-d (Carbon). Se for com /, é o teu antigo (d/m/Y).
+        if(dateStr.includes('-')) {
+            var parts = dateStr.split('-');
+            return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0);
+        } else {
+            var parts = dateStr.split('/');
+            return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0);
+        }
     }
 
     var parsedReservas = reservas.map(function(reserva) {
         return {
             start: parseDate(reserva.start),
-            end: parseDate(reserva.end)
+            end: parseDate(reserva.end),
+            ciclica_id: reserva.ciclica_id
         };
     });
 
@@ -164,36 +174,49 @@
         bound: false,
         minDate: new Date(),
         onDraw: function() {
-            // Seleciona todos os botões do Pikaday
             var days = document.querySelectorAll('.pika-button');
 
-            // Itera sobre cada botão para verificar se está dentro de algum intervalo de reserva
             days.forEach(function(day) {
                 var year = day.getAttribute('data-pika-year');
                 var month = day.getAttribute('data-pika-month');
                 var dayNum = day.getAttribute('data-pika-day');
-                var dayDate = new Date(year, month, dayNum);
+                var dayDate = new Date(year, month, dayNum, 0, 0, 0);
 
                 var isHighlighted = false;
 
-                // Verifica se o dia está dentro de algum intervalo de reserva
                 parsedReservas.forEach(function(reserva) {
                     var start = reserva.start;
                     var end = reserva.end;
+                    var ciclica_id = reserva.ciclica_id;
 
+                    // Verifica se o dia cai dentro do período base
                     if (dayDate >= start && dayDate <= end) {
-                        isHighlighted = true;
+                        
+                        // SE NÃO FOR CÍCLICA -> Destaca o dia
+                        if (ciclica_id == 1 || ciclica_id == null) {
+                            isHighlighted = true;
+                        } 
+                        // SE FOR CÍCLICA -> Destaca apenas se bater certo no dia da semana
+                        else {
+                            var dayOfWeekCalendario = dayDate.getDay(); // 0 = Domingo, 1 = Segunda...
+                            var dayOfWeekCiclica = ciclica_id - 2; // Segundo a tua lógica: 2=Domingo, 3=Segunda...
+
+                            if (dayOfWeekCalendario === dayOfWeekCiclica) {
+                                isHighlighted = true;
+                            }
+                        }
                     }
                 });
 
-                // Adiciona ou remove a classe 'has-event' com base na verificação
                 if (isHighlighted) {
                     day.classList.add('has-event');
+                    // Descomenta a linha de baixo se quiseres que o dia fique impossível de clicar:
+                    // day.classList.add('is-disabled'); 
                 } else {
                     day.classList.remove('has-event');
                 }
             });
-            // Define o z-index do container do Pikaday
+            
             document.querySelector('.pika-single').style.zIndex = '1';
         }
     });
