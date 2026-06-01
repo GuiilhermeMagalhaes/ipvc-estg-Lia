@@ -45,6 +45,8 @@
                     @endforeach
                     <p>Observação: {{ $item->observation }}</p>
                     <p>Acessórios: {{ $item->acessorio }}</p>
+                    <p>Data de Aquisição: {{ $item->data_aquisicao ? $item->data_aquisicao->format('d/m/Y') : 'N/A' }}</p>
+                    <p>Tempo de Vida: {{ $item->tempo_de_vida }}</p>
                     <hr>
                     <div class="container d-flex justify-content-center align-items-center text-center flex-column" id="calendar">
                         <div id="datepicker"></div>

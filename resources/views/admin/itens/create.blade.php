@@ -39,6 +39,11 @@
                 <span style="color:red">{{$errors->first('preco')}}</span>
             </div>
             <div class="form-group">
+                <label for="data_aquisicao">Data de Aquisição</label>
+                <input type="date" name="data_aquisicao" id="data_aquisicao" class="form-control" value="{{ old('data_aquisicao') }}">
+                <span style="color:red">{{$errors->first('data_aquisicao')}}</span>
+            </div>
+            <div class="form-group">
                 <label for="observation">Observações</label>
                 <input type="text" name="observation" id="observation" class="form-control" value="{{ old('observation') }}">
                 <span style="color:red">{{$errors->first('observation')}}</span>

@@ -26,9 +26,13 @@ class Item extends Model
         'image',
         'lia_code',
         'observation',
-        'acessorio'
+        'acessorio',
+        'data_aquisicao'
     ];
 
+    protected $casts = [
+        'data_aquisicao' => 'date',
+    ];
     /**
      * Get the kit that owns the Item
      *
@@ -68,4 +72,13 @@ class Item extends Model
     {
         return $this->belongsTo(ItemState::class);
     }
+
+    public function getTempoDeVidaAttribute()
+{
+    if (!$this->data_aquisicao) {
+        return 'Data de aquisição desconhecida';
+    }
+
+    return $this->data_aquisicao->locale('pt_PT')->diffForHumans(null, true);
+}
 }

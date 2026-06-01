@@ -200,6 +200,7 @@ class ItemController extends Controller
             'preco' => $request->preco,
             'categoria_id' => $request->categoria_id,
             'item_state_id' => $request->item_state_id,
+            'data_aquisicao' => $request->data_aquisicao,
             'image' => $path
         ]);
 
@@ -241,7 +242,7 @@ class ItemController extends Controller
         return redirect('/');
     }
 
-    public function update(Request $request, $id)
+   public function update(Request $request, $id)
     {
         $item = Item::find($id);
 
@@ -278,6 +279,7 @@ class ItemController extends Controller
             'preco' => $request->preco,
             'observation' => $request->observation,
             'acessorio' => $request->acessorio,
+            'data_aquisicao' => $request->data_aquisicao, // <-- ADICIONADO AQUI
             'categoria_id' => $request->categoria_id,
             'item_state_id' => $request->item_state_id,
             'image' => $path

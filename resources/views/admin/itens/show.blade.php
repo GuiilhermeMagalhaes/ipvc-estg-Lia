@@ -21,13 +21,19 @@
                     <li class="list-group-item">Referência IPVC : {{ $item->ipvc_ref }}</li>
                     <li class="list-group-item">Número de Série : {{ $item->serial_number }}</li>
                     <li class="list-group-item">Preço / dia : {{number_format($item->preco, 2, ',', '.')}} €</li>
+                    
                     @foreach ($categoria as $cat)
-                    @if ($item->categoria_id == $cat->id)
-                    <li class="list-group-item">Categoria : {{ $cat->description }}</li>
-                    @endif
+                        @if ($item->categoria_id == $cat->id)
+                            <li class="list-group-item">Categoria : {{ $cat->description }}</li>
+                        @endif
                     @endforeach
+                    
                     <li class="list-group-item">Observações : {{ $item->observation }}</li>
                     <li class="list-group-item">Acessórios : {{ $item->acessorio }}</li>
+                    
+                    <li class="list-group-item">Data de Aquisição : {{ $item->data_aquisicao ? $item->data_aquisicao->format('d/m/Y') : 'N/A' }}</li>
+                    <li class="list-group-item">Tempo de Vida : {{ $item->tempo_de_vida }}</li>
+
                     <li class="list-group-item">
                         <div class="row">
                             <div class="container-fluid d-flex justify-content-end">
