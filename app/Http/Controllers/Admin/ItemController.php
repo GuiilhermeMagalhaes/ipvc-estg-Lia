@@ -79,10 +79,15 @@ return redirect('/');
             return redirect()->route('itens.index')->with('toast_error', 'Unidade não encontrada.');
         }
 
+        $unidadesDoItem = ItemUnity::where('item_id', $unidade->item_id)
+                                       ->whereIn('item_unity_state_id', [1, 2])
+                                       ->get();
+
         return view('admin.itemUnities.show', [
             'unidade'   => $unidade,
             'item'      => $unidade->item, // Enviamos o item pai para não quebrar a tua estrutura
-            'categoria' => ItemCategorie::all()
+            'categoria' => ItemCategorie::all(),
+            'unidadesDoItem' => $unidadesDoItem
         ]);
     }
     return redirect('/');
@@ -439,5 +444,37 @@ public function updateUnitiesEtapa(Request $request, $id)
     }
     return redirect('/');
 }
+
+
+
+    public function anularUnity($id)
+    {
+        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+            
+            $unidade = ItemUnity::find($id);
+
+            if (!$unidade) {
+                return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
+            }
+
+            // Usamos uma Transação para garantir que faz as duas operações ou nenhuma
+            \Illuminate\Support\Facades\DB::transaction(function () use ($unidade) {
+                // 1. Atualiza o estado da unidade para 3 (Anulado)
+                $unidade->update([
+                    'item_unity_state_id' => 3 // Substitui pelo ID correto do teu estado "Anulado"
+                ]);
+
+                // 2. Procura o Item pai e retira 1 unidade ao stock total e disponível
+                $item = $unidade->item;
+                if ($item) {
+                    $item->decrement('quantity', 1);
+                    $item->decrement('quantity_disp', 1);
+                }
+            });
+
+            return redirect()->route('itens.index')->with('toast_success', 'Unidade anulada e stock atualizado com sucesso!');
+        }
+        return redirect('/');
+    }
 }
 

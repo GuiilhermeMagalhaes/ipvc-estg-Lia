@@ -16,8 +16,8 @@
             <div>
                 <ul class="list-group">
                     <li class="list-group-item">Nome : {{ $kit->name }}</li>
-                    <li class="list-group-item">Código LIA : {{ $kit->lia_code }}</li>
                     <li class="list-group-item">Referência IPVC : {{ $kit->ipvc_ref }}</li>
+                     <li class="list-group-item">Código LIA : {{ $kit->lia_code }}</li>
                     <li class="list-group-item">Preço / dia : {{ number_format($kit->price, 2, ',', '.') }} €</li>
                     @foreach ($categoria as $cat)
                     @if ($kit->categoria_id == $cat->id)

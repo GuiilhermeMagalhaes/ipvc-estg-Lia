@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/{id}/update-unity', [ItemController::class, 'updateUnity'])->name('unidades.updateUnity');
             // Rota para processar a segunda etapa da edição (LIAs e novas unidades)
             Route::post('/{id}/update-unities-step', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
+            Route::delete('/{id}/anular', [ItemController::class, 'anularUnity'])->name('unidades.anular');
             Route::delete('{id}', [ItemController::class, 'destroy'])->name('itens.destroy');
         });
 
