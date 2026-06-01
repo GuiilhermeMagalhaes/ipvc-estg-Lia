@@ -326,36 +326,116 @@ public function update(Request $request, $id)
 {
     if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
         
+        $item = Item::find($id);
+        if (!$item) {
+            return redirect()->route('itens.index')->with('toast_error', 'Item não encontrado.');
+        }
+
+        // 1. Validar dados gerais e impedir que a quantidade seja menor que a atual
         $request->validate([
             'nome' => 'required',
             'model' => 'required',
             'preco' => 'required|numeric|min:0',
             'categoria_id' => 'required|exists:item_categories,id',
+            'quantity' => 'required|integer|min:' . $item->quantity, // Bloqueia diminuição
+            'quantity_disp' => 'required|integer|min:0',
+        ], [
+            'quantity.min' => 'Não é permitido diminuir a quantidade total de itens já registados (' . $item->quantity . ').',
         ]);
 
-        $item = Item::find($id);
-
-        if (!$item) {
-            return redirect()->route('itens.index')->with('toast_error', 'Item não encontrado.');
-        }
-
-        // Lógica para se alterar a imagem (opcional, igual ao teu store)
+        // 2. Tratar o upload da imagem (se o utilizador carregou uma nova)
+        $path = $item->image;
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image');
             $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
             $path = $request->file('image')->storeAs('images/itens', $imageName, 'public');
-            $item->image = $path;
         }
 
-        // Atualiza os restantes campos do item principal
-        $item->update($request->except(['image']));
+        // 3. GUARDAR NA SESSÃO (Não faz update na BD ainda!)
+        $dadosItem = $request->except(['image']);
+        $dadosItem['image'] = $path; // adiciona o caminho da foto certa
+        session(['dados_item_edicao' => $dadosItem]);
 
-        // Redireciona para o index geral de itens
-        return redirect('admin/itens')->with('toast_success', 'Item global atualizado com sucesso!');
+        // 4. Calcular quantas novas unidades vão ser criadas com base no aumento
+        $unidadesAtuais = ItemUnity::where('item_id', $item->id)->get();
+        $novasUnidadesQtd = $request->quantity - $unidadesAtuais->count();
+
+        // 5. Avança para a página seguinte enviando os dados de suporte
+        return view('admin.itemUnities.edit', [
+            'item' => $item,
+            'unidadesAtuais' => $unidadesAtuais,
+            'novasUnidadesQtd' => $novasUnidadesQtd
+        ]);
     }
     return redirect('/');
 }
 
+
+public function updateUnitiesEtapa(Request $request, $id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        $item = Item::find($id);
+
+        // 1. Validar os códigos LIA vindos da segunda página
+        $request->validate([
+            'lias_atuais.*' => 'required|string',
+            'novos_lias.*' => 'sometimes|required|string'
+        ], [
+            'lias_atuais.*.required' => 'O código LIA existente não pode ficar vazio.',
+            'novos_lias.*.required' => 'Deves preencher o código LIA para as novas unidades.',
+        ]);
+
+        // 2. Recuperar os dados gerais do Item que guardámos na Sessão no Passo 1
+        $dadosItem = session('dados_item_edicao');
+
+        if (!$dadosItem) {
+            return redirect()->route('itens.edit', $id)->with('toast_error', 'Sessão expirada. Por favor tente novamente.');
+        }
+
+        // 3. AGORA SIM: Fazemos o update real na tabela de Itens
+        $item->update([
+            'nome' => $dadosItem['nome'],
+            'model' => $dadosItem['model'],
+            'ipvc_ref' => $dadosItem['ipvc_ref'] ?? null,
+            'serial_number' => $dadosItem['serial_number'] ?? null,
+            'preco' => $dadosItem['preco'],
+            'price_day' => $dadosItem['price_day'] ?? null,
+            'quantity' => $dadosItem['quantity'],
+            'quantity_disp' => $dadosItem['quantity_disp'],
+            'observation' => $dadosItem['observation'] ?? null,
+            'acessorio' => $dadosItem['acessorio'] ?? null,
+            'image' => $dadosItem['image'],
+            'categoria_id' => $dadosItem['categoria_id']
+        ]);
+
+        // 4. Atualizar os LIAs das unidades antigas que foram modificados
+        if ($request->has('lias_atuais')) {
+            foreach ($request->lias_atuais as $unityId => $liaCode) {
+                $unity = ItemUnity::find($unityId);
+                if ($unity) {
+                    $unity->update(['lia_code' => $liaCode]);
+                }
+            }
+        }
+
+        // 5. Criar as novas unidades físicas com os novos LIAs preenchidos
+        if ($request->has('novos_lias')) {
+            foreach ($request->novos_lias as $novoLia) {
+                ItemUnity::create([
+                    'item_id' => $item->id,
+                    'lia_code' => $novoLia,
+                    'item_unity_state_id' => 1 // Ativo por defeito
+                ]);
+            }
+        }
+
+        // Limpa a sessão para não deixar lixo em memória
+        session()->forget('dados_item_edicao');
+
+        return redirect()->route('itens.index')->with('toast_success', 'Item e unidades gravados com sucesso!');
+    }
+    return redirect('/');
+}
 
 
    /* public function index(Request $request)

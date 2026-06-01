@@ -74,6 +74,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/{id}', [ItemController::class, 'show'])->name('itens.show');
             Route::get('/{id}/edit', [ItemController::class, 'edit'])->name('itens.edit');
             Route::put('/{id}', [ItemController::class, 'update'])->name('itens.update');
+            Route::put('/{id}/update-unity', [ItemController::class, 'updateUnity'])->name('unidades.updateUnity');
+            // Rota para processar a segunda etapa da edição (LIAs e novas unidades)
+            Route::post('/{id}/update-unities-step', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
             Route::delete('{id}', [ItemController::class, 'destroy'])->name('itens.destroy');
         });
 
