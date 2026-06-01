@@ -20,51 +20,28 @@ class Item extends Model
         'model',
         'serial_number',
         'preco',
-        'categoria_id' ,
-        'item_state_id',
+        'categoria_id',
         'image',
-        'lia_code',
         'observation',
-        'acessorio'
+        'acessorio', 
+        'price_day',
+        'quantity',
+        'quantity_disp',  
     ];
 
-    /**
-     * Get the kit that owns the Item
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function kit(): BelongsTo
+    
+
+   
+    public function itemUnities(): hasMany
     {
-        return $this->belongsTo(Kit::class);
+        return $this->hasMany(ItemUnity::class, 'item_id'); 
     }
 
-    /**
-     * Get the reserve that owns the Item
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    public function reserves(): BelongsToMany
-    {
-        return $this->belongsToMany(Reserve::class, 'id');
-    }
-
-        /**
-     * Get the itemCategorie that owns the Item
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
+    
     public function itemCategorie(): BelongsTo
     {
         return $this->belongsTo(ItemCategorie::class, 'categoria_id');
     }
 
-    /**
-     * Get the item_state that owns the Item
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function itemState(): BelongsTo
-    {
-        return $this->belongsTo(ItemState::class);
-    }
+   
 }

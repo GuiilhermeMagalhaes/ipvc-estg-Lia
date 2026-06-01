@@ -10,19 +10,23 @@
     </form>
     <br>
     <div class="row mycard">
-        @foreach($itens as $item)
-        <div class="col-sm-3 mb-4">
-            <div class="card h-100">
-                <div class="card-body d-flex flex-column justify-content-center text-center">
-                    <h1 class="card-title">{{$item->nome}}</h1>
-                    <p class="card-text">{{$item->ipvc_ref}}</p>
-                    <p class="card-text card-text-preco">{{number_format($item->preco, 2, ',', '.')}} € / dia</p>
-                    <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $item->id])}}">VER DETALHES</a>
-                </div>
-            </div>
+    @foreach($unidades as $unidade)
+<div class="col-sm-3 mb-4">
+    <div class="card h-100">
+        <div class="card-body d-flex flex-column justify-content-center text-center">
+            <h1 class="card-title">{{ $unidade->item->nome }}</h1>
+            
+            <small class="text-muted mb-2">LIA: {{ $unidade->lia_code }}</small>
+            
+            <p class="card-text">{{ $unidade->item->ipvc_ref }}</p>
+            <p class="card-text card-text-preco">{{ number_format($unidade->item->preco, 2, ',', '.') }} € / dia</p>
+            
+            <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $unidade->id]) }}">VER DETALHES</a>
         </div>
-        @endforeach
     </div>
+</div>
+@endforeach
+</div>
 </div>
 
 <script type="text/javascript">
