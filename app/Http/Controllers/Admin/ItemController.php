@@ -116,7 +116,6 @@ return redirect('/');
                     'preco' => 'required|numeric|min:0',
                     'price_day'     => 'required|numeric|min:0',
                     'quantity'      => 'required|integer|min:1',
-                    'quantity_disp' => 'required|integer|min:0|lte:quantity',
                     'categoria_id'  => 'required|exists:item_categories,id',
                 
                 ],
@@ -126,17 +125,12 @@ return redirect('/');
                     'preco.required' => 'O item deve ter um preço associado',
                     'price_day.required'     => 'O item deve ter um preço por dia associado.',
                     'quantity.required'      => 'Insira a quantidade total.',
-                    'quantity_disp.required' => 'Insira a quantidade disponível para requisição.',
 
-                    'quantity_disp.integer'  => 'A quantidade disponível deve ser um número inteiro.',
                     'quantity.integer'       => 'A quantidade total deve ser um número inteiro.',
                     
                     'preco.min'              => 'O preço não pode ser inferior a 0.',
                     'price_day.min'          => 'O preço por dia não pode ser inferior a 0.',
                     'quantity.min'           => 'A quantidade total deve ser pelo menos 1.',
-                    'quantity_disp.min'      => 'A quantidade disponível não pode ser inferior a 0.',
-
-                    'quantity_disp.lte'      => 'A quantidade disponível não pode ser superior à quantidade total.',
 
                     
                 ]
@@ -151,7 +145,7 @@ return redirect('/');
             }
 
                 // MUDANÇA AQUI: Juntamos todos os dados do formulário num array
-            $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity', 'quantity_disp']);
+            $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity']);
             $itemData['image'] = $path; // adiciona o caminho da imagem
 
             // Guardamos tudo na sessão. Nada foi para a BD ainda!
@@ -253,13 +247,15 @@ public function ocultos(Request $request)
 
         if ($unidades->count() > 0) {
             foreach ($unidades as $unidade) {
+                // HTML alterado para ficar exatamente igual ao da View Blade (Sem cinzentos indesejados)
                 $output .= '<div class="col-sm-3 mb-4">
-                                <div class="card h-100 bg-light"> <div class="card-body d-flex flex-column justify-content-center text-center">
-                                        <h1 class="card-title text-muted">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                        <small class="text-danger mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . ' (Oculto)</small>
-                                        <p class="card-text">' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</p>
+                                <div class="card h-100"> 
+                                    <div class="card-body d-flex flex-column justify-content-center text-center">
+                                        <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
+                                        <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                        <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                         <p class="card-text card-text-preco">' . number_format($unidade->item->preco, 2, ',', '.') . ' € / dia</p>
-                                        <a class="btn btn-secondary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->item->id]) . '">VER DETALHES</a>
+                                        <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                                     </div>
                                 </div>
                             </div>';
@@ -345,7 +341,6 @@ public function update(Request $request, $id)
             'preco' => 'required|numeric|min:0',
             'categoria_id' => 'required|exists:item_categories,id',
             'quantity' => 'required|integer|min:' . $item->quantity, // Bloqueia diminuição
-            'quantity_disp' => 'required|integer|min:0',
         ], [
             'quantity.min' => 'Não é permitido diminuir a quantidade total de itens já registados (' . $item->quantity . ').',
         ]);
@@ -408,7 +403,6 @@ public function updateUnitiesEtapa(Request $request, $id)
             'preco' => $dadosItem['preco'],
             'price_day' => $dadosItem['price_day'] ?? null,
             'quantity' => $dadosItem['quantity'],
-            'quantity_disp' => $dadosItem['quantity_disp'],
             'observation' => $dadosItem['observation'] ?? null,
             'acessorio' => $dadosItem['acessorio'] ?? null,
             'image' => $dadosItem['image'],
@@ -468,7 +462,6 @@ public function updateUnitiesEtapa(Request $request, $id)
                 $item = $unidade->item;
                 if ($item) {
                     $item->decrement('quantity', 1);
-                    $item->decrement('quantity_disp', 1);
                 }
             });
 

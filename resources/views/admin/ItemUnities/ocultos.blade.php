@@ -15,12 +15,10 @@
             <div class="card h-100">
                 <div class="card-body d-flex flex-column justify-content-center text-center">
                     <h1 class="card-title">{{ $unidade->item->nome }}</h1>
-                    
-                    <small class="text-danger mb-2">LIA: {{ $unidade->lia_code }} (Oculto)</small>
-                    
-                    <p class="card-text">{{ $unidade->item->ipvc_ref }}</p>
+            <small class="text-muted mb-2">Ref: {{ $unidade->item->ipvc_ref }}</small>
+            <p class="text-muted mb-2">LIA: {{ $unidade->lia_code }}</p>
                     <p class="card-text card-text-preco">{{ number_format($unidade->item->preco, 2, ',', '.') }} € / dia</p>
-                    <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $unidade->item->id]) }}">VER DETALHES</a>
+                    <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $unidade->id]) }}">VER DETALHES</a>
                 </div>
             </div>
         </div>

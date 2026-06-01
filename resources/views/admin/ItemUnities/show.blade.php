@@ -63,6 +63,7 @@
                     <li class="list-group-item">Referência IPVC: {{ $item->ipvc_ref }}</li>
                     
                     {{-- Bloco Financeiro e Ciclo de Vida --}}
+                    <li class="list-group-item">Preço do Item: {{ number_format($item->preco, 2, ',', '.') }} €</li>
                     <li class="list-group-item">Preço / dia: {{ number_format($item->preco, 2, ',', '.') }} €</li>
                     <li class="list-group-item">Data de Aquisição: {{ $item->data_aquisicao ? $item->data_aquisicao->format('d/m/Y') : 'N/A' }}</li>
                     <li class="list-group-item">Tempo de Vida: {{ $item->tempo_de_vida }}</li>

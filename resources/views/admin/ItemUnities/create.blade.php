@@ -5,7 +5,8 @@
 @section('content')
 <br>
     <div class="d-flex flex-column">
-            <h3 class="mb-4"> Códigos LIA para as {{ $quantity }} Unidades de "{{ $item_nome }}"</h3>
+        <p class="text-dark list-group-item-text" style="font-size: 1.2rem;">Códigos LIA para as {{ $quantity }} Unidades de "{{ $item_nome }}" </p> 
+            <!--<h3 class="mb-4"> Códigos LIA para as {{ $quantity }} Unidades de "{{ $item_nome }}"</h3> -->
             <form action="{{ route('itens.storeUnities') }}" method="POST">
                 @csrf
 
@@ -19,7 +20,7 @@
                     </div>
                 @endfor
 
-                <button type="submit" class="btn btn-success" style="width: 140px;">Criar itens</button>
+                <button type="submit" class="btn btn-primary" style="width: 150px;">Criar unidades</button>
             </form>
     </div>
 @endsection
