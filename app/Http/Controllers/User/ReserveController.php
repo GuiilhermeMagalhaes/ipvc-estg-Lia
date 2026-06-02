@@ -300,7 +300,6 @@ class ReserveController extends Controller
         $addedCount = 0;
         foreach ($itemsToAdd as $itemToAdd) {
             session()->push('reserve.itens', $itemToAdd);
-            session()->increment('reserve.cost', $itemToAdd->preco);
             $addedCount++;
 
             // Se já adicionou a quantidade desejada, interrompe o loop
@@ -462,7 +461,6 @@ class ReserveController extends Controller
         $addedCount = 0;
         foreach ($kitsToAdd as $kitToAdd) {
             session()->push('reserve.kits', $kitToAdd);
-            session()->increment('reserve.cost', $kitToAdd->price);
             $addedCount++;
 
             // Se já adicionou a quantidade desejada, interrompe o loop
@@ -474,35 +472,35 @@ class ReserveController extends Controller
         return back()->with('toast_success', 'Kit adicionado à reserva!');
     }
 
-   public function removeKit($id)
-{
-    // 1. Vai buscar os kits (como uma Collection do Laravel)
-    $kits = collect(session()->get('reserve.kits', []));
+    public function removeKit($id)
+    {
+        // 1. Vai buscar os kits (como uma Collection do Laravel)
+        $kits = collect(session()->get('reserve.kits', []));
 
-    // 2. Filtra a coleção: rejeita o kit que tem o ID que queremos remover
-    $kitsAtualizados = $kits->reject(function ($kit) use ($id) {
-        return $kit->id == $id;
-    })->values()->all(); // values() garante que os índices (0,1,2) são reordenados
+        // 2. Filtra a coleção: rejeita o kit que tem o ID que queremos remover
+        $kitsAtualizados = $kits->reject(function ($kit) use ($id) {
+            return $kit->id == $id;
+        })->values()->all(); // values() garante que os índices (0,1,2) são reordenados
 
-    // 3. Grava o novo array limpo na sessão
-    session()->put('reserve.kits', $kitsAtualizados);
+        // 3. Grava o novo array limpo na sessão
+        session()->put('reserve.kits', $kitsAtualizados);
 
-    return back()->with('toast_success', 'Kit removido!');
-}
+        return back()->with('toast_success', 'Kit removido!');
+    }
 
-public function removeItem($id)
-{
-    // A mesma exata lógica para os itens
-    $itens = collect(session()->get('reserve.itens', []));
+    public function removeItem($id)
+    {
+        // A mesma exata lógica para os itens
+        $itens = collect(session()->get('reserve.itens', []));
 
-    $itensAtualizados = $itens->reject(function ($item) use ($id) {
-        return $item->id == $id;
-    })->values()->all();
+        $itensAtualizados = $itens->reject(function ($item) use ($id) {
+            return $item->id == $id;
+        })->values()->all();
 
-    session()->put('reserve.itens', $itensAtualizados);
+        session()->put('reserve.itens', $itensAtualizados);
 
-    return back()->with('toast_success', 'Item removido!');
-}
+        return back()->with('toast_success', 'Item removido!');
+    }
 
     public function cancelReserve()
     {
@@ -511,62 +509,52 @@ public function removeItem($id)
         return redirect('/reserve')->with('success', 'Reserva foi cancelada!');
     }
 
-    // Lembra-te de importar as classes no topo do ficheiro, junto dos outros 'use':
-// use App\Models\User;
-// use App\Notifications\PedidoRequisicao;
-// use Illuminate\Support\Facades\Notification;
-
-public function confirmReserve()
-{
-    if (empty(session()->get('reserve.kits')) && empty(session()->get('reserve.itens'))) {
-        return back()->with('warning', 'Adicione kits e/ou itens à reserva para poder concluir!');
-    }
-
-    $reserve = Reserve::create([
-        'description' => session()->get('reserve.description'),
-        'cost_center_id' => session()->get('reserve.cost_center_id'),
-        'ciclica_id' => session()->get('reserve.ciclica_id'),
-        'user_id' => session()->get('reserve.user_id'),
-        'start_date' => session()->get('reserve.start_date'),
-        'end_date' => session()->get('reserve.end_date'),
-        'cost' => session()->get('reserve.cost'),
-        'reserve_state_id' => 1,
-        'delivery_date' => null,
-        'return_date' => null  
-    ]);
-
-    $costCenter = CostCenter::find(session()->get('reserve.cost_center_id'));
-    $costCenter->total_cost += session()->get('reserve.cost');
-    $costCenter->total_debt += session()->get('reserve.cost');
-    $costCenter->save();
-
-    if (session()->get('reserve.kits')) {
-        foreach (session()->get('reserve.kits') as $kit) {
-            KitReserve::create([
-                'reserve_id' => $reserve->id,
-                'kit_id' => $kit->id
-            ]);
+    public function confirmReserve()
+    {
+        if (empty(session()->get('reserve.kits')) && empty(session()->get('reserve.itens'))) {
+            return back()->with('warning', 'Adicione kits e/ou itens à reserva para poder concluir!');
         }
-    }
 
-    if (session()->get('reserve.itens')) {
-        foreach (session()->get('reserve.itens') as $item) {
-            ItemReserve::create([
-                'reserve_id' => $reserve->id,
-                'item_id' => $item->id
-            ]);
+        $reserve = Reserve::create([
+            'description' => session()->get('reserve.description'),
+            'cost_center_id' => session()->get('reserve.cost_center_id'),
+            'ciclica_id' => session()->get('reserve.ciclica_id'),
+            'user_id' => session()->get('reserve.user_id'),
+            'start_date' => session()->get('reserve.start_date'),
+            'end_date' => session()->get('reserve.end_date'),
+            'cost' => 0,
+            'reserve_state_id' => 1,
+            'delivery_date' => null,
+            'return_date' => null  
+        ]);
+
+        if (session()->get('reserve.kits')) {
+            foreach (session()->get('reserve.kits') as $kit) {
+                KitReserve::create([
+                    'reserve_id' => $reserve->id,
+                    'kit_id' => $kit->id
+                ]);
+            }
         }
+
+        if (session()->get('reserve.itens')) {
+            foreach (session()->get('reserve.itens') as $item) {
+                ItemReserve::create([
+                    'reserve_id' => $reserve->id,
+                    'item_id' => $item->id
+                ]);
+            }
+        }
+
+        $gestores = User::where('user_type_id', 1)->get(); 
+
+        if($gestores->isNotEmpty()) {
+            Notification::send($gestores, new PedidoRequisicao($reserve));
+        }
+        // --------------------------------------
+
+        session()->forget('reserve');
+
+        return redirect('/')->with('success', 'Reserva efetuada com sucesso!');
     }
-
-    $gestores = User::where('user_type_id', 1)->get(); 
-
-    if($gestores->isNotEmpty()) {
-        Notification::send($gestores, new PedidoRequisicao($reserve));
-    }
-    // --------------------------------------
-
-    session()->forget('reserve');
-
-    return redirect('/')->with('success', 'Reserva efetuada com sucesso!');
-}
 }
