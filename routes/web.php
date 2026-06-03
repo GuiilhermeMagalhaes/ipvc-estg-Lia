@@ -57,11 +57,14 @@ Route::middleware('auth')->group(function () {
             Route::get('/indexocultos', [KitsController::class, 'indexocultos'])->name('kits.indexocultos');
             Route::get('/create', [KitsController::class, 'create'])->name('kits.create');
             Route::post('/', [KitsController::class, 'store'])->name('kits.store');
+             Route::get('/create-unities', [KitsController::class, 'createUnities'])->name('kits.createUnities');
+            Route::post('/store-unities', [KitsController::class, 'storeUnities'])->name('kits.storeUnities');
             Route::get('/{id}', [KitsController::class, 'show'])->name('kits.show');
             Route::get('/{id}/edit', [KitsController::class, 'edit'])->name('kits.edit');
             Route::put('/{id}', [KitsController::class, 'update'])->name('kits.update');
             Route::delete('{id}', [KitsController::class, 'destroy'])->name('kits.destroy');
             Route::get('/edit/searchitens', [ItemController::class, 'searchItens'])->name('search.itens');;
+           
         });
 
         Route::prefix('itens')->group(function () {
@@ -79,6 +82,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-unities-step', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
             Route::delete('/{id}/anular', [ItemController::class, 'anularUnity'])->name('unidades.anular');
             Route::delete('{id}', [ItemController::class, 'destroy'])->name('itens.destroy');
+            // Adiciona esta linha junto das outras rotas de Kits/Unidades:
+            Route::get('/kit-unities/{id}', [KitUnityController::class, 'show'])->name('kitUnity.show');
         });
 
         Route::prefix('/reserves')->group(function () {

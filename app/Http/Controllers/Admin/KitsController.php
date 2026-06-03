@@ -6,105 +6,201 @@ use App\Http\Controllers\Controller;
 use App\Models\Kit;
 use App\Models\ItemCategorie;
 use App\Models\KitReserve;
+use App\Models\KitUnity;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use RealRashid\SweetAlert\Facades\Alert;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ItemUnity;
 
 
 
 class KitsController extends Controller
 {
-    public function index(Request $request)
+
+
+public function index(Request $request)
     {
         if ($request->ajax()) {
             $output = '';
             $search = $request->search;
 
+            // Iniciamos a query pelas UNIDADES com o estado igual a 1
+            $query = KitUnity::with('kit')->where('kit_unity_state_id', 1);
+
             if (!empty($search)) {
-                // Usamos Kit::where para iniciar uma Query SQL correta
-                $kits = Kit::where('name', 'LIKE', '%' . $search . '%')
-                    ->whereRaw("LOWER(name) LIKE ?", ['%' . strtolower($search) . '%'])
-                    ->get();
-            } else {
-                // Se não há pesquisa, traz todos os registos de forma limpa
-                $kits = Kit::all();
+                // Pesquisa pelo nome do Kit associado à unidade
+                $query->where(function($q) use ($search) {
+                    $q->whereHas('kit', function($subQuery) use ($search) {
+                        $subQuery->where('name', 'LIKE', '%' . $search . '%');
+                    });
+                });
             }
 
-            if ($kits->count() > 0) {
-                foreach ($kits as $kit) {
-                    // Certifica-te se deves exibir $kit->price ou $kit->price_day no HTML
+            $unidades = $query->get();
+
+            if ($unidades->count() > 0) {
+                foreach ($unidades as $unidade) {
                     $output .= '<div class="col-sm-3 mb-4">
                                     <div class="card h-100">
                                         <div class="card-body d-flex flex-column justify-content-center text-center">
-                                            <h5 class="card-title">' . htmlspecialchars($kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
-                                            <p class="card-text">' . number_format($kit->price_day, 2, ',', '.') . '€ / dia</p>
-                                            <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $kit->id]) . '">VER DETALHES</a>
+                                            <h5 class="card-title font-weight-bold">' . htmlspecialchars($unidade->kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
+                                            <p class="text-dark mb-1"><strong>LIA:</strong> ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
+                                            <p class="card-text">' . number_format($unidade->kit->price_day, 2, ',', '.') . '€ / dia</p>
+                                            
+                                            {{-- Passamos o ID da UNIDADE no link de detalhes --}}
+                                            <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                                         </div>
                                     </div>
                                 </div>';
                 }
             } else {
-                $output = '<p>Nenhum kit encontrado.</p>';
+                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade de kit ativa encontrada.</p></div>';
             }
 
             return response()->json($output);
         } else {
-            // Correção aqui: Apenas Kit::all(), sem o ->get() à frente
-            $kits = Kit::all();
+            // Carregamento normal da página: traz apenas as unidades cujo estado é 1
+            $unidades = KitUnity::with('kit')->where('kit_unity_state_id', 1)->get();
         }
 
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            return view('admin.kits.index', ['kits' => $kits]);
+            // Enviamos a variável '$unidades' para a view
+            return view('admin.kitUnity.index', ['unidades' => $unidades]);
         }
         return redirect('/');
     }
 
-    /*public function indexocultos(Request $request)
-    {
-        if ($request->ajax()) {
-            $output = '';
-            $search = $request->search;
 
-            if (!empty($search)) {
-                $kits = Kit::where('kit_state_id', '!=', 1)
-                ->where(function ($query) use ($search) {
-                    $query->where('name', 'LIKE', '%' . $search . '%')
-                        ->orWhereRaw("LOWER(name) LIKE ?", ['%' . strtolower($search) . '%']);
-                })
-                ->get();
-            } else {
-                $kits = Kit::where('kit_state_id', '!=', 1)->get();
-            }
 
-            if ($kits->count() > 0) {
-                foreach ($kits as $kit) {
-                    $output .= '<div class="col-sm-3 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-body d-flex flex-column justify-content-center text-center">
-                                        <h5 class="card-title">' . htmlspecialchars($kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
-                                        <p class="card-text">' . number_format($kit->price, 2, ',', '.') . '€ / dia</p>
-                                        <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $kit->id]) . '">VER DETALHES</a>
-                                    </div>
-                                </div>
-                            </div>';
+    // 1. APENAS VALIDA E GUARDA O KIT NA SESSÃO (NÃO GRAVA NA BD AINDA)
+public function store(Request $request)
+{
+    $request->validate(
+        [
+            'name' => 'required|string|max:191',
+            'description' => 'required|string|max:191',
+            'price' => 'required|numeric|min:0',
+            'price_day' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:1',
+        ],
+        [
+            'name.required' => 'O kit deve ter um nome',
+            'description.required' => 'O kit deve ter uma descrição',
+            'price.required' => 'O kit deve ter um preço associado', 
+            'price_day.required' => 'O kit deve ter um preço por dia associado',
+            'quantity.required' => 'Insira a quantidade total',
+        ]
+    );
+
+    // Trata o ficheiro de imagem enviado pelo utilizador temporariamente
+    if ($request->hasFile('image') && $request->file('image') != null) {
+        $request->image->image_resize = true;
+        $request->image->image_x = 400;
+        $request->image->image_y = 300;
+        
+        $imagePath = $request->file('image');
+        $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
+        // Guarda na pasta final de imediato
+        $path = $request->file('image')->storeAs('images/kits', $imageName, 'public');
+    } else {
+        $path = "images/empty.png";
+    }
+
+    // Une os dados textuais ao caminho da imagem
+    $dadosParaSessao = $request->only(['name', 'description', 'ipvc_ref', 'price', 'price_day', 'quantity']);
+    $dadosParaSessao['image_path'] = $path;
+
+    // Guarda tudo dentro da sessão com a chave 'dados_do_kit'
+    $request->session()->put('dados_do_kit', $dadosParaSessao);
+
+    return redirect()->route('kits.createUnities');
+}
+
+// 2. EXIBE A VIEW DE UNIDADES BUSCANDO OS DADOS DA SESSÃO
+public function createUnities(Request $request)
+{
+    // Se o utilizador tentar aceder a esta página sem passar pelo passo 1, volta para trás
+    if (!$request->session()->has('dados_do_kit')) {
+        return redirect()->route('kits.create')->with('toast_error', 'Por favor, preencha primeiro os dados do kit.');
+    }
+
+    $dadosKit = $request->session()->get('dados_do_kit');
+    
+    // Captura as unidades de itens que ainda não pertencem a nenhum kit
+    $itensLivres = ItemUnity::with('item')->whereNull('kit_unity_id')->get();
+
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        return view('admin.kitUnity.create', [
+            'kitName' => $dadosKit['name'],
+            'quantity' => $dadosKit['quantity'],
+            'itensLivres' => $itensLivres
+        ]);
+    }
+    return redirect('/');
+}
+
+// 3. GRAVA TUDO EM SIMULTÂNEO (SÓ AQUI ENTRA NA BASE DE DADOS)
+public function storeUnities(Request $request)
+{
+    // 1. Verifica se os dados do Kit ainda estão na sessão
+    if (!$request->session()->has('dados_do_kit')) {
+        return redirect()->route('kits.create')->with('toast_error', 'Sessão expirada. Recomece o processo.');
+    }
+
+    // 2. Valida os códigos LIA que vieram do formulário
+    $request->validate([
+        'lia_codes' => 'required|array',
+        'lia_codes.*' => 'required|string|unique:kit_unity,lia_code',
+        'items_for_unity' => 'nullable|array',
+    ]);
+
+    $dadosKit = $request->session()->get('dados_do_kit');
+
+    // 3. Inicia a transação: Se algo falhar no meio, nada é gravado
+    DB::transaction(function () use ($request, $dadosKit) {
+        
+        // Criar o Kit Pai na BD
+        $kit = new Kit();
+        $kit->name = $dadosKit['name'];
+        $kit->description = $dadosKit['description'];
+        $kit->ipvc_ref = $dadosKit['ipvc_ref'];
+        $kit->price = $dadosKit['price'];
+        $kit->price_day = $dadosKit['price_day'];
+        $kit->quantity = $dadosKit['quantity'];
+        $kit->quantity_disp = $dadosKit['quantity'];
+        $kit->image = $dadosKit['image_path'];
+        $kit->save();
+
+        // Criar as Unidades físicas do Kit conectadas ao ID gerado agora
+        foreach ($request->lia_codes as $index => $liaCode) {
+            $kitUnity = new KitUnity();
+            $kitUnity->lia_code = $liaCode;
+            $kitUnity->kit_id = $kit->id;
+            $kitUnity->kit_unity_state_id = 1; 
+            $kitUnity->save();
+
+            // Associar as unidades de itens selecionadas a esta unidade do kit
+            if (isset($request->items_for_unity[$index]) && is_array($request->items_for_unity[$index])) {
+                foreach ($request->items_for_unity[$index] as $itemId) {
+                    $itemUnity = ItemUnity::find($itemId);
+                    if ($itemUnity) {
+                        $itemUnity->kit_unity_id = $kitUnity->id;
+                        $itemUnity->save();
+                    }
                 }
-            } else {
-                $output = '<p>Nenhum kit encontrado.</p>';
             }
-
-            return response()->json($output);
-        } else {
-            $kits = Kit::where('kit_state_id', '!=', 1)->get();
         }
+    });
 
-        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            return view('admin.kits.indexocultos', ['kits' => $kits]);
-        }
-        return redirect('/');
-    }
-*/
+    // 4. Limpa a sessão para não deixar lixo em memória
+    $request->session()->forget('dados_do_kit');
+
+    Alert::success('Sucesso', 'Kit e respetivas unidades gravados com sucesso!');
+    return redirect()->route('kits.index');
+}
+
     public function create()
     {
         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
@@ -114,7 +210,7 @@ class KitsController extends Controller
         }
         return redirect('/');
     }
-
+/*
     public function store(Request $request)
     {
         $request->validate(
@@ -162,6 +258,7 @@ class KitsController extends Controller
 
         return redirect('admin/kits')->with('toast_success', 'Kit criado com sucesso!');
     }
+    */
 
     public function show($id)
     {
@@ -509,4 +606,50 @@ class KitsController extends Controller
         
     }
 }
+*/
+
+
+    /*public function indexocultos(Request $request)
+    {
+        if ($request->ajax()) {
+            $output = '';
+            $search = $request->search;
+
+            if (!empty($search)) {
+                $kits = Kit::where('kit_state_id', '!=', 1)
+                ->where(function ($query) use ($search) {
+                    $query->where('name', 'LIKE', '%' . $search . '%')
+                        ->orWhereRaw("LOWER(name) LIKE ?", ['%' . strtolower($search) . '%']);
+                })
+                ->get();
+            } else {
+                $kits = Kit::where('kit_state_id', '!=', 1)->get();
+            }
+
+            if ($kits->count() > 0) {
+                foreach ($kits as $kit) {
+                    $output .= '<div class="col-sm-3 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-body d-flex flex-column justify-content-center text-center">
+                                        <h5 class="card-title">' . htmlspecialchars($kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
+                                        <p class="card-text">' . number_format($kit->price, 2, ',', '.') . '€ / dia</p>
+                                        <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $kit->id]) . '">VER DETALHES</a>
+                                    </div>
+                                </div>
+                            </div>';
+                }
+            } else {
+                $output = '<p>Nenhum kit encontrado.</p>';
+            }
+
+            return response()->json($output);
+        } else {
+            $kits = Kit::where('kit_state_id', '!=', 1)->get();
+        }
+
+        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+            return view('admin.kits.indexocultos', ['kits' => $kits]);
+        }
+        return redirect('/');
+    }
 */

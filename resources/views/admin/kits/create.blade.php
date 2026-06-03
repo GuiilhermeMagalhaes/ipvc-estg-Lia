@@ -38,11 +38,6 @@
                 <input type="number" name="quantity" id="quantity" class="form-control" value="{{ old('quantity') }}">
                 <span style="color:red">{{$errors->first('quantity')}}</span>
             </div>
-            <div class="form-group">
-                <label for="quantity_disp">Quantidade Disponível para Requisição</label>
-                <input type="number" name="quantity_disp" id="quantity_disp" class="form-control" value="{{ old('quantity_disp') }}">
-                <span style="color:red">{{$errors->first('quantity_disp')}}</span>
-            </div>
             <!--
             <div class="form-group">
                 <label for="categoria_id">Categoria</label>
@@ -54,7 +49,7 @@
                 </select>
             </div>
             -->
-            <button type="submit" class="btn btn-success" style="width: 140px;">Criar Kit</button>
+            <button type="submit" class="btn btn-success" style="width: 140px;">Seguinte</button>
         </form>
         <br>
     </div>
