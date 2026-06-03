@@ -274,44 +274,50 @@
     </div>
 
     @if(isset($topDinheiro) && $topDinheiro->isNotEmpty())
-    <div class="row mb-4">
-        <div class="col-md-8 offset-md-2"> <div class="card" style="border-top: 3px solid #28a745; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
-                <div class="card-header bg-white">
-                    <h3 class="card-title m-0">
-                        <i class="fas fa-euro-sign text-success mr-2"></i> 
-                        <strong style="color: #28a745;">Materiais que geram mais receita</strong>
-                    </h3>
-                </div>
-                <div class="card-body p-0">
-                    <table class="table table-striped table-hover m-0">
-                        <thead>
+    <div class="container-fluid mb-4">
+        <div class="card card-success card-outline elevation-2">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <strong>Materiais que geram mais receita</strong>
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover m-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 15%; text-align: center;">Posição</th>
+                            <th>Material / Equipamento</th>
+                            <th style="width: 25%;" class="text-right pr-4">Receita Gerada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($topDinheiro as $index => $material)
                             <tr>
-                                <th style="width: 10%; text-align: center;">Posição</th>
-                                <th>Material / Equipamento</th>
-                                <th class="text-right pr-4">Receita Gerada</th>
+                                <td class="align-middle text-center">
+                                    @if($index == 0) 
+                                        <span class="badge badge-warning px-3 py-2" style="font-size: 0.9rem;">1º Lugar</span>
+                                    @elseif($index == 1) 
+                                        <span class="badge badge-secondary px-3 py-2" style="font-size: 0.9rem;">2º Lugar</span>
+                                    @elseif($index == 2) 
+                                        <span class="badge badge-light px-3 py-2" style="background-color: #cd7f32; color: white; font-size: 0.9rem;">3º Lugar</span>
+                                    @else 
+                                        <span class="badge badge-light px-3 py-2" style="font-size: 0.9rem; border: 1px solid #ddd;">{{ $index + 1 }}º Lugar</span>
+                                    @endif
+                                </td>
+                                
+                                <td class="align-middle" style="font-weight: 500; font-size: 1.05rem;">
+                                    {{ $material['nome'] }}
+                                </td>
+                                
+                                <td class="text-right align-middle pr-4">
+                                    <span class="text-success font-weight-bold" style="font-size: 1.15rem;">
+                                        {{ number_format($material['dinheiro_gerado'], 2, ',', '.') }} €
+                                    </span>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($topDinheiro as $index => $material)
-                                <tr>
-                                    <td class="align-middle text-center">
-                                        @if($index == 0) 🥇
-                                        @elseif($index == 1) 🥈
-                                        @elseif($index == 2) 🥉
-                                        @else {{ $index + 1 }}º
-                                        @endif
-                                    </td>
-                                    <td class="align-middle" style="font-weight: 500;">{{ $material['nome'] }}</td>
-                                    <td class="text-right align-middle pr-4">
-                                        <span class="badge" style="font-size: 1rem; padding: 8px; background-color: #e8f5e9; color: #28a745; border: 1px solid #28a745;">
-                                            {{ number_format($material['dinheiro_gerado'], 2, ',', '.') }} €
-                                        </span>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
