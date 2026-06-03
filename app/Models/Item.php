@@ -26,6 +26,7 @@ class Item extends Model
         'data_aquisicao',
         'acessorio', 
         'price_day',
+        'item_state_id',
         'quantity',
         'quantity_disp',  
     ];

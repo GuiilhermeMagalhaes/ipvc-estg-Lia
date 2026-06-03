@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/downloadind', [HomeController::class, 'PDFItensInd'])->name('pdfitensind-download');
         Route::post('/downloadres', [HomeController::class, 'ExcelRes'])->name('excelres-download');
         Route::post('/downloadreslia', [HomeController::class, 'ExcelResLia'])->name('excelreslia-download');
+        
         Route::prefix('kits')->group(function () {
             Route::get('/', [KitsController::class, 'index'])->name('kits.index');
             Route::get('/indexocultos', [KitsController::class, 'indexocultos'])->name('kits.indexocultos');
@@ -61,7 +62,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{id}/edit', [KitsController::class, 'edit'])->name('kits.edit');
             Route::put('/{id}', [KitsController::class, 'update'])->name('kits.update');
             Route::delete('{id}', [KitsController::class, 'destroy'])->name('kits.destroy');
-            Route::get('/edit/searchitens', [ItemController::class, 'searchItens'])->name('search.itens');;
+            Route::get('/edit/searchitens', [ItemController::class, 'searchItens'])->name('search.itens');
         });
 
         Route::prefix('itens')->group(function () {
@@ -94,7 +95,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/decline', [AdminReserveController::class, 'decline'])->name('reserve.decline');
             Route::post('/{id}/finalize', [AdminReserveController::class, 'finalize'])->name('reserve.finalize');
             Route::post('/{id}/deliver', [AdminReserveController::class, 'deliver'])->name('reserve.deliver');
-            Route::post('/{id}/receive', [AdminReserveController::class, 'receive'])->name('reserve.receive');
+            Route::post('/{id}/receive', [AdminReserveController::class, 'receive'])->name('reserve.receive');                    
+            Route::post('/{id}/pay', [AdminReserveController::class, 'pay'])->name('reserve.pay');
         });
 
         Route::prefix('/categories')->group(function () {

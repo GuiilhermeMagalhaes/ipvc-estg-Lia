@@ -110,6 +110,14 @@
                             </a>
                         </li>
                         @endif
+                        <li class="list-group-item">
+                        <b>Estado do Pagamento: </b>
+                        @if($reserve->is_paid)
+                            <span class="badge badge-success">Paga</span>
+                        @else
+                            <span class="badge badge-danger">Por Pagar</span>
+                        @endif
+                        </li>
                         @if ($reserve->reserveState->id == 4 || $reserve->reserveState->id == 5 || $reserve->reserveState->id == 6 || $reserve->reserveState->id == 7 || $reserve->reserveState->id == 8 || $reserve->reserveState->id == 9)
                         <li class="list-group-item">
                             <b>Data de Entrega do Equipamento: </b> {{\Carbon\Carbon::parse($reserve->delivery_date)->format('d/m/Y')}}
@@ -129,6 +137,7 @@
     
     <div class="row">
         <div class="container-fluid">
+            
             @if ($reserve->reserveState->id == 1)
             <table>
                 <tr>
@@ -149,6 +158,19 @@
                 </tr>
             </table>
             @endif
+
+            @if (!$reserve->is_paid && $reserve->reserve_state_id != 1 && $reserve->reserve_state_id != 3)
+            <div class="mt-3 mb-3">
+                <form action="{{ route('reserve.pay', $reserve->id) }}" method="post">
+                @csrf
+                @method('POST')
+                    <button type="submit" class="btn btn-warning font-weight-bold" onclick="return confirm('Confirmar pagamento desta reserva?')">
+                         Marcar como Paga <i class="fas fa-euro-sign"></i>
+                    </button>
+                </form>
+            </div>
+            @endif
+
             @if ($reserve->reserveState->id == 2)
             <form action="{{ route('reserve.deliver', $reserve->id) }}" method="post">
                 @csrf
@@ -164,6 +186,7 @@
                 <button type="submit" class="btn btn-success">Receber Material</button>
             </form>
             @endif
+            
             @if ($reserve->reserveState->id == 9 || $reserve->reserveState->id == 8)
             <table>
                 <tr>
@@ -184,6 +207,7 @@
                 </tr>
             </table>
             @endif
+            
         </div>
     </div>
     <br>

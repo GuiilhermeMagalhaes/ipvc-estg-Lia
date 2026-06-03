@@ -20,7 +20,8 @@ class Reserve extends Model
         'cost',
         'reserve_state_id',
         'delivery_date',
-        'return_date'
+        'return_date',
+        'is_paid'
     ];
 
     /**

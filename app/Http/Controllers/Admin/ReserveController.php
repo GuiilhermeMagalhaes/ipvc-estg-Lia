@@ -233,4 +233,35 @@ class ReserveController extends Controller
             }
         }
     }
+
+    public function pay($id)
+    {
+        $reserve = Reserve::find($id);
+
+        // Verifica se a reserva já tem custo (já foi autorizada) e se AINDA NÃO está paga
+        if ($reserve->cost > 0 && !$reserve->is_paid) {
+            
+            // 1. Marca a reserva como paga
+            $reserve->is_paid = true;
+            $reserve->save();
+
+            // 2. Subtrai o valor da reserva à dívida do Centro de Custos
+            if ($reserve->cost_center_id != null) {
+                $centro = CostCenter::find($reserve->cost_center_id);
+                if ($centro) {
+                    $centro->total_debt -= $reserve->cost;
+                    
+                    // Prevenção: garantir que a dívida nunca fica negativa por algum erro matemático
+                    if ($centro->total_debt < 0) {
+                        $centro->total_debt = 0;
+                    }
+                    $centro->save();
+                }
+            }
+            
+            return back()->with('toast_success', 'Reserva paga com sucesso! O valor foi subtraído ao Centro de Custos.');
+        }
+
+        return back()->with('warning', 'Esta reserva já se encontra paga ou não tem valor a cobrar.');
+    }
 }
