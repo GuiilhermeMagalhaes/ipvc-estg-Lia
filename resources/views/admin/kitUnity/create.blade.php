@@ -77,7 +77,7 @@
 
         {{-- Botões de Ação Final --}}
         <div class="d-flex mb-5 mt-4">
-            <button type="submit" class="btn btn-success" style="width: 180px; margin-right: 10px;">Criar Kit</button>
+            <button type="submit" class="btn btn-primary" style="width: 180px; margin-right: 10px;">Criar Kit</button>
             <a href="{{ route('kits.create') }}" class="btn btn-secondary" style="width: 140px;">Cancelar</a>
         </div>
     </form>

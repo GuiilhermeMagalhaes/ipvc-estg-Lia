@@ -203,7 +203,6 @@ public function storeUnities(Request $request)
         $kit->price = $dadosKit['price'];
         $kit->price_day = $dadosKit['price_day'];
         $kit->quantity = $dadosKit['quantity'];
-        $kit->quantity_disp = $dadosKit['quantity'];
         $kit->image = $dadosKit['image_path'];
         $kit->save();
 
@@ -367,7 +366,59 @@ public function storeUnities(Request $request)
         }
         return redirect('/admin/kits');
     }
+
+
+    public function ocultos(Request $request)
+{
+    // Construímos a query base filtrando apenas pelo estado id = 2 (ocultas)
+    // Usamos o with('kit') para evitar o problema do N+1 nas relações
+    $query = KitUnity::with('kit')->where('kit_unity_state_id', 2)->whereHas('kit');
+
+    // Se houver uma pesquisa em curso
+    if ($request->has('search') && !empty($request->input('search'))) {
+        $search = $request->input('search');
+
+        $query->where(function($q) use ($search) {
+            // Pesquisa pelo Código LIA da Unidade
+            $q->where('lia_code', 'LIKE', '%' . $search . '%')
+              // OU pesquisa pelo Nome do Kit Pai na tabela relacionada
+              ->orWhereHas('kit', function($kitQuery) use ($search) {
+                  $kitQuery->where('name', 'LIKE', '%' . $search . '%');
+              });
+        });
+    }
+
+    
+
+    $unidades = $query->get();
+
+    // Se for uma requisição AJAX, retorna apenas os cartões renderizados
+    if ($request->ajax()) {
+        $html = '';
+        foreach ($unidades as $unidade) {
+            $html .= '
+            <div class="col-sm-3 mb-4">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body d-flex flex-column justify-content-center text-center">
+                        <h5 class="card-title font-weight-bold">' . e($unidade->kit->name) . '</h5>
+                        <p class="text-dark mb-1"><strong>LIA:</strong> ' . e($unidade->lia_code) . '</p>
+                        <p class="card-text">' . number_format($unidade->kit->price_day, 2, ',', '.') . ' € / dia</p>
+                        <a class="btn btn-secondary mx-auto" style="width: 140px;" href="' . route('kitUnity.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+                    </div>
+                </div>
+            </div>';
+        }
+        return response()->json($html);
+    }
+
+    // Se for o carregamento normal da página, renderiza a view completa
+    return view('admin.kitunity.ocultos', compact('unidades'));
 }
+    
+}
+
+
+
 /*
 class KitsController extends Controller
 {

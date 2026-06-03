@@ -20,7 +20,7 @@
                     </div>
                 @endfor
 
-                <button type="submit" class="btn btn-primary" style="width: 150px;">Criar unidades</button>
+                <button type="submit" class="btn btn-primary" style="width: 150px;">Criar item</button>
             </form>
     </div>
 @endsection

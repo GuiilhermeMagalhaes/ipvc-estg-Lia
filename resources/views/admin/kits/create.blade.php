@@ -49,7 +49,7 @@
                 </select>
             </div>
             -->
-            <button type="submit" class="btn btn-success" style="width: 140px;">Seguinte</button>
+            <button type="submit" class="btn btn-primary" style="width: 140px;">Seguinte</button>
         </form>
         <br>
     </div>
