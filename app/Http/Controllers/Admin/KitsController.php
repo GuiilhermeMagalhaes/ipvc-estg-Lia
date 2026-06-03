@@ -149,13 +149,47 @@ public function storeUnities(Request $request)
         return redirect()->route('kits.create')->with('toast_error', 'Sessão expirada. Recomece o processo.');
     }
 
-    // 2. Valida os códigos LIA que vieram do formulário
-    $request->validate([
-        'lia_codes' => 'required|array',
-        'lia_codes.*' => 'required|string|unique:kit_unity,lia_code',
-        'items_for_unity' => 'nullable|array',
-    ]);
+    $dadosKit = $request->session()->get('dados_do_kit');
+    $quantity = $dadosKit['quantity'];
 
+    $regras = [
+        'lia_codes' => 'required|array',
+    ];
+
+    $mensagens = [
+        'lia_codes.*.required' => 'O código LIA é obrigatório.',
+        'lia_codes.*.unique'   => 'Este código LIA já existe no sistema.',
+        'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
+    ];
+
+
+    // Força a validação individual de cada índice do loop
+    for ($i = 0; $i < $quantity; $i++) {
+        $regras["lia_codes.$i"] = 'required|string|distinct|unique:kit_unity,lia_code';
+        $regras["items_for_unity.$i"] = 'required|array|min:1';
+        
+        $mensagens["items_for_unity.$i.required"] = 'É obrigatório associar pelo menos 1 item a esta unidade.';
+        $mensagens["items_for_unity.$i.min"] = 'É obrigatório associar pelo menos 1 item a esta unidade.';
+    }
+
+    // 2. Executa a validação com as regras construídas
+    $request->validate($regras, $mensagens);
+
+    // 2. Valida os códigos LIA que vieram do formulário
+    /*$request->validate([
+        'lia_codes' => 'required|array',
+        'lia_codes.*' => 'required|string|distinct|unique:kit_unity,lia_code',
+        'items_for_unity' => 'required|array',
+        'items_for_unity.*' => 'required|array|min:1',
+    ], [
+        'lia_codes.*.required' => 'O código LIA é obrigatório.',
+        'lia_codes.*.unique'   => 'Este código LIA já existe no sistema.',
+        'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
+         'items_for_unity.*.required' => 'É obrigatório associar pelo menos 1 item a esta unidade.',
+        'items_for_unity.*.min'      => 'É obrigatório associar pelo menos 1 item a esta unidade.',
+       
+    ]);
+*/
     $dadosKit = $request->session()->get('dados_do_kit');
 
     // 3. Inicia a transação: Se algo falhar no meio, nada é gravado

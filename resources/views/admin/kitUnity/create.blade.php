@@ -33,7 +33,7 @@
      <p class="text-dark list-group-item-text" style="font-size: 1.2rem;">Códigos LIA para as {{ $quantity }} Unidades de "{{ $kitName }}" </p> 
     <hr class="w-100" style="margin-left: 0;">
 
-    <form action="{{ route('kits.storeUnities') }}" method="POST" class="w-100">
+    <form action="{{ route('kits.storeUnities') }}" method="POST" class="w-100" novalidate >
         @csrf
         @method('POST')
 
@@ -56,12 +56,18 @@
                         <label class="m-0">Itens integrados nesta Unidade:</label>
                         {{-- Botão elegante para disparar o Modal --}}
                         <button type="button" class="btn btn-sm btn-outline-primary open-selector-btn" data-unit="{{ $i }}">
-                            <i class="fas fa-plus"></i> + Associar Itens
+                            <i class="fas fa-plus"></i> Associar Itens
                         </button>
                     </div>
                     <div class="selected-items-list" id="selected-container-{{ $i }}">
                         <p class="text-muted m-0 small visual-placeholder">Nenhum item adicionado a esta unidade.</p>
                     </div>
+
+                    @if($errors->has("items_for_unity.$i"))
+                        <span style="color:red; display:block;" class="mt-1 small">
+                            {{ $errors->first("items_for_unity.$i") }}
+                        </span>
+                    @endif
                 </div>
             </div>
             @if($i < $quantity - 1)
@@ -82,7 +88,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-light">
-                <h5 class="modal-title">Adicionar Itens à <span id="modal-unit-title" class="text-primary font-weight-bold">Unidade</span></h5>
+                <h5 class="modal-title">Adicionar Itens à <span id="modal-unit-title"  font-weight-bold">Unidade</span></h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -200,7 +206,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const itemRow = `
             <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded bg-light style-row" id="selected-item-${itemId}">
                 <input type="hidden" name="items_for_unity[${activeUnitId}][]" value="${itemId}">
-                <span>${nome} - <small class="text-muted"><b>código:</b> ${code}</small></span>
+                <span>{{ $item->item->nome ?? 'Item sem nome' }} - <small class="text-muted"><b>código:</b> ${code}</small></span>
                 <button type="button" class="btn btn-danger btn-sm remove-item-btn" data-id="${itemId}" data-unit="${activeUnitId}">X</button>
             </div>
         `;
