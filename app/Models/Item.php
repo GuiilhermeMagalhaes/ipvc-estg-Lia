@@ -32,7 +32,9 @@ class Item extends Model
     ];
 
     
-
+protected $casts = [
+        'data_aquisicao' => 'date',
+    ];
    
     public function itemUnities(): hasMany
     {
