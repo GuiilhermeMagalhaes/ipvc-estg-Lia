@@ -5,9 +5,9 @@
 @section('content')
 <br>
 <div>
-    <form action="#" class="search-form">
-        <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar Itens..." style="width: 24%;" />
-    </form>
+    <div class="search-form mb-4">
+        <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar itens..." style="width: 24%;" />
+    </div>
     <br>
     <div class="row mycard">
     @foreach($unidades as $unidade)

@@ -65,12 +65,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/{id}', [KitsController::class, 'update'])->name('kits.update');
             Route::delete('{id}', [KitsController::class, 'destroy'])->name('kits.destroy');
             Route::get('/edit/searchitens', [ItemController::class, 'searchItens'])->name('search.itens');
+            Route::get('/kitunities/{id}', [KitController::class, 'show'])->name('kitUnity.show');
+            Route::put('/kitunities/{id}', [KitController::class, 'update'])->name('kitUnity.update');
+            Route::delete('/kitunities/{id}', [KitController::class, 'destroy'])->name('kitUnity.destroy');
             
            
         });
 
         Route::prefix('itens')->group(function () {
-            Route::get('/', [ItemController::class, 'index'])->name('itens.index');
+            //Route::get('/', [ItemController::class, 'index'])->name('itens.index');
             Route::get('/ocultos', [ItemController::class, 'ocultos'])->name('itens.ocultos');
             Route::get('/create', [ItemController::class, 'create'])->name('itens.create');
             Route::post('/', [ItemController::class, 'store'])->name('itens.store');
@@ -88,6 +91,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/kit-unities/{id}', [KitUnityController::class, 'show'])->name('kitUnity.show');
         });
 
+        Route::prefix('item-unities')->group(function () {
+            Route::get('/', [ItemController::class, 'index'])->name('itens.index');
+        });
         Route::prefix('/reserves')->group(function () {
             Route::get('/', [AdminReserveController::class, 'all'])->name('reserves.all');
             Route::get('/pending', [AdminReserveController::class, 'pending'])->name('reserves.pending');

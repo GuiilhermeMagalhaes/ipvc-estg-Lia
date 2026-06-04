@@ -16,58 +16,70 @@ class ItemController extends Controller
 {
     
     public function index(Request $request)
-{
-    if ($request->ajax()) {
-        $output = '';
-        $search = $request->search;
+    {
+        if ($request->ajax()) {
+            $output = '';
+            $search = $request->search;
 
-   // Procure a linha onde inicia o query:
-$query = ItemUnity::with('item')->where('item_unity_state_id', 1);
+        // Procure a linha onde inicia o query:
+        $query = ItemUnity::with('item')->where('item_unity_state_id', 1)->whereHas('item');
 
-if (!empty($search)) {
-    $query->whereHas('item', function($q) use ($search) {
-        $q->where('nome', 'LIKE', '%' . $search . '%')
-          ->orWhere('ipvc_ref', 'LIKE', '%' . $search . '%')
-          ->orWhere('model', 'LIKE', '%' . $search . '%');
-    });
-}
 
-$unidades = $query->get();
+        if (!empty($search)) {
+            $query->where(function($mainQuery) use ($search) {
+                // 1. Procura pelo Código LIA (está diretamente na Unidade)
+                $mainQuery->where('lia_code', 'LIKE', '%' . $search . '%')
+                
+                // 2. OU procura dentro da relação do Item Pai (Nome ou Modelo)
+                ->orWhereHas('item', function($q) use ($search) {
+                    $q->where('nome', 'LIKE', '%' . $search . '%')
+                    ->orWhere('model', 'LIKE', '%' . $search . '%');
+                });
+            });
+        }
 
-if ($unidades->count() > 0) {
-    foreach ($unidades as $unidade) {
-        $output .= '<div class="col-sm-3 mb-4">
-                        <div class="card h-100">
-                            <div class="card-body d-flex flex-column justify-content-center text-center">
-                                <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                <small class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</small>
-                                <p class="card-text">' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</p>
-                                <p class="card-text card-text-preco">' . number_format($unidade->item->preco, 2, ',', '.') . ' € / dia</p>
-                                <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
-                            </div>
-                        </div>
-                    </div>';
+        $unidades = $query->get();
+
+        if ($unidades->count() > 0) {
+            foreach ($unidades as $unidade) {
+                if (!$unidade->item) {
+                    continue; 
+                }
+                $output .= '<div class="col-sm-3 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-body d-flex flex-column justify-content-center text-center">
+                                        <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
+                                        <small class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</small>
+                                        <p class="card-text">' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</p>
+                                        <p class="card-text card-text-preco">' . number_format($unidade->item->preco, 2, ',', '.') . ' € / dia</p>
+                                        <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+                                    </div>
+                                </div>
+                            </div>';
+            }
+        } else {
+            $output = '<p>Nenhuma unidade encontrada.</p>';
+        }
+
+        return response()->json($output);
+        }
+
+        else {
+            // Busca as unidades ativas trazendo o item agarrado
+            $unidades = ItemUnity::with('item')->where('item_unity_state_id', 1)->get();
+        }
+
+        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+            // Aponta para a nova pasta 'itemUnities' e envia a variável '$unidades'
+            return view('admin.itemUnities.index', ['unidades' => $unidades]);
+        }
+        return redirect('/');
     }
-} else {
-    $output = '<p>Nenhum item encontrado.</p>';
-}
-
-return response()->json($output);
-}
-
-else {
-    // Busca as unidades ativas trazendo o item agarrado
-    $unidades = ItemUnity::with('item')->where('item_unity_state_id', 1)->get();
-}
-
-if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-    // Aponta para a nova pasta 'itemUnities' e envia a variável '$unidades'
-    return view('admin.itemUnities.index', ['unidades' => $unidades]);
-}
-return redirect('/');
-}
 
     
+
+
+
 
     public function show($id)
 {
