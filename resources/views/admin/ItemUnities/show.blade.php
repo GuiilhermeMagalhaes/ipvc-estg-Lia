@@ -41,6 +41,17 @@
                                 <option value="2" {{ $unidade->item_unity_state_id == 2 ? 'selected' : '' }}>Oculto</option>
                             </select>
                         </li>
+
+
+                        <li class="list-group-item d-flex align-items-center">
+                            <span style="width: 150px; display: inline-block;">Data de Aquisição: </span>
+                            <input type="date" id="data_aquisicao" name="data_aquisicao" class="form-control form-control-sm" value="{{ $unidade->data_aquisicao ? $unidade->data_aquisicao->format('Y-m-d') : '' }}" style="width: 180px; display: inline-block;">
+                        </li>
+
+                         <li class="list-group-item">
+                            <span>Tempo de Vida: </span>
+                            {{ $unidade->tempo_de_vida }}
+                        </li>
                     </ul>
                 </form>
             </div>
@@ -54,23 +65,17 @@
                 
                 <ul class="list-group shadow-sm">
                     {{-- Bloco de Identificação --}}
-                    @foreach ($categoria as $cat)
-                        @if ($item->categoria_id == $cat->id)
-                            <li class="list-group-item">Categoria: {{ $cat->description }}</li>
-                        @endif
-                    @endforeach
-                    <li class="list-group-item">Número de Série: {{ $item->serial_number }}</li>
-                    <li class="list-group-item">Referência IPVC: {{ $item->ipvc_ref }}</li>
-                    
+                    <li class="list-group-item">Categoria: {{ $item->itemCategorie->description ?? 'Sem categoria' }}</li>
+                    <li class="list-group-item">Número de Série: {{ $item->serial_number ?? 'Sem número de série'}}</li>
+                    <li class="list-group-item">Referência IPVC: {{ $item->ipvc_ref ?? 'Não definida' }}</li>
+
                     {{-- Bloco Financeiro e Ciclo de Vida --}}
-                    <li class="list-group-item">Preço do Item: {{ number_format($item->preco, 2, ',', '.') }} €</li>
-                    <li class="list-group-item">Preço / dia: {{ number_format($item->preco, 2, ',', '.') }} €</li>
-                    <li class="list-group-item">Data de Aquisição: {{ $item->data_aquisicao ? $item->data_aquisicao->format('d/m/Y') : 'N/A' }}</li>
-                    <li class="list-group-item">Tempo de Vida: {{ $item->tempo_de_vida }}</li>
+                    <li class="list-group-item">Preço do Item: {{ $item->preco ? number_format($item->preco, 2, ',', '.') . ' €' : 'Não registado' }}</li>
+                    <li class="list-group-item">Preço / dia: {{ $item->price_day ? number_format($item->price_day, 2, ',', '.') . ' €' : '0,00 €' }}</li>
                     
                     {{-- Detalhes Adicionais --}}
-                    <li class="list-group-item">Acessórios: {{ $item->acessorio }}</li>
-                    <li class="list-group-item">Observações: {{ $item->observation }}</li>
+                    <li class="list-group-item">Acessórios: {{ $item->acessorio ?? 'Nenhum acessório registado' }}</li>
+                    <li class="list-group-item">Observações: {{ $item->observation ?? 'Nenhuma observação' }}</li>
                     
                     {{-- Bloco de Inventário/Stock --}}
                    
@@ -116,10 +121,17 @@
 <script>
     $(document).ready(function() {
         let liaOriginalValue = $('#lia_code').val();
+        let dataOriginalValue = $('#data_aquisicao').val();
 
         // 1. Quando o Select muda de estado, grava na hora
         $('#item_unity_state_id').on('change', function() {
             $('#form-unidade').submit();
+        });
+
+        $('#data_aquisicao').on('change', function() {
+            if ($(this).val() !== dataOriginalValue) {
+                $('#form-unidade').submit();
+            }
         });
 
         // 2. Quando o utilizador clica fora do input do Código LIA (Blur)
@@ -136,6 +148,11 @@
                 $(this).blur();
             }
         });
+         @if($errors->any())
+            let mensagemErro = "{{ $errors->first() }}";
+            alert(mensagemErro);
+        @endif
     });
+
 </script>
 @endsection

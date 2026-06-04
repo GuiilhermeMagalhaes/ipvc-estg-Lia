@@ -79,10 +79,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/', [ItemController::class, 'store'])->name('itens.store');
             Route::get('/create-unities', [ItemController::class, 'createUnities'])->name('itens.createUnities');
             Route::post('/store-unities', [ItemController::class, 'storeUnities'])->name('itens.storeUnities');
-            Route::get('/{id}', [ItemController::class, 'show'])->name('itens.show');
+            //Route::get('/{id}', [ItemController::class, 'show'])->name('itens.show');
             Route::get('/{id}/edit', [ItemController::class, 'edit'])->name('itens.edit');
             Route::put('/{id}', [ItemController::class, 'update'])->name('itens.update');
-            Route::put('/{id}/update-unity', [ItemController::class, 'updateUnity'])->name('unidades.updateUnity');
+            //Route::put('/{id}/update-unity', [ItemController::class, 'updateUnity'])->name('unidades.updateUnity');
             // Rota para processar a segunda etapa da edição (LIAs e novas unidades)
             Route::post('/{id}/update-unities-step', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
             Route::delete('/{id}/anular', [ItemController::class, 'anularUnity'])->name('unidades.anular');
@@ -93,7 +93,10 @@ Route::middleware('auth')->group(function () {
 
         Route::prefix('item-unities')->group(function () {
             Route::get('/', [ItemController::class, 'index'])->name('itens.index');
+            Route::get('/{id}', [ItemController::class, 'show'])->name('itens.show');
+            Route::put('/{id}/update', [ItemController::class, 'updateUnity'])->name('unidades.updateUnity');
         });
+        
         Route::prefix('/reserves')->group(function () {
             Route::get('/', [AdminReserveController::class, 'all'])->name('reserves.all');
             Route::get('/pending', [AdminReserveController::class, 'pending'])->name('reserves.pending');
