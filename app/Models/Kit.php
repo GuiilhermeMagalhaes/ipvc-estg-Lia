@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Kit extends Model
 {
+    protected $table = 'kits';
 
     protected $fillable = [
         'name',
@@ -18,18 +19,16 @@ class Kit extends Model
         'price',
         'price_day',
         'image',
-        'categoria_id',
         'quantity', 
-        'quantity_disp'
     ];
 
 
     /**
     * @return \Illuminate\Database\Eloquent\Relations\HasMany
     */
-    public function kitUnits(): HasMany
+    public function kitUnities(): HasMany 
     {
-        return $this->hasMany(kitUnity::class);
+        return $this->hasMany(KitUnity::class, 'kit_id');
     }
 
 }

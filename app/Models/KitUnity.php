@@ -11,17 +11,19 @@ class KitUnity extends Model
 
     protected $fillable = [
         'lia_code',
-        'kit_state_id',
+        'kit_unity_state_id',
         'kit_id'
     ];
 
+
     public function kitUnityState(): BelongsTo
     {
-        return $this->belongsTo(KitState::class);
+        return $this->belongsTo(KitUnityState::class, 'kit_unity_state_id');
     }
 
+    // CORREÇÃO: Forçamos o uso da coluna 'kit_id' para garantir consistência
     public function kit(): BelongsTo
     {
-        return $this->belongsTo(Kit::class);
+        return $this->belongsTo(Kit::class, 'kit_id');
     }
 }

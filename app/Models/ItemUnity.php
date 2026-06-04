@@ -18,12 +18,12 @@ class ItemUnity extends Model
 
     public function item(): BelongsTo
     {
-        return $this->belongsTo(Item::class);
+        return $this->belongsTo(Item::class, 'item_id');
     }
 
     public function kitUnity(): BelongsTo
     {
-        return $this->belongsTo(KitUnity::class);
+        return $this->belongsTo(KitUnity::class, 'kit_unity_id');
     }
 
     public function itemUnityState(): BelongsTo
