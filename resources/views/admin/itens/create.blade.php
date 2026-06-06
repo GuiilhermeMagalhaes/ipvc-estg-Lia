@@ -7,7 +7,6 @@
     <div class="d-flex flex-column">
         <form action="{{ route('itens.store') }}" enctype="multipart/form-data" method="POST">
             @csrf
-            @method('POST')
             <div class="form-group">
                 <label for="nome">Nome</label>
                 <input type="text" name="nome" class="form-control" value="{{ old('nome') }}">
@@ -57,21 +56,12 @@
                 <span style="color:red">{{$errors->first('price_day')}}</span>
             </div>
             
-                 <div class="form-group">
-                <label for="data_aquisicao">Data de Aquisição</label>
-                <input type="date" name="data_aquisicao" id="data_aquisicao" class="form-control" value="{{ old('data_aquisicao') }}">
-                <span style="color:red">{{$errors->first('data_aquisicao')}}</span>
-            </div>
 
              <div class="form-group">
                 <label for="acessorio">Acessórios</label>
                 <input type="text" name="acessorio" id="acessorio" class="form-control" value="{{ old('acessorio') }}">
                 <span style="color:red">{{$errors->first('acessorio')}}</span>
             </div>
-
-    
-           
-
             
             <div class="form-group">
                 <label for="observation">Observações</label>
@@ -98,6 +88,7 @@
             <div class="form-group">
                 <label for="">Imagem para Item</label>
                 <input type="file" class="form-control-file" name="image" id="image">
+                <span style="color:red">{{$errors->first('image')}}</span> 
             </div>
             <button type="submit" class="btn btn-primary" style="width: 140px;">Seguinte</button>
         </form>

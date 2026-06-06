@@ -45,7 +45,7 @@
 
                         <li class="list-group-item d-flex align-items-center">
                             <span style="width: 150px; display: inline-block;">Data de Aquisição: </span>
-                            <input type="date" id="data_aquisicao" name="data_aquisicao" class="form-control form-control-sm" value="{{ $unidade->data_aquisicao ? $unidade->data_aquisicao->format('Y-m-d') : '' }}" style="width: 180px; display: inline-block;">
+                            <input type="date" id="data_aquisicao" name="data_aquisicao" class="form-control form-control-sm" value="{{ $unidade->data_aquisicao ? $unidade->data_aquisicao->format('Y-m-d') : '' }}" max="{{ date('Y-m-d') }}" style="width: 180px; display: inline-block;">
                         </li>
 
                          <li class="list-group-item">
