@@ -292,7 +292,7 @@ public function storeUnities(Request $request)
         return redirect('admin/kits')->with('toast_success', 'Kit criado com sucesso!');
     }
     */
-
+/*
     public function show($id)
     {
         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
@@ -303,7 +303,7 @@ public function storeUnities(Request $request)
         }
         return redirect('/');
     }
-
+*/
     public function edit($id)
     {
         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
@@ -314,7 +314,7 @@ public function storeUnities(Request $request)
         }
         return redirect('/');
     }
-
+/*
     public function update(Request $request, $id)
     {
         $kit = Kit::find($id);
@@ -367,7 +367,7 @@ public function storeUnities(Request $request)
         return redirect('/admin/kits');
     }
 
-
+*/
     public function ocultos(Request $request)
 {
     // Construímos a query base filtrando apenas pelo estado id = 2 (ocultas)
@@ -414,6 +414,105 @@ public function storeUnities(Request $request)
     // Se for o carregamento normal da página, renderiza a view completa
     return view('admin.kitunity.ocultos', compact('unidades'));
 }
+
+public function show($id)
+    {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
+        // Procura a unidade com o Kit Pai e com todos os Itens físicos associados a ela
+        $unidade = KitUnity::with(['kit', 'itemUnities.item'])->find($id);
+
+        if (!$unidade) {
+            return redirect()->route('kits.index')->with('toast_error', 'Unidade de Kit não encontrada.');
+        }
+
+        // Captura todos os itens livres do sistema (que não pertencem a nenhum kit) 
+        // para que o utilizador possa adicioná-los no modal de edição, se quiser
+        $itensLivres = ItemUnity::with('item')->whereNull('kit_unity_id')->get();
+
+        return view('admin.kitUnity.show', [
+            'unidade'     => $unidade,
+            'kit'         => $unidade->kit,
+            'itensLivres' => $itensLivres
+        ]);
+    }
+
+    /**
+     * 2. ATUALIZAR LIA_CODE, ESTADO E ITENS DA UNIDADE
+     */
+    public function update(Request $request, $id)
+    {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
+        $unidade = KitUnity::find($id);
+
+        if (!$unidade) {
+            return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
+        }
+
+        // Validação dos campos
+        $request->validate([
+            'lia_code'           => 'required|string|unique:kit_unity,lia_code,' . $id,
+            'kit_unity_state_id' => 'required|in:1,2', // 1: Ativo (Visível), 2: Oculto
+            'items_kept'         => 'nullable|array',   // IDs dos itens que o utilizador quer MANTER/REMOVER
+        ], [
+            'lia_code.required' => 'O código LIA é obrigatório.',
+            'lia_code.unique'   => 'Este código LIA já está a ser utilizado por outra unidade.',
+        ]);
+
+        // 1. Atualiza os dados básicos da Unidade do Kit
+        $unidade->lia_code = $request->lia_code;
+        $unidade->kit_unity_state_id = $request->kit_unity_state_id;
+        $unidade->save();
+
+        // 2. GESTÃO DOS ITENS INTERNOS (Remover os desmarcados e associar novos)
+        // IDs que vieram selecionados no modal
+        $itemsSelected = $request->input('items_kept', []);
+
+        // Remover a associação de todos os itens atuais que NÃO foram selecionados no modal
+        ItemUnity::where('kit_unity_id', $unidade->id)
+            ->whereNotIn('id', $itemsSelected)
+            ->update(['kit_unity_id' => null]);
+
+        // Associar os novos itens que foram marcados (caso fossem itens livres previamente)
+        if (!empty($itemsSelected)) {
+            ItemUnity::whereIn('id', $itemsSelected)
+                ->update(['kit_unity_id' => $unidade->id]);
+        }
+
+        Alert::success('Sucesso', 'Unidade de kit atualizada com sucesso!');
+        return redirect()->route('kitUnity.show', $unidade->id);
+    }
+
+    /**
+     * 3. ELIMINAR UNIDADE (Mudar estado para 3 - Anulado)
+     */
+    public function destroy($id)
+    {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
+        $unidade = KitUnity::find($id);
+
+        if (!$unidade) {
+            return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
+        }
+
+        // Em vez de fazer delete físico, passamos o estado para 3 (Anulado)
+        $unidade->kit_unity_state_id = 3;
+        $unidade->save();
+
+        // Libertar os itens físicos que pertenciam a este kit para que fiquem disponíveis novamente
+        ItemUnity::where('kit_unity_id', $unidade->id)->update(['kit_unity_id' => null]);
+
+        Alert::success('Sucesso', 'A unidade foi anulada com sucesso!');
+        return redirect()->route('kits.index');
+    }
     
 }
 
