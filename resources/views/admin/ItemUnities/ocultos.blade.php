@@ -6,7 +6,7 @@
 <br>
 <div>
     <form action="#" class="search-form">
-        <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar Itens..." style="width: 24%;" />
+        <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar itens ocultos..." style="width: 24%;" />
     </form>
     <br>
     <div class="row mycard">
