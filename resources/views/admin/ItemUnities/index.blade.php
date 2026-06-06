@@ -5,9 +5,9 @@
 @section('content')
 <br>
 <div>
-    <form action="#" class="search-form">
-        <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar Itens..." style="width: 24%;" />
-    </form>
+    <div class="search-form mb-4">
+        <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar itens..." style="width: 24%;" />
+    </div>
     <br>
     <div class="row mycard">
     @foreach($unidades as $unidade)
@@ -18,7 +18,7 @@
             <small class="text-muted mb-2">Ref: {{ $unidade->item->ipvc_ref }}</small>
             <p class="text-muted mb-2">LIA: {{ $unidade->lia_code }}</p>
             
-            <p class="card-text card-text-preco">{{ number_format($unidade->item->preco, 2, ',', '.') }} € / dia</p>
+            <p class="card-text card-text-preco">{{ number_format($unidade->item->price_day, 2, ',', '.') }} € / dia</p>
             
             <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $unidade
             ->id]) }}">VER DETALHES</a>

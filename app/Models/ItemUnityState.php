@@ -15,6 +15,6 @@ class ItemUnityState extends Model
 
     public function itemUnities(): HasMany
     {
-        return $this->hasMany(ItemUnity::class);
+        return $this->hasMany(ItemUnity::class, 'item_unity_state_id');
     }
 }

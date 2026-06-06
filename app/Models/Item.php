@@ -12,7 +12,6 @@ class Item extends Model
 {
     protected $table = "item";
 
-    public $timestamps = false;
 
     protected $fillable = [
         'nome',
@@ -28,7 +27,7 @@ class Item extends Model
         'price_day',
         'item_state_id',
         'quantity',
-        'quantity_disp',  
+        'data_aquisicao', 
     ];
 
     
@@ -48,11 +47,27 @@ protected $casts = [
     }
 
     
-     public function getTempoDeVidaAttribute()
+ /*    public function getTempoDeVidaAttribute()
 {
     if (!$this->data_aquisicao) {
         return 'Data de aquisição desconhecida';
     }
    
 }
+*/
+
+public function getTempoDeVidaAttribute()
+    {
+        if (!$this->data_aquisicao) {
+            return 'Data de aquisição desconhecida';
+        }
+
+        // Converte a string da base de dados num objeto Carbon e calcula a diferença para hoje
+        $dataAquisicao = Carbon::parse($this->data_aquisicao);
+        
+        return $dataAquisicao->diffForHumans([
+            'parts' => 2, // Ex: "há 3 anos e 2 meses"
+            'syntax' => Carbon::DIFF_RELATIVE_TO_NOW
+        ]);
+    }
 }

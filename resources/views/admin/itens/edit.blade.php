@@ -36,11 +36,6 @@
                 <span style="color:red">{{$errors->first('preco')}}</span>
             </div>
             <div class="form-group">
-                <label for="data_aquisicao">Data de Aquisição</label>
-                <input type="date" name="data_aquisicao" id="data_aquisicao" class="form-control" value="{{ old('data_aquisicao', $item->data_aquisicao ? $item->data_aquisicao->format('Y-m-d') : '') }}">
-                <span style="color:red">{{$errors->first('data_aquisicao')}}</span>
-            </div>
-            <div class="form-group">
                 <label for="observation">Observações</label>
                 <input type="text" name="observation" class="form-control" value="{{ old('observation', $item->observation) }}">
                 <span style="color:red">{{$errors->first('observation')}}</span>
@@ -51,27 +46,22 @@
                 <span style="color:red">{{$errors->first('acessorio')}}</span>
             </div>
             <div class="form-group">
-    <label for="preco">Preço</label>
-    <input type="number" name="preco" id="preco" class="form-control" step="0.01" value="{{ old('preco', $item->preco) }}">
-    <span style="color:red">{{$errors->first('preco')}}</span>
-</div>
-<div class="form-group">
-    <label for="price_day">Preço por Dia</label>
-    <input type="number" name="price_day" id="price_day" class="form-control" step="0.01" value="{{ old('price_day', $item->price_day) }}">
-    <span style="color:red">{{$errors->first('price_day')}}</span>
-</div>
+                <label for="preco">Preço</label>
+                <input type="number" name="preco" id="preco" class="form-control" step="0.01" value="{{ old('preco', $item->preco) }}">
+                <span style="color:red">{{$errors->first('preco')}}</span>
+            </div>
+            <div class="form-group">
+                <label for="price_day">Preço por Dia</label>
+                <input type="number" name="price_day" id="price_day" class="form-control" step="0.01" value="{{ old('price_day', $item->price_day) }}">
+                <span style="color:red">{{$errors->first('price_day')}}</span>
+            </div>
 
-<div class="form-group">
-    <label for="quantity">Quantidade Total</label>
-    <input type="number" name="quantity" id="quantity" class="form-control" value="{{ old('quantity', $item->quantity) }}">
-    <span style="color:red">{{$errors->first('quantity')}}</span>
-</div>
+            <div class="form-group">
+                <label for="quantity">Quantidade Total</label>
+                <input type="number" name="quantity" id="quantity" class="form-control" value="{{ old('quantity', $item->quantity) }}">
+                <span style="color:red">{{$errors->first('quantity')}}</span>
+            </div>
 
-<div class="form-group">
-    <label for="quantity_disp">Quantidade Disponível</label>
-    <input type="number" name="quantity_disp" id="quantity_disp" class="form-control" value="{{ old('quantity_disp', $item->quantity_disp) }}">
-    <span style="color:red">{{$errors->first('quantity_disp')}}</span>
-</div>
             <div class="form-group">
                 <label for="categoria_id">Categoria</label>
                 <br>
@@ -85,7 +75,7 @@
                 <label for="">Imagem para Item</label>
                 <input type="file" class="form-control-file" name="image" id="image">
             </div>
-            <button type="submit" class="btn btn-success" style="width: 140px; float:right;">Atualizar Item</button>
+            <button type="submit" class="btn btn-primary" style="width: 140px; float:right;">Atualizar Item</button>
             <br><br>
         </form>
         <br>
