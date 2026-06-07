@@ -26,16 +26,16 @@ public function index(Request $request)
             $output = '';
             $search = $request->search;
 
-            // Iniciamos a query pelas UNIDADES com o estado igual a 1
+           
             $query = KitUnity::with('kit')->where('kit_unity_state_id', 1);
 
             
 
           if (!empty($search)) {
             $query->where(function($q) use ($search) {
-                // 1. Pesquisa pelo Código LIA (na tabela KitUnity)
+                
                 $q->where('lia_code', 'LIKE', '%' . $search . '%')
-                  // 2. OU pesquisa pelo Nome do Kit (na tabela relacionada)
+                  
                   ->orWhereHas('kit', function($subQuery) use ($search) {
                       $subQuery->where('name', 'LIKE', '%' . $search . '%');
                   });
@@ -65,13 +65,13 @@ public function index(Request $request)
 
             return response()->json($output);
         } else {
-            // Carregamento normal da página: traz apenas as unidades cujo estado é 1
+            
             $unidades = KitUnity::with('kit')->where('kit_unity_state_id', 1)->get();
         }
 
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            // Enviamos a variável '$unidades' para a view
-            return view('admin.kitUnity.index', ['unidades' => $unidades]);
+            
+            return view('admin.kitUnities.index', ['unidades' => $unidades]);
         }
         return redirect('/');
     }
@@ -86,9 +86,7 @@ public function index(Request $request)
         $search = $request->input('search');
 
         $query->where(function($q) use ($search) {
-            // 1. Pesquisa pelo Código LIA
             $q->where('lia_code', 'LIKE', '%' . $search . '%')
-              // 2. OU pesquisa pelo Nome ou Modelo na tabela relacionada 'kit'
               ->orWhereHas('kit', function($kitQuery) use ($search) {
                   $kitQuery->where('name', 'LIKE', '%' . $search . '%')
                            ->orWhere('model', 'LIKE', '%' . $search . '%');
@@ -98,7 +96,6 @@ public function index(Request $request)
 
     $unidades = $query->get();
 
-    // Se for uma requisição AJAX, retorna apenas os cartões renderizados
     if ($request->ajax()) {
         $html = '';
         foreach ($unidades as $unidade) {
@@ -118,20 +115,117 @@ public function index(Request $request)
         return response()->json($html);
     }
 
-    // Se for o carregamento normal da página, renderiza a view completa
-    return view('admin.kitunity.ocultos', compact('unidades'));
+    return view('admin.kitunities.ocultos', compact('unidades'));
 }
 
 
 
+public function show($id)
+    {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
+        
+        $unidade = KitUnity::with(['kit', 'itemUnities.item'])->find($id);
+
+        if (!$unidade) {
+            return redirect()->route('kits.index')->with('toast_error', 'Unidade de Kit não encontrada.');
+        }
+
+        $itensLivres = ItemUnity::with('item')->whereNull('kit_unity_id')->get();
+
+        return view('admin.kitUnities.show', [
+            'unidade'     => $unidade,
+            'kit'         => $unidade->kit,
+            'itensLivres' => $itensLivres
+        ]);
+    }
+
+
+    public function updateUnity(Request $request, $id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        
+        $request->validate([
+            'lia_code' => 'required|string|unique:kit_unity,lia_code,' . $id,
+            'kit_unity_state_id' => 'required|exists:kit_unity_states,id',
+        ], [
+            'lia_code.required' => 'O código LIA não pode ficar vazio.',
+            'lia_code.unique' => 'Este código LIA já está a ser usado noutra unidade de kit.',
+            'kit_unity_state_id.required' => 'O estado da unidade é obrigatório.',
+            'kit_unity_state_id.exists' => 'O estado selecionado é inválido.'
+        ]);
+
+        
+        $unidade = KitUnity::find($id);
+        
+        if ($unidade) {
+            
+           
+            $unidade->update($request->only(['lia_code', 'kit_unity_state_id']));
+            
+            return redirect()->back()->with('toast_success', 'Unidade atualizada com sucesso!');
+        }
+
+        return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
+    }
+    
+    return redirect('/');
+}
+
+
+    public function destroy($id)
+    {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
+        $unidade = KitUnity::find($id);
+
+        if (!$unidade) {
+            return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
+        }
+
+        if ($unidade->kit_unity_state_id == 3) {
+            return redirect()->back()->with('toast_error', 'Esta unidade já se encontra anulada.');
+        }
+    
+        
+        $unidade->kit_unity_state_id = 3;
+        $unidade->save();
+
+        if ($unidade->kit) {
+       
+            $unidade->kit->decrement('quantity', 1);
+        }
+    
+        
+        ItemUnity::where('kit_unity_id', $unidade->id)->update(['kit_unity_id' => null]);
+
+        return redirect()->route('kits.index')->with('toast_success', 'Unidade anulada e stock atualizado com sucesso!!');
+    }
+
+
+  public function create()
+    {
+        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
+            return view('admin.kits.create', [
+                'categorias' => ItemCategorie::all()
+            ]);
+        }
+        return redirect('/');
+    }
 
 
 
 
-
-    // 1. APENAS VALIDA E GUARDA O KIT NA SESSÃO (NÃO GRAVA NA BD AINDA)
+   
 public function store(Request $request)
 {
+    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+        return redirect('/');
+    }
     $request->validate(
         [
             'name' => 'required|string|max:191',
@@ -139,55 +233,75 @@ public function store(Request $request)
             'price' => 'required|numeric|min:0',
             'price_day' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:1',
+            'ipvc_ref'    => 'nullable|string|max:191',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ],
         [
-            'name.required' => 'O kit deve ter um nome',
-            'description.required' => 'O kit deve ter uma descrição',
-            'price.required' => 'O kit deve ter um preço associado', 
-            'price_day.required' => 'O kit deve ter um preço por dia associado',
-            'quantity.required' => 'Insira a quantidade total',
+            'name.required'        => 'O kit deve ter um nome.',
+            'description.required' => 'O kit deve ter uma descrição.',
+            'price.required'       => 'O kit deve ter um preço associado.', 
+            'price.min'            => 'O preço não pode ser inferior a 0.',
+            'price_day.required'   => 'O kit deve ter um preço por dia associado.',
+            'price_day.min'        => 'O preço por dia não pode ser inferior a 0.',
+            'quantity.required'    => 'Insira a quantidade total.',
+            'quantity.integer'     => 'A quantidade total deve ser um número inteiro.',
+            'quantity.min'         => 'A quantidade total deve ser pelo menos 1.',
+            'image.image'          => 'O ficheiro selecionado deve ser uma imagem.',
+            'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
+            'image.max'            => 'A imagem não pode ter mais de 2MB.',
         ]
     );
 
-    // Trata o ficheiro de imagem enviado pelo utilizador temporariamente
-    if ($request->hasFile('image') && $request->file('image') != null) {
-        $request->image->image_resize = true;
-        $request->image->image_x = 400;
-        $request->image->image_y = 300;
-        
+    
+    if ($request->image != null) {
         $imagePath = $request->file('image');
         $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
-        // Guarda na pasta final de imediato
         $path = $request->file('image')->storeAs('images/kits', $imageName, 'public');
     } else {
         $path = "images/empty.png";
     }
 
-    // Une os dados textuais ao caminho da imagem
+    
     $dadosParaSessao = $request->only(['name', 'description', 'ipvc_ref', 'price', 'price_day', 'quantity']);
     $dadosParaSessao['image_path'] = $path;
 
-    // Guarda tudo dentro da sessão com a chave 'dados_do_kit'
+   
     $request->session()->put('dados_do_kit', $dadosParaSessao);
 
-    return redirect()->route('kits.createUnities');
+    return redirect()->route('kits.createUnities')->with([
+        'kit_nome' => $request->name,
+        'quantity' => $request->quantity
+    ]);
 }
 
-// 2. EXIBE A VIEW DE UNIDADES BUSCANDO OS DADOS DA SESSÃO
+
+
+
+
+
+
+
 public function createUnities(Request $request)
 {
-    // Se o utilizador tentar aceder a esta página sem passar pelo passo 1, volta para trás
+    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+        return redirect('/');
+    }
+    
     if (!$request->session()->has('dados_do_kit')) {
         return redirect()->route('kits.create')->with('toast_error', 'Por favor, preencha primeiro os dados do kit.');
     }
 
     $dadosKit = $request->session()->get('dados_do_kit');
     
-    // Captura as unidades de itens que ainda não pertencem a nenhum kit
-    $itensLivres = ItemUnity::with('item')->whereNull('kit_unity_id')->get();
+    
+
+    $itensLivres = ItemUnity::with('item')
+        ->whereNull('kit_unity_id')
+        ->whereIn('item_unity_state_id', [1, 2]) 
+        ->get();
 
     if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-        return view('admin.kitUnity.create', [
+        return view('admin.kitUnities.create', [
             'kitName' => $dadosKit['name'],
             'quantity' => $dadosKit['quantity'],
             'itensLivres' => $itensLivres
@@ -196,10 +310,15 @@ public function createUnities(Request $request)
     return redirect('/');
 }
 
-// 3. GRAVA TUDO EM SIMULTÂNEO (SÓ AQUI ENTRA NA BASE DE DADOS)
+
+
+
 public function storeUnities(Request $request)
 {
-    // 1. Verifica se os dados do Kit ainda estão na sessão
+    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+        return redirect('/');
+    }
+    
     if (!$request->session()->has('dados_do_kit')) {
         return redirect()->route('kits.create')->with('toast_error', 'Sessão expirada. Recomece o processo.');
     }
@@ -217,8 +336,7 @@ public function storeUnities(Request $request)
         'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
     ];
 
-
-    // Força a validação individual de cada índice do loop
+    
     for ($i = 0; $i < $quantity; $i++) {
         $regras["lia_codes.$i"] = 'required|string|distinct|unique:kit_unity,lia_code';
         $regras["items_for_unity.$i"] = 'required|array|min:1';
@@ -227,30 +345,15 @@ public function storeUnities(Request $request)
         $mensagens["items_for_unity.$i.min"] = 'É obrigatório associar pelo menos 1 item a esta unidade.';
     }
 
-    // 2. Executa a validação com as regras construídas
+    
     $request->validate($regras, $mensagens);
 
-    // 2. Valida os códigos LIA que vieram do formulário
-    /*$request->validate([
-        'lia_codes' => 'required|array',
-        'lia_codes.*' => 'required|string|distinct|unique:kit_unity,lia_code',
-        'items_for_unity' => 'required|array',
-        'items_for_unity.*' => 'required|array|min:1',
-    ], [
-        'lia_codes.*.required' => 'O código LIA é obrigatório.',
-        'lia_codes.*.unique'   => 'Este código LIA já existe no sistema.',
-        'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
-         'items_for_unity.*.required' => 'É obrigatório associar pelo menos 1 item a esta unidade.',
-        'items_for_unity.*.min'      => 'É obrigatório associar pelo menos 1 item a esta unidade.',
-       
-    ]);
-*/
     $dadosKit = $request->session()->get('dados_do_kit');
 
-    // 3. Inicia a transação: Se algo falhar no meio, nada é gravado
+    
     DB::transaction(function () use ($request, $dadosKit) {
         
-        // Criar o Kit Pai na BD
+       
         $kit = new Kit();
         $kit->name = $dadosKit['name'];
         $kit->description = $dadosKit['description'];
@@ -261,15 +364,30 @@ public function storeUnities(Request $request)
         $kit->image = $dadosKit['image_path'];
         $kit->save();
 
-        // Criar as Unidades físicas do Kit conectadas ao ID gerado agora
         foreach ($request->lia_codes as $index => $liaCode) {
             $kitUnity = new KitUnity();
             $kitUnity->lia_code = $liaCode;
             $kitUnity->kit_id = $kit->id;
-            $kitUnity->kit_unity_state_id = 1; 
+            
+           
+            $definirEstadoKitUnity = 1; 
+
+            
+            if (isset($request->items_for_unity[$index]) && is_array($request->items_for_unity[$index])) {
+                foreach ($request->items_for_unity[$index] as $itemId) {
+                    $itemUnityTemp = ItemUnity::find($itemId);
+                    if ($itemUnityTemp && $itemUnityTemp->item_unity_state_id == 2) {
+                        $definirEstadoKitUnity = 2; 
+                        break; 
+                    }
+                }
+            }
+
+            
+            $kitUnity->kit_unity_state_id = $definirEstadoKitUnity; 
             $kitUnity->save();
 
-            // Associar as unidades de itens selecionadas a esta unidade do kit
+            
             if (isset($request->items_for_unity[$index]) && is_array($request->items_for_unity[$index])) {
                 foreach ($request->items_for_unity[$index] as $itemId) {
                     $itemUnity = ItemUnity::find($itemId);
@@ -279,86 +397,20 @@ public function storeUnities(Request $request)
                     }
                 }
             }
-        }
-    });
+        } 
+        
+    }); 
 
-    // 4. Limpa a sessão para não deixar lixo em memória
+    
     $request->session()->forget('dados_do_kit');
 
-    Alert::success('Sucesso', 'Kit e respetivas unidades gravados com sucesso!');
-    return redirect()->route('kits.index');
+    return redirect()->route('kits.index')->with('toast_success', 'Kit e respetivas unidades gravados com sucesso!');
 }
 
-    public function create()
-    {
-        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-            return view('admin.kits.create', [
-                'categorias' => ItemCategorie::all()
-            ]);
-        }
-        return redirect('/');
-    }
-/*
-    public function store(Request $request)
-    {
-        $request->validate(
-            [
-                'name' => 'required',
-                'description' => 'required',
-                'price' => 'required',
-                'price_day'     => 'required|numeric',
-                'quantity'      => 'required|integer|min:0',
-                'quantity_disp' => 'required|integer|min:0'
-            ],
-            [
-                'name.required' => 'O kit deve ter um nome',
-                'description.required' => 'O kit deve ter uma descrição',
-                'price.required' => 'O kit deve ter um preço associado', 
-                'price_day.required'     => 'O kit deve ter um preço por dia associado',
-                'quantity.required'      => 'Insira a quantidade total',
-                'quantity_disp.required' => 'Insira a quantidade disponível para requisição',
-            ]
-        );
+  
 
-        if ($request->image != null) {
-            $request->image->image_resize = true;
-            $request->image->image_x = 400;
-            $request->image->image_y = 300;
-            $imagePath = $request->file('image');
-            $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
-            $path = $request->file('image')->storeAs('images/kits', $imageName, 'public');
-        } else {
-            $path = "images/empty.png";
-        }
 
-        Kit::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
-            'ipvc_ref' => $request->ipvc_ref,
-            'price_day'     => $request->price_day,
-            'quantity'      => $request->quantity,
-            'quantity_disp' => $request->quantity_disp,
-            'image' => $path,
-            //'categoria_id' => $request->categoria_id,
 
-        ]);
-
-        return redirect('admin/kits')->with('toast_success', 'Kit criado com sucesso!');
-    }
-    */
-/*
-    public function show($id)
-    {
-        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-            return view('admin.kits.show', [
-                'kit' => Kit::find($id),
-                'categoria' => ItemCategorie::all()
-            ]);
-        }
-        return redirect('/');
-    }
-*/
     public function edit($id)
     {
         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
@@ -369,6 +421,8 @@ public function storeUnities(Request $request)
         }
         return redirect('/');
     }
+
+
 /*
     public function update(Request $request, $id)
     {
@@ -424,29 +478,7 @@ public function storeUnities(Request $request)
 
 */
   
-public function show($id)
-    {
-        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
-            return redirect('/');
-        }
 
-        // Procura a unidade com o Kit Pai e com todos os Itens físicos associados a ela
-        $unidade = KitUnity::with(['kit', 'itemUnities.item'])->find($id);
-
-        if (!$unidade) {
-            return redirect()->route('kits.index')->with('toast_error', 'Unidade de Kit não encontrada.');
-        }
-
-        // Captura todos os itens livres do sistema (que não pertencem a nenhum kit) 
-        // para que o utilizador possa adicioná-los no modal de edição, se quiser
-        $itensLivres = ItemUnity::with('item')->whereNull('kit_unity_id')->get();
-
-        return view('admin.kitUnity.show', [
-            'unidade'     => $unidade,
-            'kit'         => $unidade->kit,
-            'itensLivres' => $itensLivres
-        ]);
-    }
 
     /**
      * 2. ATUALIZAR LIA_CODE, ESTADO E ITENS DA UNIDADE
@@ -494,34 +526,13 @@ public function show($id)
         }
 
         Alert::success('Sucesso', 'Unidade de kit atualizada com sucesso!');
-        return redirect()->route('kitUnity.show', $unidade->id);
+        return redirect()->route('kits.show', $unidade->id);
     }
 
     /**
      * 3. ELIMINAR UNIDADE (Mudar estado para 3 - Anulado)
      */
-    public function destroy($id)
-    {
-        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
-            return redirect('/');
-        }
-
-        $unidade = KitUnity::find($id);
-
-        if (!$unidade) {
-            return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
-        }
-
-        // Em vez de fazer delete físico, passamos o estado para 3 (Anulado)
-        $unidade->kit_unity_state_id = 3;
-        $unidade->save();
-
-        // Libertar os itens físicos que pertenciam a este kit para que fiquem disponíveis novamente
-        ItemUnity::where('kit_unity_id', $unidade->id)->update(['kit_unity_id' => null]);
-
-        Alert::success('Sucesso', 'A unidade foi anulada com sucesso!');
-        return redirect()->route('kits.index');
-    }
+   
     
 }
 

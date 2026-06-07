@@ -1,6 +1,6 @@
 @extends('adminlte::page')
 
-@section('title', 'Unidades Ocultas')
+@section('title', 'Kits Ocultos')
 
 @section('content')
 <div>
@@ -17,16 +17,17 @@
             <div class="card h-100 border-secondary">
                 <div class="card-body d-flex flex-column justify-content-center text-center">
                     {{-- Nome do Kit Pai --}}
-                    <h5 class="card-title font-weight-bold">{{ $unidade->kit->name }}</h5>
+                    <h5 class="card-title ">{{ $unidade->kit->name }}</h5>
+                    <small class="text-muted mb-2">Ref: {{ $unidade->kit->ipvc_ref ?? 'N/A' }}</small>
                     
                     {{-- Código LIA da Unidade --}}
-                    <p class="text-dark mb-1"><strong>LIA:</strong> {{ $unidade->lia_code }}</p>
+                    <p class="text-muted mb-2">LIA: {{ $unidade->lia_code }}</p>
                     
-                    {{-- Preço por dia do Kit Pai --}}
-                    <p class="card-text">{{ number_format($unidade->kit->price_day, 2, ',', '.') }} € / dia</p>
+                    {{-- Preço por dia do Kit Pai (price_day) --}}
+                    <p class="card-text card-text-preco">{{ number_format($unidade->kit->price_day, 2, ',', '.') }} € / dia</p>
                     
-                    {{-- Rota para os detalhes --}}
-                    <a class="btn btn-secondary mx-auto" style="width: 140px;" href="{{ route('kitUnity.show', ['id' => $unidade->id]) }}">VER DETALHES</a>
+                    {{-- Rota apontando para o ID da unidade --}}
+                    <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('kits.show', ['id' => $unidade->id]) }}">VER DETALHES</a>
                 </div>
             </div>
         </div>

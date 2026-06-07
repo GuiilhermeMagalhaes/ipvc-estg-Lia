@@ -26,7 +26,7 @@
                     <p class="card-text card-text-preco">{{ number_format($unidade->kit->price_day, 2, ',', '.') }} € / dia</p>
                     
                     {{-- Rota apontando para o ID da unidade --}}
-                    <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('kitUnity.show', ['id' => $unidade->id]) }}">VER DETALHES</a>
+                    <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('kits.show', ['id' => $unidade->id]) }}">VER DETALHES</a>
                 </div>
             </div>
         </div>

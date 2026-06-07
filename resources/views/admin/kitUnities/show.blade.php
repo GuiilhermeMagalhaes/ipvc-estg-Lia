@@ -1,6 +1,6 @@
 @extends('adminlte::page')
 
-@section('title', 'Detalhes da Unidade de Kit')
+@section('title', 'Kit')
 
 @section('content')
 <br>
@@ -9,7 +9,6 @@
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="font-weight-bold text-dark">{{ $kit->name }}</h1>
-            <p class="text-muted list-group-item-text" style="font-size: 1.2rem;">Referência IPVC: <strong>{{ $kit->ipvc_ref ?? 'N/A' }}</strong></p>
         </div>
     </div>
 
@@ -21,14 +20,14 @@
             </div>
         </div>
 
-        {{-- Coluna das Informações --}}
+        {{-- Coluna das Informações (Lado Direito) --}}
         <div class="col-md-8 col-sm-12">
             
             {{-- 1. Bloco de Informações da Unidade Atual --}}
             <div class="mb-4">
                 <h6 class="text-dark font-weight-bold mb-3">Informações da Unidade Atual</h6>
                 
-                <form id="form-unidade" action="{{ route('kitUnity.update', $unidade->id) }}" method="POST">
+                <form id="form-unidade" action="{{ route('kits.updateUnity', $unidade->id) }}" method="POST">
                     @csrf
                     @method('PUT')
                     
@@ -57,38 +56,57 @@
             {{-- 2. Lista de Itens Vinculados a esta Unidade --}}
             <div class="mb-4 pt-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="text-dark font-weight-bold m-0">Itens Integrantes Desta Unidade</h6>
-                    <button type="button" class="btn btn-info" data-toggle="modal" data-target="#modalGerarItens" style="width: 140px;">
+                    <h6 class="text-dark font-weight-bold m-0">Itens Incluídos no Conjunto</h6>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalGerarItens" style="width: 140px;">
                         Gerir Itens
                     </button>
                 </div>
 
-                <ul class="list-group shadow-sm">
-                    @if($unidade->itemUnities->count() > 0)
-                        @foreach($unidade->itemUnities as $itemUnity)
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>{{ $itemUnity->item->nome }}</span>
-                                <span class="badge badge-secondary p-2">LIA: {{ $itemUnity->lia_code }}</span>
-                            </li>
-                        @endforeach
-                    @else
-                        <li class="list-group-item text-muted italic small">Nenhum item associado a esta unidade de kit.</li>
-                    @endif
-                </ul>
+                @if($unidade->itemUnities->count() > 0)
+                    <div class="table-responsive shadow-sm rounded">
+                        <table class="table table-striped table-hover bg-white m-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Modelo</th>
+                                    <th>Preço / dia</th>
+                                    <th>Ref IPVC</th>
+                                    <th>Código LIA</th>  
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($unidade->itemUnities as $itemUnity)
+                                <tr>
+                                    <td><strong>{{ $itemUnity->item->nome }}</strong></td>
+                                    <td>{{ $itemUnity->item->model ?? 'N/A' }}</td>
+                                    <td>{{ number_format($itemUnity->item->price_day ?? 0, 2, ',', '.') }} €</td>
+                                    <td><span class="badge badge-light p-2 border">{{ $itemUnity->item->ipvc_ref ?? 'N/A' }}</span></td>
+                                    <td><span class="badge badge-secondary p-2">LIA: {{ $itemUnity->lia_code }}</span></td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    {{-- CORRIGIDO: Removida a div de fecho órfã que estragava o layout --}}
+                    <div class="alert alert-light border text-muted italic small shadow-sm">
+                        Nenhum item associado a esta unidade de kit. Clique em "Gerir Itens" para adicionar.
+                    </div>
+                @endif
             </div>
 
             {{-- 3. Bloco de Informações Gerais do Kit --}}
             <div class="mb-4 pt-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="text-dark font-weight-bold m-0">Informações do Kit (Catálogo)</h6>
+                    <h6 class="text-dark font-weight-bold m-0">Informações do Kit</h6>
                     <a href="{{ route('kits.edit', $kit->id) }}" class="btn btn-primary" style="width: 140px;">Editar Kit</a>
                 </div>
                 
                 <ul class="list-group shadow-sm">
-                    <li class="list-group-item"><strong>Descrição:</strong> {{ $kit->description }}</li>
-                    <li class="list-group-item"><strong>Preço de Custo:</strong> {{ number_format($kit->price, 2, ',', '.') }} €</li>
-                    <li class="list-group-item"><strong>Preço / dia (Aluguer):</strong> {{ number_format($kit->price_day, 2, ',', '.') }} € / dia</li>
-                    <li class="list-group-item bg-light"><strong>Quantidade Total do Catálogo:</strong> {{ $kit->quantity }}</li>
+                    <li class="list-group-item">Descrição: {{ $kit->description }}</li>
+                    <li class="list-group-item">Preço: {{ number_format($kit->price, 2, ',', '.') }} €</li>
+                    <li class="list-group-item">Preço / dia : {{ number_format($kit->price_day, 2, ',', '.') }} € / dia</li>
+                    <li class="list-group-item bg-light">Quantidade Total: {{ $kit->quantity }}</li>
                 </ul>
 
                 {{-- Botão de Eliminar/Anular Unidade --}}
@@ -115,10 +133,9 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form action="{{ route('kitUnity.update', $unidade->id) }}" method="POST">
+            <form action="{{ route('kits.updateUnity', $unidade->id) }}" method="POST">
                 @csrf
                 @method('PUT')
-                {{-- Preserva os dados da unidade ao submeter o Modal --}}
                 <input type="hidden" name="lia_code" value="{{ $unidade->lia_code }}">
                 <input type="hidden" name="kit_unity_state_id" value="{{ $unidade->kit_unity_state_id }}">
 
@@ -210,9 +227,14 @@
         $('#lia_code').on('keypress', function(e) {
             if (e.which == 13) {
                 e.preventDefault();
-                $(this).blur();
+                $(this).blur(); 
             }
         });
+
+        @if($errors->any())
+            let mensagemErro = "{{ $errors->first() }}";
+            alert(mensagemErro);
+        @endif
     });
 </script>
 @endsection
