@@ -1,0 +1,327 @@
+@extends('adminlte::page')
+
+@section('title', 'Kit')
+
+@section('content')
+<br>
+<div class="container-fluid">
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="font-weight-bold text-dark">{{ $kit->name }}</h1>
+        </div>
+    </div>
+
+    <div class="row">
+       
+        <div class="col-md-4 col-sm-12 mb-4">
+            <div class="text-center text-md-left">
+                <img id="img" src="{{ asset('storage/' . $kit->image) }}" class="img-fluid rounded shadow-sm" style="max-width: 400px; width: 100%; object-fit: cover;">
+            </div>
+        </div>
+
+       
+        <div class="col-md-8 col-sm-12">
+            
+            
+            <div class="mb-4">
+                <h6 class="text-dark font-weight-bold mb-3">Informações da Unidade Atual</h6>
+                
+                <form id="form-unidade" action="{{ route('kits.updateUnity', $unidade->id) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    
+                    <ul class="list-group shadow-sm">
+                        <li class="list-group-item d-flex align-items-center">
+                            <span class="mr-2">Código LIA: </span>
+                            <input type="text" id="lia_code" name="lia_code" class="form-control form-control-sm" value="{{ $unidade->lia_code }}" style="width: 180px; display: inline-block;">
+                        </li>
+                        
+                        <li class="list-group-item d-flex align-items-center">
+                            <span class="mr-2">Estado: </span>
+                            <select id="kit_unity_state_id" name="kit_unity_state_id" class="form-control form-control-sm mr-2" style="width: 180px; display: inline-block;">
+                                <option value="1" {{ $unidade->kit_unity_state_id == 1 ? 'selected' : '' }}>Ativo (Visível)</option>
+                                <option value="2" {{ $unidade->kit_unity_state_id == 2 ? 'selected' : '' }}>Oculto</option>
+                            </select>
+                        </li>
+                    </ul>
+
+                    
+                    @foreach($unidade->itemUnities as $itemUnity)
+                        <input type="hidden" name="items_kept[]" value="{{ $itemUnity->id }}">
+                    @endforeach
+                </form>
+            </div>
+
+            
+<div class="mb-4 pt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="text-dark font-weight-bold m-0">Itens Incluídos no Conjunto</h6>
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalGerarItens" style="width: 140px;">
+            Gerir Itens
+        </button>
+    </div>
+
+    @if($unidade->itemUnities->count() > 0)
+        <div class="table-responsive shadow-sm rounded">
+            <table class="table table-striped table-hover bg-white m-0">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Modelo</th>
+                        <th>Preço / dia</th>
+                        <th>Código LIA</th>  
+                        <th>Estado</th> 
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($unidade->itemUnities as $itemUnity)
+                    <tr>
+                        <td><strong>{{ $itemUnity->item->nome }}</strong></td>
+                        <td>{{ $itemUnity->item->model ?? 'N/A' }}</td>
+                        <td>{{ number_format($itemUnity->item->price_day ?? 0, 2, ',', '.') }} €</td>
+                        <td>{{ $itemUnity->lia_code }}</td> 
+                        
+                       
+                        <td>
+                            @if($itemUnity->item_unity_state_id == 2)
+                                <span class="text-danger">Oculto</span>
+                            @elseif($itemUnity->item_unity_state_id == 3)
+                                <span class="text-danger">Anulado</span>
+                            @else
+                                <span class="text-success">Ativo</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="alert alert-light border text-muted italic small shadow-sm">
+            Nenhum item associado a esta unidade de kit. Clique em "Gerir Itens" para adicionar.
+        </div>
+    @endif
+</div>
+
+            
+            <div class="mb-4 pt-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-dark font-weight-bold m-0">Informações do Kit</h6>
+                    <a href="{{ route('kits.edit', $kit->id) }}" class="btn btn-primary" style="width: 140px;">Editar Kit</a>
+                </div>
+                
+                <ul class="list-group shadow-sm">
+                    <li class="list-group-item">Descrição: {{ $kit->description }}</li>
+                    <li class="list-group-item">Preço: {{ number_format($kit->price, 2, ',', '.') }} €</li>
+                    <li class="list-group-item">Preço / dia : {{ number_format($kit->price_day, 2, ',', '.') }} € / dia</li>
+                    <li class="list-group-item bg-light">Quantidade Total: {{ $kit->quantity }}</li>
+                </ul>
+
+                
+                <div class="mt-3 pt-4 mb-5">
+                    <form action="{{ route('kitUnity.destroy', $unidade->id) }}" method="POST" class="form-inline" onsubmit="return confirm('Tem a certeza que deseja anular esta unidade de kit? Os itens associados serão libertados.');">
+                        @csrf
+                        @method('DELETE')
+                        <button class="btn btn-danger" style="width: 160px;">Eliminar Unidade</button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="modalGerarItens" tabindex="-1" role="dialog" aria-labelledby="modalGerarItensLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalGerarItensLabel">Gerir Itens do Conjunto</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            
+            <form id="form-gerar-itens" action="{{ route('kits.updateUnity', $unidade->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                {{-- Inputs ocultos sincronizados com o formulário principal --}}
+                <input type="hidden" id="modal_lia_code" name="lia_code" value="{{ $unidade->lia_code }}">
+                <input type="hidden" id="modal_kit_state_id" name="kit_unity_state_id" value="{{ $unidade->kit_unity_state_id }}">
+
+                <div class="modal-body">
+                    {{-- Espaço de Alerta Dinâmico para Itens Ocultos --}}
+                    <div id="aviso-item-oculto" class="alert alert-danger">
+                        Existem itens com o estado Oculto selecionados. Ao gravar, esta unidade de Kit passará automaticamente para o estado Oculto.
+                    </div>
+
+                    <p class="text-muted mb-3">Selecione os itens que farão parte desta unidade de kit. Desmarque para remover.</p>
+                    
+                    {{-- Barra de Pesquisa Geral dentro do Modal --}}
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="text" class="form-control" id="search-items-modal" placeholder="Pesquise componentes por nome ou código LIA..." autocomplete="off">
+                        </div>
+                    </div>
+
+                    {{-- Lista 1: Itens que já estão associados atualmente --}}
+                    <h6 class="font-weight-bold text-secondary mb-2">Itens Atuais do Kit</h6>
+                    <div class="available-items-container border p-2 rounded bg-white mb-4" style="max-height: 200px; overflow-y: auto;">
+                        @foreach($unidade->itemUnities as $itemUnity)
+                            <div class="item-row d-flex justify-content-between align-items-center mb-2 p-2 bg-light border rounded"
+                                 data-nome="{{ $itemUnity->item->nome ?? 'Sem Nome' }}" 
+                                 data-code="{{ $itemUnity->lia_code }}">
+                                <span>
+                                    <input type="checkbox" name="items_kept[]" value="{{ $itemUnity->id }}" class="check-item mr-2" data-state="{{ $itemUnity->item_unity_state_id }}" checked style="transform: scale(1.2);">
+                                    <strong>{{ $itemUnity->item->nome ?? 'Sem Nome' }}</strong>
+                                    <span class="ml-3 text-secondary small">{{ $itemUnity->lia_code }}</span>
+                                    @if($itemUnity->item_unity_state_id == 2)
+                                          <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>
+                                    @endif
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    {{-- Lista 2: Novos Itens Livres (Apenas Ativos/Ocultos sem Kit) --}}
+                    <h6 class="font-weight-bold text-secondary mb-2">Adicionar Novos Itens</h6>
+                    <div class="available-items-container border p-2 rounded bg-white" style="max-height: 200px; overflow-y: auto;">
+                        @if($itensLivres->count() > 0)
+                            @foreach($itensLivres as $itemLivre)
+                                <div class="item-row d-flex justify-content-between align-items-center mb-2 p-2 bg-light border rounded"
+                                     data-nome="{{ $itemLivre->item->nome ?? 'Sem Nome' }}" 
+                                     data-code="{{ $itemLivre->lia_code }}">
+                                    <span>
+                                        <input type="checkbox" name="items_kept[]" value="{{ $itemLivre->id }}" class="check-item mr-2" data-state="{{ $itemLivre->item_unity_state_id }}" style="transform: scale(1.2);">
+                                        <strong>{{ $itemLivre->item->nome ?? 'Sem Nome' }}</strong>
+                                        <span class="ml-3 text-secondary small">{{ $itemLivre->lia_code }}</span>
+                                        @if($itemLivre->item_unity_state_id == 2)
+                                           <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>
+                                        @endif
+                                    </span>
+                                </div>
+                            @endforeach
+                        @else
+                            <div class="text-center text-muted p-3 small">Nenhum item livre e elegível no sistema neste momento.</div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('js')
+<script>
+    $(document).ready(function() {
+        let liaOriginalValue = $('#lia_code').val();
+
+        // [Sincronização] Copia o Código LIA principal para o input hidden do modal
+        $('#lia_code').on('input change blur', function() {
+            $('#modal_lia_code').val($(this).val().trim());
+        });
+
+        // Evento de mudança no Estado Principal
+        $('#kit_unity_state_id').on('change', function() {
+            // [Sincronização] Copia o estado principal para o input hidden do modal antes de submeter
+            $('#modal_kit_state_id').val($(this).val());
+            $('#form-unidade').submit();
+        });
+
+        // Evento de Blur para submissão imediata ao mudar o código LIA
+        $('#lia_code').on('blur', function() {
+            if ($(this).val().trim() !== liaOriginalValue) {
+                $('#form-unidade').submit();
+            }
+        });
+
+        // Previne submissão ao carregar no Enter dentro do campo LIA
+        $('#lia_code').on('keypress', function(e) {
+            if (e.which == 13) {
+                e.preventDefault();
+                $(this).blur(); 
+            }
+        });
+
+        // Função que avalia e altera a visibilidade do aviso de itens ocultos
+        function verificarItensOcultosSelecionados() {
+            let itemOcultoMarcado = false;
+            
+            $('.check-item:checked').each(function() {
+                if ($(this).data('state') == 2 || $(this).data('state') == "2") {
+                    itemOcultoMarcado = true;
+                }
+            });
+
+            if (itemOcultoMarcado) {
+                $('#aviso-item-oculto').removeClass('d-none');
+            } else {
+                $('#aviso-item-oculto').addClass('d-none');
+            }
+        }
+
+        // Monitoriza cliques nas caixas de seleção para atualizar o aviso instantaneamente
+        $(document).on('change', '.check-item', function() {
+            verificarItensOcultosSelecionados();
+        });
+
+        // Executa ao abrir o modal para garantir o estado inicial do aviso
+        $('#modalGerarItens').on('shown.bs.modal', function () {
+            verificarItensOcultosSelecionados();
+        });
+
+        // Filtro de pesquisa por texto em tempo real no Modal
+        $('#search-items-modal').on('keyup', function() {
+            let valor = $(this).val().toLowerCase().trim();
+            
+            $('#modalGerarItens .item-row').each(function() {
+                let nome = $(this).data('nome').toString().toLowerCase();
+                let code = $(this).data('code').toString().toLowerCase();
+                
+                if (nome.includes(valor) || code.includes(valor)) {
+                    $(this).removeClass('d-none');
+                } else {
+                    $(this).addClass('d-none');
+                }
+            });
+        });
+
+        // Validação no envio do formulário do Modal (Submit)
+        $('#form-gerar-itens').on('submit', function(e) {
+            let totalMarcados = $('.check-item:checked').length;
+
+            // 1. Regra Crítica: Proibido ficar com 0 itens
+            if (totalMarcados === 0) {
+                e.preventDefault();
+                alert('Ação bloqueada! O kit não pode ficar sem nenhum item associado. Selecione pelo menos um componente.');
+                return false;
+            }
+
+            // 2. Confirmação se houver itens ocultos selecionados
+            let temOculto = !$('#aviso-item-oculto').hasClass('d-none');
+            if (temOculto) {
+                let confirmacao = confirm('Os itens ocultos selecionados vão forçar esta unidade de Kit a ficar no estado Oculto.');
+                if (!confirmacao) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+
+        @if($errors->any())
+            let mensagemErro = "{{ $errors->first() }}";
+            alert(mensagemErro);
+        @endif
+    });
+</script>
+@endsection

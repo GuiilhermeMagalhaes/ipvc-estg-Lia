@@ -5,7 +5,7 @@
 @section('content')
 <br>
     <div class="d-flex flex-column">
-        <form action="{{ route('kits.store') }}" enctype="multipart/form-data" method="POST">
+        <form action="{{ route('kits.store') }}" enctype="multipart/form-data"  method="POST">
             @csrf
             @method('POST')
             <div class="form-group">
@@ -21,7 +21,7 @@
             <div class="form-group">
                 <label for="ref_ipvc">Referência IPVC</label>
                 <input type="text" name="ipvc_ref" class="form-control" value="{{ old('ipvc_ref') }}">
-                <span style="color:red">{{$errors->first('ref_ipvc')}}</span>
+                <span style="color:red">{{$errors->first('ipvc_ref')}}</span>
             </div>
             <div class="form-group">
                 <label for="preco">Preço</label>
@@ -49,6 +49,13 @@
                 </select>
             </div>
             -->
+            <div class="form-group">
+                <label for="image">Imagem para o Kit</label>
+                <input type="file" class="form-control-file" name="image" id="image">
+                @if($errors->has('image'))
+                    <span style="color:red">{{ $errors->first('image') }}</span>
+                @endif
+            </div>
             <button type="submit" class="btn btn-primary" style="width: 140px;">Seguinte</button>
         </form>
         <br>
