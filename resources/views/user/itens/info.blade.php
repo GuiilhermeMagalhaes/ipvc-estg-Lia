@@ -68,7 +68,7 @@
                     <div class="row" style="display: flex; justify-content: space-between; align-items: center; text-align: center; padding: 10px; margin: 10px 0;">
                         <div class="col-3" style="flex: 1;">
                             <h4>Preço</h4>
-                            <h6>{{number_format($item->preco, 2, ',', '.')}} € / dia</h6>
+                            <h6>{{number_format($item->price_day, 2, ',', '.')}} € / dia</h6>
                         </div>
                         <div class="col-4" style="flex: 1;">
                             <h4>Disponíveis</h4>

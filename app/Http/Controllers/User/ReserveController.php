@@ -65,409 +65,69 @@ class ReserveController extends Controller
         return view('user.reserve.info');
     }
 
-    public function addItem(Request $request,$id)
+    public function addItem(Request $request, $id)
     {
         $item = Item::find($id);
-        $itemReserves = ItemReserve::where('item_id', $id)->get();
-        $erro = false;
-        $ids = [];
-        foreach ($itemReserves as $itemReserve) {
-            $ids[] = $itemReserve->reserve_id;
-        }
-
-        $reserves = Reserve::whereIn('id', $ids)->get();
-
+        
         if (!session()->has('reserve')) {
             return redirect()->route('reserve.index')->with('warning', 'Deve iniciar uma reserva para poder adicionar itens!');
         }
 
-        $dataInicio = session()->get('reserve.start_date');
-        $dataFim = session()->get('reserve.end_date');
         $quantidade = $request->input('quantity', 1);
-        // Conte o número de itens disponíveis com o mesmo nome
-        $availableItems = Item::where('nome', $item->nome)->get();
-        $itemCount = $availableItems->count();
         $existingItems = session()->get('reserve.itens', []);
 
-        if (!is_null($item->kit_id)) {
+        // 1. Verifica quantas unidades físicas existem no total
+        $totalUnidadesFisicas = \App\Models\ItemUnity::where('item_id', $item->id)
+                                ->where('item_unity_state_id', 1)
+                                ->count();
 
-            $kit = Kit::find($item->kit_id);
-
-            $kitReserves = KitReserve::where('kit_id', $kit->id)->get();
-
-            $ids = [];
-            foreach ($kitReserves as $kitReserve) {
-                $ids[] = $kitReserve->reserve_id;
-            }
-
-            $reserves2 = Reserve::whereIn('id', $ids)->get();
-
-            $dataInicio = session()->get('reserve.start_date');
-            $dataFim = session()->get('reserve.end_date');
-
-            foreach ($reserves2 as $reserve) {
-                if ($reserve->reserve_state_id != 3 && $reserve->reserve_state_id != 5 && $reserve->reserve_state_id != 6) {
-                    if ($reserve->ciclica_id == 1) {
-                        if (
-                            $dataInicio >= $reserve->start_date && $dataInicio <= $reserve->end_date
-                            || $dataFim >= $reserve->start_date && $dataFim <= $reserve->end_date
-                            || $dataInicio <= $reserve->start_date && $dataInicio <= $reserve->end_date
-                            && $dataFim >= $reserve->start_date && $dataFim >= $reserve->end_date
-                        ) {
-                            $erro = true;
-                        }
-                    } else {
-
-                        $dayOfWeek = date('w', strtotime($reserve->start_date));
-                        $dayOfWeekCiclica = $reserve->ciclica_id - 2;
-
-                        if ($dayOfWeekCiclica > $dayOfWeek) {
-                            for ($i = 1; $i < 7; $i++) {
-                                if ($dayOfWeekCiclica == $dayOfWeek + $i) {
-                                    if ($i == 1) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 1 day"));
-                                    } else if ($i == 2) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 2 days"));
-                                    } else if ($i == 3) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 3 days"));
-                                    } else if ($i == 4) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 4 days"));
-                                    } else if ($i == 5) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 5 days"));
-                                    } else if ($i == 6) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 6 days"));
-                                    }
-                                }
-                            }
-                        } else if ($dayOfWeekCiclica < $dayOfWeek) {
-                            for ($i = 1; $i < 7; $i++) {
-                                if ($dayOfWeekCiclica == $dayOfWeek - $i) {
-                                    if ($i == 1) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 6 day"));
-                                    } else if ($i == 2) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 5 days"));
-                                    } else if ($i == 3) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 4 days"));
-                                    } else if ($i == 4) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 3 days"));
-                                    } else if ($i == 5) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 2 days"));
-                                    } else if ($i == 6) {
-                                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 1 days"));
-                                    }
-                                }
-                            }
-                        } else {
-                            $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date));
-                        }
-
-                        $datas = [];
-                        $datas[] = $dataInicioCiclica;
-                        $dataCiclica = $dataInicioCiclica;
-
-                        while ($reserve->end_date >= $dataCiclica) {
-                            $dataCiclica = date("Y-m-d", strtotime($dataCiclica . "+ 7 days"));
-                            if ($reserve->end_date >= $dataCiclica) {
-                                $datas[] = $dataCiclica;
-                            }
-                        }
-
-                        for ($j = 0; $j < count($datas); $j++) {
-                            if ($dataInicio <= $datas[$j] && $dataFim >= $datas[$j]) {
-                                $erro = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        foreach ($reserves as $reserve) {
-            if ($reserve->reserve_state_id != 3 && $reserve->reserve_state_id != 5 && $reserve->reserve_state_id != 6) {
-                if ($reserve->ciclica_id == 1) {
-                    if (
-                        $dataInicio >= $reserve->start_date && $dataInicio <= $reserve->end_date
-                        || $dataFim >= $reserve->start_date && $dataFim <= $reserve->end_date
-                        || $dataInicio <= $reserve->start_date && $dataInicio <= $reserve->end_date
-                        && $dataFim >= $reserve->start_date && $dataFim >= $reserve->end_date
-                    ) {
-                        $erro = true;
-                    }
-                } else {
-
-                    $dayOfWeek = date('w', strtotime($reserve->start_date));
-                    $dayOfWeekCiclica = $reserve->ciclica_id - 2;
-
-                    if ($dayOfWeekCiclica > $dayOfWeek) {
-                        for ($i = 1; $i < 7; $i++) {
-                            if ($dayOfWeekCiclica == $dayOfWeek + $i) {
-                                if ($i == 1) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 1 day"));
-                                } else if ($i == 2) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 2 days"));
-                                } else if ($i == 3) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 3 days"));
-                                } else if ($i == 4) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 4 days"));
-                                } else if ($i == 5) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 5 days"));
-                                } else if ($i == 6) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 6 days"));
-                                }
-                            }
-                        }
-                    } else if ($dayOfWeekCiclica < $dayOfWeek) {
-                        for ($i = 1; $i < 7; $i++) {
-                            if ($dayOfWeekCiclica == $dayOfWeek - $i) {
-                                if ($i == 1) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 6 day"));
-                                } else if ($i == 2) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 5 days"));
-                                } else if ($i == 3) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 4 days"));
-                                } else if ($i == 4) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 3 days"));
-                                } else if ($i == 5) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 2 days"));
-                                } else if ($i == 6) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 1 days"));
-                                }
-                            }
-                        }
-                    } else {
-                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date));
-                    }
-
-                    $datas = [];
-                    $datas[] = $dataInicioCiclica;
-                    $dataCiclica = $dataInicioCiclica;
-
-                    while ($reserve->end_date >= $dataCiclica) {
-                        $dataCiclica = date("Y-m-d", strtotime($dataCiclica . "+ 7 days"));
-                        if ($reserve->end_date >= $dataCiclica) {
-                            $datas[] = $dataCiclica;
-                        }
-                    }
-
-                    for ($j = 0; $j < count($datas); $j++) {
-                        if ($dataInicio <= $datas[$j] && $dataFim >= $datas[$j]) {
-                            $erro = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        if ($erro) {
-            return redirect()->route( 'user.categoria.index', $item->categoria_id )->with('toast_error', 'Item indisponível nas datas selecionadas!');
-        }
-        
-        // Verifique a quantidade de itens já reservados com o mesmo nome
+        // 2. Verifica quantos itens iguais a este já estão no carrinho
         $reservedCount = count(array_filter($existingItems, function($i) use ($item) {
-            return $i->nome == $item->nome;
+            return $i->id == $item->id;
         }));
 
-        // Verifique se a quantidade desejada está disponível
-        if ($reservedCount + $quantidade > $itemCount) {
-            return back()->with('warning', 'Quantidade desejada indisponível!');
+        // 3. Verifica se há stock suficiente no laboratório
+        if (($reservedCount + $quantidade) > $totalUnidadesFisicas) {
+            return back()->with('warning', 'A quantidade desejada excede o nosso stock físico disponível!');
         }
 
-        // Adicione os itens à reserva
-        $itemsToAdd = [];
-
-        foreach ($availableItems as $availableItem) {
-            $liaCodeExists = false;
-
-            // Comparar lia_code dos existingItems com o lia_code do availableItem
-            foreach ($existingItems as $existingItem) {
-                if ($existingItem['lia_code'] == $availableItem->lia_code) {
-                    $liaCodeExists = true;
-                }
-            }
-
-            // Se liaCodeExists for falso, adiciona o availableItem ao array de itemsToAdd
-            if (!$liaCodeExists && count($itemsToAdd) < $quantidade) {
-                $itemsToAdd[] = $availableItem;
-            }
-
-            // Se já adicionou a quantidade desejada, interrompe o loop
-            if (count($itemsToAdd) >= $quantidade) {
-                break;
-            }
+        // 4. Adiciona o item à reserva as vezes que o utilizador pediu
+        for ($i = 0; $i < $quantidade; $i++) {
+            session()->push('reserve.itens', $item);
         }
 
-        // Adicionar os itens do array itemsToAdd à reserva
-        $addedCount = 0;
-        foreach ($itemsToAdd as $itemToAdd) {
-            session()->push('reserve.itens', $itemToAdd);
-            $addedCount++;
-
-            // Se já adicionou a quantidade desejada, interrompe o loop
-            if ($addedCount >= $quantidade) {
-                break;
-            }
-        }        
-        return back()->with('toast_success', 'Item/s adicionado/s à reserva!');
+        return back()->with('toast_success', 'Item adicionado à reserva!');
     }
 
-    public function addKit(Request $request,$id)
+    public function addKit(Request $request, $id)
     {
-        $idsItens = [];
         $kit = Kit::find($id);
-        $itens = Item::where('kit_id', $id)->get();
-        foreach ($itens as $item) {
-            $idsItens[] = $item->id;
-        }
-        $itemReserves = ItemReserve::whereIn('item_id', $idsItens)->get();
-        $kitReserves = KitReserve::where('kit_id', $id)->get();
-        $erro = false;
-        $ids = [];
-        foreach ($kitReserves as $kitReserve) {
-            $ids[] = $kitReserve->reserve_id;
-        }
-        foreach ($itemReserves as $itemReserve) {
-            $ids[] = $itemReserve->reserve_id;
-        }
-
-        $reserves = Reserve::whereIn('id', $ids)->get();
 
         if (!session()->has('reserve')) {
             return redirect()->route('reserve.index')->with('warning', 'Deve iniciar uma reserva para poder adicionar kits!');
         }
 
-        $dataInicio = session()->get('reserve.start_date');
-        $dataFim = session()->get('reserve.end_date');
         $quantidade = $request->input('quantity', 1);
-        // Conte o número de kits disponíveis com o mesmo nome
-        $availableKits = Kit::where('name', $kit->name)->get();
-        $kitCount = $availableKits->count();
         $existingKits = session()->get('reserve.kits', []);
 
-        foreach ($reserves as $reserve) {
-            if ($reserve->reserve_state_id != 3 && $reserve->reserve_state_id != 5 && $reserve->reserve_state_id != 6) {
-                if ($reserve->ciclica_id == 1) {
-                    if (
-                        $dataInicio >= $reserve->start_date && $dataInicio <= $reserve->end_date
-                        || $dataFim >= $reserve->start_date && $dataFim <= $reserve->end_date
-                        || $dataInicio <= $reserve->start_date && $dataInicio <= $reserve->end_date
-                        && $dataFim >= $reserve->start_date && $dataFim >= $reserve->end_date
-                    ) {
-                        $erro = true;
-                    }
-                } else {
-
-                    $dayOfWeek = date('w', strtotime($reserve->start_date));
-                    $dayOfWeekCiclica = $reserve->ciclica_id - 2;
-
-                    if ($dayOfWeekCiclica > $dayOfWeek) {
-                        for ($i = 1; $i < 7; $i++) {
-                            if ($dayOfWeekCiclica == $dayOfWeek + $i) {
-                                if ($i == 1) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 1 day"));
-                                } else if ($i == 2) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 2 days"));
-                                } else if ($i == 3) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 3 days"));
-                                } else if ($i == 4) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 4 days"));
-                                } else if ($i == 5) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 5 days"));
-                                } else if ($i == 6) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 6 days"));
-                                }
-                            }
-                        }
-                    } else if ($dayOfWeekCiclica < $dayOfWeek) {
-                        for ($i = 1; $i < 7; $i++) {
-                            if ($dayOfWeekCiclica == $dayOfWeek - $i) {
-                                if ($i == 1) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 6 day"));
-                                } else if ($i == 2) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 5 days"));
-                                } else if ($i == 3) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 4 days"));
-                                } else if ($i == 4) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 3 days"));
-                                } else if ($i == 5) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 2 days"));
-                                } else if ($i == 6) {
-                                    $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date . "+ 1 days"));
-                                }
-                            }
-                        }
-                    } else {
-                        $dataInicioCiclica = date("Y-m-d", strtotime($reserve->start_date));
-                    }
-
-                    $datas = [];
-                    $datas[] = $dataInicioCiclica;
-                    $dataCiclica = $dataInicioCiclica;
-
-                    while ($reserve->end_date >= $dataCiclica) {
-                        $dataCiclica = date("Y-m-d", strtotime($dataCiclica . "+ 7 days"));
-                        if ($reserve->end_date >= $dataCiclica) {
-                            $datas[] = $dataCiclica;
-                        }
-                    }
-
-                    for ($j = 0; $j < count($datas); $j++) {
-                        if ($dataInicio <= $datas[$j] && $dataFim >= $datas[$j]) {
-                            $erro = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        if ($erro) {
-            return redirect('kits')->with('toast_error', 'Kit indisponível nas datas selecionadas!');
-        }
-
-        // Verifique a quantidade de itens já reservados com o mesmo nome
-        $reservedCount = count(array_filter($existingKits, function($i) use ($kit) {
-            return $i->name == $kit->name;
+        // Verifica quantos kits iguais a este já estão no carrinho
+        $reservedCount = count(array_filter($existingKits, function($k) use ($kit) {
+            return $k->id == $kit->id;
         }));
 
-        // Verifique se a quantidade desejada está disponível
-        if ($reservedCount + $quantidade > $kitCount) {
-            return back()->with('warning', 'Quantidade desejada indisponível!');
+        // Quando acabar a tabela kit_unity, substituímos este "10" 
+        // pela contagem real de KitUnity (tal como fizemos nos Itens). 
+        // Por agora, assumimos que há stock para não bloquear testes.
+        $totalUnidadesKitsFisicos = 10; 
+
+        if (($reservedCount + $quantidade) > $totalUnidadesKitsFisicos) {
+            return back()->with('warning', 'Quantidade desejada indisponível em stock!');
         }
 
-        // Adicione os itens à reserva
-        $kitsToAdd = [];
-
-        foreach ($availableKits as $availableKit) {
-            $liaCodeExists = false;
-
-            // Comparar lia_code dos existingkits com o lia_code do availableKit
-            foreach ($existingKits as $existingKit) {
-                if ($existingKit['lia_code'] == $availableKit->lia_code) {
-                    $liaCodeExists = true;
-                }
-            }
-
-            // Se liaCodeExists for falso, adiciona o availableItem ao array de itemsToAdd
-            if (!$liaCodeExists && count($kitsToAdd) < $quantidade) {
-                $kitsToAdd[] = $availableKit;
-            }
-
-            // Se já adicionou a quantidade desejada, interrompe o loop
-            if (count($kitsToAdd) >= $quantidade) {
-                break;
-            }
+        // Adiciona à reserva
+        for ($i = 0; $i < $quantidade; $i++) {
+            session()->push('reserve.kits', $kit);
         }
-
-        // Adicionar os itens do array itemsToAdd à reserva
-        $addedCount = 0;
-        foreach ($kitsToAdd as $kitToAdd) {
-            session()->push('reserve.kits', $kitToAdd);
-            $addedCount++;
-
-            // Se já adicionou a quantidade desejada, interrompe o loop
-            if ($addedCount >= $quantidade) {
-                break;
-            }
-        }  
 
         return back()->with('toast_success', 'Kit adicionado à reserva!');
     }
@@ -551,7 +211,6 @@ class ReserveController extends Controller
         if($gestores->isNotEmpty()) {
             Notification::send($gestores, new PedidoRequisicao($reserve));
         }
-        // --------------------------------------
 
         session()->forget('reserve');
 

@@ -27,7 +27,6 @@ class Item extends Model
         'price_day',
         'item_state_id',
         'quantity',
-        'data_aquisicao', 
     ];
 
     

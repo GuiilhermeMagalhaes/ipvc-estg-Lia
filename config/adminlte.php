@@ -261,7 +261,7 @@ return [
                 ],
                 [
                     'text' => 'Lista de Itens Ocultos',
-                    'url'  => '/admin/itens/ocultos',
+                    'url'  => '/admin/itens/lista-ocultos',
                 ],
                 [
                     'text' => 'Criar Novo Item',

@@ -14,7 +14,9 @@ class ItemReserve extends Model
 
     protected $fillable = [
         'reserve_id',
-        'item_id'
+        'item_id',
+        'item_unity_id',
+        'quantity'
     ];
 
     public function item()
@@ -25,5 +27,10 @@ class ItemReserve extends Model
     public function reserve()
     {
         return $this->belongsTo(Reserve::class, 'reserve_id');
+    }
+
+    public function itemUnity()
+    {
+        return $this->belongsTo(ItemUnity::class, 'item_unity_id');
     }
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class RemoveQuantityDispFromItemTable extends Migration
+class AddReturnNotesToReservesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class RemoveQuantityDispFromItemTable extends Migration
      */
     public function up()
     {
-        Schema::table('item', function (Blueprint $table) {
-           $table->dropColumn('quantity_disp');
+       Schema::table('reserves', function (Blueprint $table) {
+            $table->text('return_notes')->nullable()->after('return_date');
         });
     }
 
@@ -25,8 +25,8 @@ class RemoveQuantityDispFromItemTable extends Migration
      */
     public function down()
     {
-        Schema::table('item', function (Blueprint $table) {
-            $table->integer('quantity_disp');
+       Schema::table('reserves', function (Blueprint $table) {
+            $table->dropColumn('return_notes');
         });
     }
 }

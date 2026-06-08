@@ -74,8 +74,9 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::prefix('itens')->group(function () {
-            //Route::get('/', [ItemController::class, 'index'])->name('itens.index');
+            Route::get('/', [ItemController::class, 'index'])->name('itens.index');
             Route::get('/create', [ItemController::class, 'create'])->name('itens.create');
+            Route::get('/lista-ocultos', [ItemController::class, 'ocultos'])->name('itens.ocultos'); // ← adiciona aqui
             Route::post('/', [ItemController::class, 'store'])->name('itens.store');
             Route::get('/create-unities', [ItemController::class, 'createUnities'])->name('itens.createUnities');
             Route::post('/store-unities', [ItemController::class, 'storeUnities'])->name('itens.storeUnities');
@@ -87,14 +88,11 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-unities', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
             //Route::delete('{id}', [ItemController::class, 'destroy'])->name('itens.destroy');
             Route::get('/kit-unities/{id}', [KitUnityController::class, 'show'])->name('kitUnity.show');
-            Route::get('/{id}/create-unities-step', [ItemController::class, 'showUnitiesEtapa'])->name('itens.createUnitiesEtapa');
-            Route::post('/{id}/update-unities', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
-            
+            Route::get('/{id}/create-unities-step', [ItemController::class, 'showUnitiesEtapa'])->name('itens.createUnitiesEtapa');            
         });
 
         Route::prefix('item-unities')->group(function () {
-            Route::get('/', [ItemController::class, 'index'])->name('itens.index');
-            Route::get('/ocultos', [ItemController::class, 'ocultos'])->name('itens.ocultos');
+            Route::get('/', [ItemController::class, 'index'])->name('itensUnities.index');
             Route::get('/{id}', [ItemController::class, 'show'])->name('itens.show');
             Route::put('/{id}/update', [ItemController::class, 'updateUnity'])->name('unidades.updateUnity');
             Route::delete('/{id}/delete', [ItemController::class, 'anularUnity'])->name('unidades.anular');

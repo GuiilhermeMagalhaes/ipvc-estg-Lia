@@ -16,7 +16,7 @@
                 <div class="card-body d-flex flex-column justify-content-center text-center">
                     <h1 class="card-title">{{$item->nome}}</h1>
                     <p class="card-text">{{$item->ipvc_ref}}</p>
-                    <p class="card-text card-text-preco">{{number_format($item->preco, 2, ',', '.')}} € / dia</p>
+                    <p class="card-text card-text-preco">{{number_format($item->price_day, 2, ',', '.')}} € / dia</p>
                     <a class="btn btn-primary mx-auto" style="width: 140px;" href="{{ route('itens.show', ['id' => $item->id])}}">VER DETALHES</a>
                 </div>
             </div>

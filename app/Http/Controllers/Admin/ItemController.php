@@ -225,12 +225,13 @@ class ItemController extends Controller
                 $path = "images/empty.png";
             }
 
-                // MUDANÇA AQUI: Juntamos todos os dados do formulário num array
+     
             $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity']);
-            $itemData['image'] = $path; // adiciona o caminho da imagem
+            $itemData['image'] = $path; 
+            $itemData['item_state_id'] = 1; // Visível
 
-            // Guardamos tudo na sessão. Nada foi para a BD ainda!
-            return redirect()->route('itens.createUnities')->with([
+            
+            return redirect()->route('itens.createUnities')->with([ 
                 'item_data' => $itemData,
                 'item_nome' => $request->nome,
                 'quantity'  => $request->quantity
@@ -425,8 +426,7 @@ public function update(Request $request, $id)
         // Guarda os dados na sessão
         session(['dados_item_edicao' => $dadosItem]);
 
-        // EM VEZ DE RETURN VIEW, FAZEMOS REDIRECT:
-        return redirect()->route('itens.createUnitiesEtapa', $item->id);
+        return redirect()->route('itens.createUnitiesEtapa', ['id' => $item->id]);
     }
     return redirect('/');
 }
