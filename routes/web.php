@@ -52,25 +52,31 @@ Route::middleware('auth')->group(function () {
         Route::get('/downloadind', [HomeController::class, 'PDFItensInd'])->name('pdfitensind-download');
         Route::post('/downloadres', [HomeController::class, 'ExcelRes'])->name('excelres-download');
         Route::post('/downloadreslia', [HomeController::class, 'ExcelResLia'])->name('excelreslia-download');
-        
         Route::prefix('kits')->group(function () {
             Route::get('/', [KitsController::class, 'index'])->name('kits.index');
             //Route::get('/indexocultos', [KitsController::class, 'indexocultos'])->name('kits.indexocultos');
-            Route::get('/ocultos', [KitsController::class, 'ocultos'])->name('kits.indexocultos');
             Route::get('/create', [KitsController::class, 'create'])->name('kits.create');
             Route::post('/', [KitsController::class, 'store'])->name('kits.store');
              Route::get('/create-unities', [KitsController::class, 'createUnities'])->name('kits.createUnities');
             Route::post('/store-unities', [KitsController::class, 'storeUnities'])->name('kits.storeUnities');
-            Route::get('/{id}', [KitsController::class, 'show'])->name('kits.show');
             Route::get('/{id}/edit', [KitsController::class, 'edit'])->name('kits.edit');
             Route::put('/{id}', [KitsController::class, 'update'])->name('kits.update');
+            /* Para colocar selecionar itens na edição
+            Route::get('/{id}/unities-etapa', [KitsController::class, 'showKitUnitiesEtapa'])->name('kits.unitiesEtapa');
+            Route::post('/{id}/update-unities-etapa', [KitsController::class, 'updateKitUnitiesEtapa'])->name('kits.updateUnitiesEtapa');
+            */
             Route::delete('{id}', [KitsController::class, 'destroy'])->name('kits.destroy');
             Route::get('/edit/searchitens', [ItemController::class, 'searchItens'])->name('search.itens');
-            Route::get('/kitunities/{id}', [KitController::class, 'show'])->name('kitUnity.show');
-            Route::put('/kitunities/{id}', [KitController::class, 'update'])->name('kitUnity.update');
-            Route::delete('/kitunities/{id}', [KitController::class, 'destroy'])->name('kitUnity.destroy');
+      
+        });
+
+
+        Route::prefix('kit-unities')->group(function () {
+            Route::get('/ocultos', [KitsController::class, 'ocultos'])->name('kits.indexocultos');
+             Route::put('/update/{id}', [KitsController::class, 'updateUnity'])->name('kits.updateUnity');
+            Route::get('/{id}', [KitsController::class, 'show'])->name('kits.show');
+            Route::delete('/{id}', [KitsController::class, 'destroy'])->name('kitUnity.destroy');
             
-           
         });
 
         Route::prefix('itens')->group(function () {
@@ -86,9 +92,9 @@ Route::middleware('auth')->group(function () {
             // Rota para processar a segunda etapa da edição (LIAs e novas unidades)
             Route::post('/{id}/update-unities', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
             //Route::delete('{id}', [ItemController::class, 'destroy'])->name('itens.destroy');
-            Route::get('/kit-unities/{id}', [KitUnityController::class, 'show'])->name('kitUnity.show');
+            //Route::get('/kit-unities/{id}', [KitUnityController::class, 'show'])->name('kitUnity.show');
             Route::get('/{id}/create-unities-step', [ItemController::class, 'showUnitiesEtapa'])->name('itens.createUnitiesEtapa');
-            Route::post('/{id}/update-unities', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
+           
             
         });
 
@@ -118,6 +124,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/pay', [AdminReserveController::class, 'pay'])->name('reserve.pay');
         });
 
+        
         Route::prefix('/categories')->group(function () {
             Route::get('/', [CategoryController::class, 'index']);
             Route::get('/create', [CategoryController::class, 'create'])->name('category.create');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KitUnity extends Model
 {
@@ -25,5 +26,10 @@ class KitUnity extends Model
     public function kit(): BelongsTo
     {
         return $this->belongsTo(Kit::class, 'kit_id');
+    }
+
+    public function itemUnities(): HasMany
+    {
+        return $this->hasMany(ItemUnity::class, 'kit_unity_id'); 
     }
 }

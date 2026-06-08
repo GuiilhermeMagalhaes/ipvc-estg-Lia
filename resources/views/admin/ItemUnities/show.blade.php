@@ -36,7 +36,11 @@
                         
                         <li class="list-group-item d-flex align-items-center">
                             <span>Estado: </span>
-                            <select id="item_unity_state_id" name="item_unity_state_id" class="form-control form-control-sm mr-2" style="width: 180px; display: inline-block;">
+                            <select id="item_unity_state_id" name="item_unity_state_id" class="form-control form-control-sm mr-2" style="width: 180px; display: inline-block;"
+                                    data-atual="{{ $unidade->item_unity_state_id }}"
+                                    data-has-kit="{{ $unidade->kitUnity ? 'true' : 'false' }}"
+                                    data-kit-name="{{ $unidade->kitUnity && $unidade->kitUnity->kit ? $unidade->kitUnity->kit->name : '' }}"
+                                    data-kit-lia="{{ $unidade->kitUnity ? $unidade->kitUnity->lia_code : '' }}">
                                 <option value="1" {{ $unidade->item_unity_state_id == 1 ? 'selected' : '' }}>Ativo (Visível)</option>
                                 <option value="2" {{ $unidade->item_unity_state_id == 2 ? 'selected' : '' }}>Oculto</option>
                             </select>
@@ -57,7 +61,7 @@
             </div>
 
                 <div class="mb-4 pt-5">
-                {{-- Alinhamento vertical do Título com o Botão Editar à direita --}}
+                
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="text-dark font-weight-bold m-0">Informações do Item</h6>
                     <a href="{{ route('itens.edit', $item->id) }}" class="btn btn-primary" style="width: 140px;">Editar Item</a>
@@ -103,12 +107,18 @@
                  {{-- Botões de Ação do Item --}}
                     <div class="mt-3 pt-4">
                         
-                           <form action="{{ route('unidades.anular', $unidade->id) }}" method="POST" class="form-inline" onsubmit="return confirm('Tem a certeza que deseja anular esta unidade?');">
-
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-danger" style="width: 150px;">Eliminar Unidade</button>
-                            </form>
+                           {{-- Botões de Ação do Item --}}
+                <div class="mt-3 pt-4">
+                    <form id="form-anular-unidade" action="{{ route('unidades.anular', $unidade->id) }}" method="POST" class="form-inline"
+                        data-has-kit="{{ $unidade->kitUnity ? 'true' : 'false' }}"
+                        data-kit-name="{{ $unidade->kitUnity && $unidade->kitUnity->kit ? $unidade->kitUnity->kit->name : '' }}"
+                        data-kit-lia="{{ $unidade->kitUnity ? $unidade->kitUnity->lia_code : '' }}">
+                        
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger" style="width: 150px;">Eliminar Unidade</button>
+                    </form>
+                </div>
                        
             </div>
 
@@ -123,25 +133,81 @@
         let liaOriginalValue = $('#lia_code').val();
         let dataOriginalValue = $('#data_aquisicao').val();
 
-        // 1. Quando o Select muda de estado, grava na hora
-        $('#item_unity_state_id').on('change', function() {
+        let estadoAnterior = $('#item_unity_state_id').val();
+
+       
+       $('#item_unity_state_id').on('change', function() {
+            
+            let novoEstado = $(this).val();
+            let hasKit = $(this).data('has-kit') === true || $(this).data('has-kit') === "true";
+            
+           
+            if (novoEstado == 2 && hasKit) {
+                let kitNome = $(this).data('kit-name');
+                let kitLia = $(this).data('kit-lia');
+                
+                let mensagem = `Tem a certeza? O kit cujo nome é "${kitNome}" e o LIA code é "${kitLia}" irá ficar oculto.`;
+                
+                
+                if (!confirm(mensagem)) {
+                    // ACRESCENTADO: Se clicar em "Cancelar", reverte o select e cancela o envio
+                    $(this).val(estadoAnterior);
+                    return false;
+                }
+            }
+
+            
+            estadoAnterior = novoEstado;
+           
+
+           
             $('#form-unidade').submit();
         });
 
+
+                
+            $('#form-anular-unidade').on('submit', function(e) {
+                
+                let hasKit = $(this).data('has-kit') === true || $(this).data('has-kit') === "true";
+
+                if (hasKit) {
+                   
+                    let kitNome = $(this).data('kit-name');
+                    let kitLia = $(this).data('kit-lia');
+                    
+                    
+                    let mensagemAnular = `Tem a certeza que quer eliminar esta unidade? O kit cujo nome é "${kitNome}" e o LIA code é "${kitLia}" irá ficar oculto.`;
+                    
+                   
+                    if (!confirm(mensagemAnular)) {
+                        e.preventDefault(); 
+                        return false;
+                    }
+                } else {
+                   
+                    if (!confirm('Tem a certeza que deseja anular esta unidade?')) {
+                        e.preventDefault(); // Bloqueia o envio se cancelar
+                        return false;
+                    }
+                }
+            });
+            
+
+        
         $('#data_aquisicao').on('change', function() {
             if ($(this).val() !== dataOriginalValue) {
                 $('#form-unidade').submit();
             }
         });
 
-        // 2. Quando o utilizador clica fora do input do Código LIA (Blur)
+       
         $('#lia_code').on('blur', function() {
             if ($(this).val() !== liaOriginalValue) {
                 $('#form-unidade').submit();
             }
         });
 
-        // Grava ao carregar no "Enter" dentro do input LIA
+       
         $('#lia_code').on('keypress', function(e) {
             if (e.which == 13) {
                 e.preventDefault();
