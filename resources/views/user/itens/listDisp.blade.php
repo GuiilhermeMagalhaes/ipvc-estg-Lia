@@ -36,7 +36,7 @@
                 <div class="card-body p-4">
                     <div class="text-center">
                         <h5 class="fw-bolder">{{ $item->nome }}</h5>
-                        {{number_format($item->preco, 2, ',', '.')}} € / dia
+                        {{number_format($item->price_day, 2, ',', '.')}} € / dia
                     </div>
                 </div>
                 <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
