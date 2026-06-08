@@ -45,7 +45,7 @@
                                     <tr>
                                         <td>{{ $kit->name }}</td>
                                         <td>{{ $kit->description }}</td>
-                                        <td>{{number_format($kit->price, 2, ',', '.')}} € / dia</td>
+                                        <td>{{number_format($kit->price_day, 2, ',', '.')}} € / dia</td>
                                         <td>
                                             <form action="{{ route('kit.remove', ['id' => $kit->id]) }}" method="post">
                                                 @csrf
@@ -74,7 +74,7 @@
                                     <tr>
                                         <td>{{ $item->nome }}</td>
                                         <td>{{ $item->model }}</td>
-                                        <td>{{number_format($item->preco, 2, ',', '.')}} € / dia</td>
+                                        <td>{{number_format($item->price_day, 2, ',', '.')}} € / dia</td>
                                         <td>
                                             <form action="{{ route('item.remove', ['id' => $item->id]) }}" method="post">
                                                 @csrf

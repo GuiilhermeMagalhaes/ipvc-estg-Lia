@@ -189,7 +189,6 @@ class ReserveController extends Controller
 {
     DB::transaction(function () use ($id) {
         $reserve = Reserve::findOrFail($id);
-
         $itensReserva = ItemReserve::where('reserve_id', $id)->get();
         foreach ($itensReserva as $ri) {
             if ($ri->item_unity_id) {
