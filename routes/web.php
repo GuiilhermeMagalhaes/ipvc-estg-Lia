@@ -56,27 +56,25 @@ Route::middleware('auth')->group(function () {
         Route::prefix('kits')->group(function () {
             Route::get('/', [KitsController::class, 'index'])->name('kits.index');
             //Route::get('/indexocultos', [KitsController::class, 'indexocultos'])->name('kits.indexocultos');
-            
             Route::get('/create', [KitsController::class, 'create'])->name('kits.create');
             Route::post('/', [KitsController::class, 'store'])->name('kits.store');
              Route::get('/create-unities', [KitsController::class, 'createUnities'])->name('kits.createUnities');
             Route::post('/store-unities', [KitsController::class, 'storeUnities'])->name('kits.storeUnities');
             Route::get('/{id}/edit', [KitsController::class, 'edit'])->name('kits.edit');
             Route::put('/{id}', [KitsController::class, 'update'])->name('kits.update');
+            /* Para colocar selecionar itens na edição
+            Route::get('/{id}/unities-etapa', [KitsController::class, 'showKitUnitiesEtapa'])->name('kits.unitiesEtapa');
+            Route::post('/{id}/update-unities-etapa', [KitsController::class, 'updateKitUnitiesEtapa'])->name('kits.updateUnitiesEtapa');
+            */
             Route::delete('{id}', [KitsController::class, 'destroy'])->name('kits.destroy');
             Route::get('/edit/searchitens', [ItemController::class, 'searchItens'])->name('search.itens');
-             Route::post('/{id}/update-unities', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
-            //Route::get('/kitunities/{id}', [KitsController::class, 'show'])->name('kitUnity.show');
-            //Route::put('/kitunities/{id}', [KitsController::class, 'update'])->name('kitUnity.update');
-            //Route::delete('/kitunities/{id}', [KitsController::class, 'destroy'])->name('kitUnity.destroy');
-            
-           
+      
         });
 
 
         Route::prefix('kit-unities')->group(function () {
-            Route::put('/update', [KitsController::class, 'updateUnity'])->name('kits.updateUnity');
             Route::get('/ocultos', [KitsController::class, 'ocultos'])->name('kits.indexocultos');
+             Route::put('/update/{id}', [KitsController::class, 'updateUnity'])->name('kits.updateUnity');
             Route::get('/{id}', [KitsController::class, 'show'])->name('kits.show');
             Route::delete('/{id}', [KitsController::class, 'destroy'])->name('kitUnity.destroy');
             

@@ -143,7 +143,7 @@ public function show($id)
     }
 
 
-    public function updateUnity(Request $request, $id)
+public function updateUnity(Request $request, $id)
 {
     if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
         
@@ -157,18 +157,47 @@ public function show($id)
             'kit_unity_state_id.exists' => 'O estado selecionado é inválido.'
         ]);
 
-        
         $unidade = KitUnity::find($id);
         
-        if ($unidade) {
-            
-           
-            $unidade->update($request->only(['lia_code', 'kit_unity_state_id']));
-            
-            return redirect()->back()->with('toast_success', 'Unidade atualizada com sucesso!');
+        if (!$unidade) {
+            return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
         }
 
-        return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
+        
+        $itemsKept = $request->input('items_kept', []);
+
+       
+        if (count($itemsKept) === 0) {
+            return redirect()->back()->with('toast_error', 'Erro: O kit não pode ficar sem nenhum item associado.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($unidade, $request, $itemsKept) {
+            
+           
+            $hasHiddenItem = \App\Models\ItemUnity::whereIn('id', $itemsKept)
+                ->where('item_unity_state_id', 2)
+                ->exists();
+
+            
+            $estadoKit = $hasHiddenItem ? 2 : $request->input('kit_unity_state_id');
+
+          
+            $unidade->update([
+                'lia_code' => $request->input('lia_code'),
+                'kit_unity_state_id' => $estadoKit
+            ]);
+
+            
+            \App\Models\ItemUnity::where('kit_unity_id', $unidade->id)
+                ->whereNotIn('id', $itemsKept)
+                ->update(['kit_unity_id' => null]);
+
+            
+            \App\Models\ItemUnity::whereIn('id', $itemsKept)
+                ->update(['kit_unity_id' => $unidade->id]);
+        });
+
+        return redirect()->back()->with('toast_success', 'Unidade de kit e componentes atualizados com sucesso!');
     }
     
     return redirect('/');
@@ -192,19 +221,26 @@ public function show($id)
         }
     
         
-        $unidade->kit_unity_state_id = 3;
-        $unidade->save();
-
-        if ($unidade->kit) {
+       \Illuminate\Support\Facades\DB::transaction(function () use ($unidade) {
+        
        
+        $unidade->update([
+            'kit_unity_state_id' => 3
+        ]);
+
+       
+        if ($unidade->kit) {
             $unidade->kit->decrement('quantity', 1);
         }
-    
-        
-        ItemUnity::where('kit_unity_id', $unidade->id)->update(['kit_unity_id' => null]);
 
-        return redirect()->route('kits.index')->with('toast_success', 'Unidade anulada e stock atualizado com sucesso!!');
-    }
+        
+        ItemUnity::where('kit_unity_id', $unidade->id)->update([
+            'kit_unity_id' => null
+        ]);
+    });
+
+    return redirect()->route('kits.index')->with('toast_success', 'Unidade anulada e stock atualizado com sucesso!');
+}
 
 
   public function create()
@@ -409,80 +445,323 @@ public function storeUnities(Request $request)
 
   
 
+public function edit($id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        $kit = Kit::find($id);
 
-
-    public function edit($id)
-    {
-        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-            return view('admin.kits.edit', [
-                'kit' => Kit::find($id),
-                'categorias' => ItemCategorie::all()
-            ]);
+        if (!$kit) {
+            return redirect()->route('kits.index')->with('toast_error', 'Kit não encontrado.');
         }
+
+        return view('admin.kits.edit', [
+            'kit' => $kit,
+            'categorias' => ItemCategorie::all()
+        ]);
+    }
+    return redirect('/');
+}
+
+
+public function update(Request $request, $id)
+{
+  
+    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
         return redirect('/');
     }
 
+  
+    $kit = Kit::find($id);
+
+    if (!$kit) {
+        return redirect()->route('kits.index')->with('toast_error', 'Kit não encontrado.');
+    }
+
+    
+    $request->validate([
+        'name'        => 'required|string|max:190',
+        'description' => 'nullable|string',
+        'ipvc_ref'    => 'string|max:255',
+        'price'       => 'required|numeric|min:0',     
+        'price_day'   => 'required|numeric|min:0',      
+        'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+
+    ], [
+       
+        'name.required'        => 'O nome do kit é obrigatório.',
+        'name.string'          => 'O nome do kit deve ser um texto válido.',
+        'name.max'             => 'O nome do kit não pode ter mais de 190 caracteres.',
+        
+        'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
+        'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 255 caracteres.',
+        
+        'price.required'       => 'O preço base é obrigatório.',
+        'price.numeric'        => 'O preço base deve ser um valor numérico.',
+        'price.min'            => 'O preço base não pode ser um valor negativo.',
+        
+        'price_day.required'   => 'O preço por dia é obrigatório.',
+        'price_day.numeric'    => 'O preço por dia deve ser um valor numérico.',
+        'price_day.min'        => 'O preço por dia não pode ser um valor negativo.',
+    
+        
+        'image.image'          => 'O ficheiro selecionado deve ser uma imagem válida.',
+        'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
+        'image.max'            => 'A imagem não pode ter um tamanho superior a 2MB.',
+        
+
+
+    ]);
+
+    
+    if ($request->hasFile('image')) {
+        if ($kit->image && Storage::disk('public')->exists($kit->image)) {
+            Storage::disk('public')->delete($kit->image);
+        }
+        $kit->image = $request->file('image')->store('kits', 'public');
+    }
+
+    
+    $kit->name = $request->input('name');
+    $kit->description = $request->input('description');
+    $kit->ipvc_ref = $request->input('ipvc_ref');
+    $kit->price = $request->input('price');
+    $kit->price_day = $request->input('price_day');
+    
+    $kit->save();
+
+    
+    return redirect()->route('kits.index')
+        ->with('toast_success', 'Kit atualizado com sucesso!');
+   
+}
+
+
+}
 
 /*
-    public function update(Request $request, $id)
-    {
+public function update(Request $request, $id)
+{
+   
+    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+        return redirect('/');
+    }
+
+   
+    $kit = Kit::find($id);
+
+    if (!$kit) {
+        return redirect()->route('kits.index')->with('toast_error', 'Kit não encontrado.');
+    }
+
+   l
+    $request->validate([
+        'name'        => 'required|string|max:190',
+        'description' => 'nullable|string',
+        'ipvc_ref'    => 'string|max:255',
+        'price'       => 'required|numeric|min:0',     
+        'price_day'   => 'required|numeric|min:0',      
+        'quantity'    => 'required|integer|min:' . $kit->quantity, 
+        'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+
+    ], [
+       
+        'name.required'        => 'O nome do kit é obrigatório.',
+        'name.string'          => 'O nome do kit deve ser um texto válido.',
+        'name.max'             => 'O nome do kit não pode ter mais de 190 caracteres.',
+        
+        'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
+        'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 255 caracteres.',
+        
+        'price.required'       => 'O preço base é obrigatório.',
+        'price.numeric'        => 'O preço base deve ser um valor numérico.',
+        'price.min'            => 'O preço base não pode ser um valor negativo.',
+        
+        'price_day.required'   => 'O preço por dia é obrigatório.',
+        'price_day.numeric'    => 'O preço por dia deve ser um valor numérico.',
+        'price_day.min'        => 'O preço por dia não pode ser um valor negativo.',
+        
+        'quantity.required'    => 'A quantidade total é obrigatória.',
+        'quantity.integer'     => 'A quantidade deve ser um número inteiro.',
+        'quantity.min'         => 'Não é permitido diminuir a quantidade total de unidades já existentes do Kit (' . $kit->quantity . ').',
+        
+        'image.image'          => 'O ficheiro selecionado deve ser uma imagem válida.',
+        'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
+        'image.max'            => 'A imagem não pode ter um tamanho superior a 2MB.',
+        
+
+
+    ]);
+
+    
+    $imagePath = $kit->image; 
+    if ($request->hasFile('image')) {
+        
+        $imagePath = $request->file('image')->store('kits', 'public');
+    }
+
+   
+   
+    $dadosGerais = $request->except(['image']);
+    $dadosGerais['image'] = $imagePath;
+
+    session(['dados_kit_edicao' => $dadosGerais]);
+
+    return redirect()->route('kits.unitiesEtapa', $kit->id);
+   
+}
+
+
+  public function showKitUnitiesEtapa($id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        $kit = Kit::find($id);
+        $dadosKit = session('dados_kit_edicao');
+
+        
+        if (!$kit || !$dadosKit) {
+            return redirect()->route('kits.edit', $id)->with('toast_error', 'Sessão expirada ou kit inválido.');
+        }
+
+        
+        $unidadesAtuais = KitUnity::where('kit_id', $kit->id)->get();
+        
+        
+        $novasUnidadesQtd = $dadosKit['quantity'] - $unidadesAtuais->count();
+
+    
+        $itensLivres = ItemUnity::with('item')
+            ->whereNull('kit_unity_id')
+            ->whereIn('item_unity_state_id', [1, 2]) 
+            ->get();
+
+        
+        return view('admin.kitUnities.edit', [
+            'kit' => $kit,
+            'unidadesAtuais' => $unidadesAtuais,
+            'novasUnidadesQtd' => $novasUnidadesQtd,
+            'itensLivres' => $itensLivres // <-- IMPORTANTE
+        ]);
+    }
+    return redirect('/');
+}
+
+
+public function updateKitUnitiesEtapa(Request $request, $id)
+{
+    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
         $kit = Kit::find($id);
 
-        if ($request->image != null) {
-            $request->image->image_resize = true;
-            $request->image->image_x = 400;
-            $request->image->image_y = 300;
-            $imagePath = $request->file('image');
-            $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
-            $path = $request->file('image')->storeAs('images/kits', $imageName, 'public');
-        } else {
-            $path = $kit->image;
+        if (!$kit) {
+            return redirect()->route('kits.index')->with('toast_error', 'Kit não encontrado.');
         }
 
-        $request->validate(
-            [
-                'name' => 'required',
-                'description' => 'required',
-                'price' => 'required'
-            ],
-            [
-                'name.required' => 'O kit deve ter um nome',
-                'description.required' => 'O kit deve ter uma descrição',
-                'price.required' => 'O kit deve ter um preço associado'
-            ]
-        );
-
-        $kit->update([
-            'name' => $request->name,
-            'description' => $request->description,
-            'price' => $request->price,
-            'ipvc_ref' => $request->ipvc_ref,
-            'image' => $path,
-            'categoria_id' => $request->categoria_id
+        
+        $request->validate([
+            'lias_atuais'              => 'required|array',
+            'lias_atuais.*'            => 'required|string|distinct',
+            'data_aquisicao_atuais'    => 'array',
+            'data_aquisicao_atuais.*'  => 'nullable|date|before_or_equal:today',
+            
+            'novos_lias'               => 'sometimes|array',
+            'novos_lias.*'             => 'required|string|distinct|unique:kit_unities,lia_code',
+            'data_aquisicao_novas'     => 'sometimes|array',
+            'data_aquisicao_novas.*'   => 'nullable|date|before_or_equal:today',
+        ], [
+            'lias_atuais.*.required'             => 'O código LIA não pode ficar vazio.',
+            'lias_atuais.*.distinct'             => 'Inseriu códigos LIA duplicados entre as unidades atuais.',
+            'data_aquisicao_atuais.*.date'       => 'Insira uma data de aquisição válida.',
+            'data_aquisicao_atuais.*.before_or_equal' => 'A data de aquisição não pode ser no futuro.',
+            
+            'novos_lias.*.required'              => 'Deve preencher o código LIA para as novas unidades do kit.',
+            'novos_lias.*.unique'                => 'Este código LIA já existe noutra unidade no sistema.',
+            'novos_lias.*.distinct'              => 'Inseriu códigos LIA duplicados entre as novas unidades.',
+            'data_aquisicao_novas.*.date'        => 'Insira uma data de aquisição válida.',
+            'data_aquisicao_novas.*.before_or_equal' => 'A data de aquisição não pode ser no futuro.',
         ]);
 
-        return redirect(route('kits.show', $kit->id));
-    }
-
-    public function destroy($id)
-    {
-        $kitsReserva = KitReserve::where('kit_id', $id)->get();
-        if ($kitsReserva->isEmpty()) {
-            $kit = Kit::find($id);
-            $kit->delete();
-        } else {
-            return redirect()->to('/admin/kits/')->with('toast_error', 'Existe uma reserva com este kit!');
+       
+        if ($request->has('novos_lias')) {
+            foreach ($request->novos_lias as $novoLia) {
+                if (in_array($novoLia, $request->lias_atuais)) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['novos_lias' => 'Inseriu códigos LIA duplicados entre os existentes e os novos.']);
+                }
+            }
         }
-        return redirect('/admin/kits');
-    }
 
+       
+        foreach ($request->lias_atuais as $unityId => $liaCode) {
+            $existeNoutro = KitUnity::where('lia_code', $liaCode)
+                                    ->where('id', '!=', $unityId) // ignora a própria linha
+                                    ->exists();
+            if ($existeNoutro) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['lias_atuais.'.$unityId => 'Este código LIA já está registado noutra unidade de kit no sistema.']);
+            }
+        }
+
+        $dadosKit = session('dados_kit_edicao');
+
+        if (!$dadosKit) {
+            return redirect()->route('kits.edit', $id)->with('toast_error', 'Sessão expirada. Por favor tente novamente.');
+        }
+
+       
+        $kit->update([
+            'name'         => $dadosKit['name'],
+            'description'  => $dadosKit['description'] ?? null,
+            'ipvc_ref'     => $dadosKit['ipvc_ref'] ?? null,
+            'lia_code'     => $dadosKit['lia_code'] ?? null, 
+            'price'        => $dadosKit['price'],
+            'price_day'    => $dadosKit['price_day'] ?? null,
+            'quantity'     => $dadosKit['quantity'],
+            'image'        => $dadosKit['image'] ?? $kit->image, 
+        ]);
+
+      
+        if ($request->has('lias_atuais')) {
+            foreach ($request->lias_atuais as $unityId => $liaCode) {
+                $unity = KitUnity::find($unityId);
+                if ($unity) {
+                    $unity->update([
+                        'lia_code'       => $liaCode,
+                        'data_aquisicao' => $request->data_aquisicao_atuais[$unityId] ?? null
+                    ]);
+                }
+            }
+        }
+
+        
+        if ($request->has('novos_lias')) {
+            foreach ($request->novos_lias as $index => $novoLia) {
+                KitUnity::create([
+                    'kit_id'             => $kit->id,
+                    'lia_code'           => $novoLia,
+                    'data_aquisicao'     => $request->data_aquisicao_novas[$index] ?? null,
+                    'kit_unity_state_id' => 1 
+                ]);
+            }
+        }
+
+        
+        session()->forget('dados_kit_edicao');
+
+        return redirect()->route('kits.index')->with('toast_success', 'Kit e as suas respetivas unidades gravados com sucesso!');
+    }
+    return redirect('/');
+}
 */
   
 
 
-    /**
-     * 2. ATUALIZAR LIA_CODE, ESTADO E ITENS DA UNIDADE
-     */
+
+
+
+
+
+/*
     public function update(Request $request, $id)
     {
         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
@@ -495,31 +774,31 @@ public function storeUnities(Request $request)
             return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
         }
 
-        // Validação dos campos
+       
         $request->validate([
             'lia_code'           => 'required|string|unique:kit_unity,lia_code,' . $id,
-            'kit_unity_state_id' => 'required|in:1,2', // 1: Ativo (Visível), 2: Oculto
-            'items_kept'         => 'nullable|array',   // IDs dos itens que o utilizador quer MANTER/REMOVER
+            'kit_unity_state_id' => 'required|in:1,2',
+            'items_kept'         => 'nullable|array',  
         ], [
             'lia_code.required' => 'O código LIA é obrigatório.',
             'lia_code.unique'   => 'Este código LIA já está a ser utilizado por outra unidade.',
         ]);
 
-        // 1. Atualiza os dados básicos da Unidade do Kit
+       
         $unidade->lia_code = $request->lia_code;
         $unidade->kit_unity_state_id = $request->kit_unity_state_id;
         $unidade->save();
 
-        // 2. GESTÃO DOS ITENS INTERNOS (Remover os desmarcados e associar novos)
-        // IDs que vieram selecionados no modal
+       
+       
         $itemsSelected = $request->input('items_kept', []);
 
-        // Remover a associação de todos os itens atuais que NÃO foram selecionados no modal
+       
         ItemUnity::where('kit_unity_id', $unidade->id)
             ->whereNotIn('id', $itemsSelected)
             ->update(['kit_unity_id' => null]);
 
-        // Associar os novos itens que foram marcados (caso fossem itens livres previamente)
+        
         if (!empty($itemsSelected)) {
             ItemUnity::whereIn('id', $itemsSelected)
                 ->update(['kit_unity_id' => $unidade->id]);
@@ -528,332 +807,7 @@ public function storeUnities(Request $request)
         Alert::success('Sucesso', 'Unidade de kit atualizada com sucesso!');
         return redirect()->route('kits.show', $unidade->id);
     }
+*/
 
-    /**
-     * 3. ELIMINAR UNIDADE (Mudar estado para 3 - Anulado)
-     */
+
    
-    
-}
-
-
-
-/*
-class KitsController extends Controller
-{
-    public function index(Request $request)
-    {
-        if ($request->ajax()) {
-            $output = '';
-
-            // Captura o valor da pesquisa
-            $search = $request->search;
-
-            if (!empty($search)) {
-            // Consulta os itens disponíveis conforme a pesquisa
-            $kits = Kit::where('kit_state_id', '=', 1)
-                ->where('name', 'LIKE', '%' . $request->search . '%')
-                ->orWhere('lia_code', 'LIKE', '%' . $request->search . '%')
-                ->whereRaw("LOWER(name) LIKE ?", ['%' . strtolower(request('search')) . '%'])
-                ->get();
-            } else {
-                $kits = Kit::where('kit_state_id', '=', 1)->get();
-            }
-
-            // Constrói o HTML para cada item encontrado
-            if ($kits->count() > 0) {
-                foreach ($kits as $kit) {
-                    $output .= '<div class="col-sm-3 mb-4">
-                                    <div class="card h-100">
-                                        <div class="card-body d-flex flex-column justify-content-center text-center">
-                                            <h5 class="card-title">' . htmlspecialchars($kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
-                                            <p class="card-text">' . htmlspecialchars($kit->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
-                                            <p class="card-text">' . number_format($kit->price, 2, ',', '.') . '€ / dia</p>
-                                            <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $kit->id]) . '">VER DETALHES</a>
-                                        </div>
-                                    </div>
-                                </div>';
-                }
-            } else {
-                $output = '<p>Nenhum item encontrado.</p>';
-            }
-
-            return response()->json($output);
-        }else {
-            $kits = Kit::where('kit_state_id', '=', 1)->get();
-        }
-        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-            return view('admin.kits.index', ['kits' => $kits]);
-        }
-        return redirect('/');
-    }
-
-    public function indexocultos(Request $request)
-    {
-        if ($request->ajax()) {
-            $output = '';
-
-            // Captura o valor da pesquisa
-            $search = $request->search;
-
-            if (!empty($search)) {
-                // Consulta os itens disponíveis conforme a pesquisa
-                $kits = Kit::where('kit_state_id', '!=', 1)
-                ->where(function ($query) use ($search) {
-                    $query->where('name', 'LIKE', '%' . $search . '%')
-                        ->orWhere('lia_code', 'LIKE', '%' . $search . '%')
-                        ->orWhereRaw("LOWER(name) LIKE ?", ['%' . strtolower($search) . '%']);
-                })
-                    ->get();
-            } else {
-                // Se a pesquisa estiver vazia, não retorna nenhum resultado
-                $kits = Kit::where('kit_state_id', '!=', 1)->get();
-            }
-
-            // Constrói o HTML para cada item encontrado
-            if ($kits->count() > 0) {
-                foreach ($kits as $kit) {
-                    $output .= '<div class="col-sm-3 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-body d-flex flex-column justify-content-center text-center">
-                                        <h5 class="card-title">' . htmlspecialchars($kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
-                                        <p class="card-text">' . htmlspecialchars($kit->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
-                                        <p class="card-text">' . number_format($kit->price, 2, ',', '.') . '€ / dia</p>
-                                        <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $kit->id]) . '">VER DETALHES</a>
-                                    </div>
-                                </div>
-                            </div>';
-                }
-            } else {
-                $output = '<p>Nenhum item encontrado.</p>';
-            }
-
-            return response()->json($output);
-        } else {
-            $kits = Kit::where('kit_state_id', '!=', 1)->get();
-        }
-
-        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            return view('admin.kits.indexocultos', ['kits' => $kits]);
-        }
-        return redirect('/');
-    }
-
-    public function create()
-    {
-        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-            return view('admin.kits.create', [
-                'categorias' => ItemCategorie::all(),
-                //'itens' => Item::where('item_state_id', '=', 1)->where('kit_id', null)->get()
-            ]);
-        }
-        return redirect('/');
-        
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate(
-            [
-                'name' => 'required',
-                'description' => 'required',
-                //'lia_code' => 'required|unique:kits,lia_code',
-                'price' => 'required'
-            ],
-            [
-                'name.required' => 'O kit deve ter um nome',
-                'description.required' => 'O kit deve ter uma descrição',
-                //'lia_code.required' => 'O kit deve ter um código LIA associado',
-                //'lia_code.unique' => 'Código LIA deve ser único',
-                'price.required' => 'O kit deve ter um preço associado'
-            ]
-        );
-
-        if ($request->image != null) {
-            $request->image->image_resize = true;
-            $request->image->image_x = 400;
-            $request->image->image_y = 300;
-            $imagePath = $request->file('image');
-            $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
-            $path = $request->file('image')->storeAs('images/kits', $imageName, 'public');
-        } else {
-            $path = "images/empty.png";
-        }
-
-        $parentKit = Kit::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            //'lia_code' => $request->lia_code,
-            'price' => $request->price,
-            'ipvc_ref' => $request->ipvc_ref,
-            'kit_state_id' => $request->state,
-            'image' => $path,
-            'categoria_id' => $request->categoria_id,
-        ]);
-
-        if ($request->itens != null) {
-            foreach ($request->itens as $id) {
-                $Item = Item::find($id);
-                $Item->kit_id = $parentKit->id;
-                $Item->save();
-            }
-        }
-
-        return redirect('admin/kits')->with('toast_success', 'Kit criado com sucesso!');
-    }
-
-    public function show($id)
-    {
-        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-            return view('admin.kits.show', [
-                'kit' => Kit::find($id),
-                'categoria' => ItemCategorie::all()
-            ]);
-        }
-        return redirect('/');
-        
-    }
-
-    public function edit($id)
-    {
-        if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
-            return view('admin.kits.edit', [
-                'kit' => Kit::find($id),
-                'categorias' => ItemCategorie::all(),
-                'itensKit' => Item::where('kit_id', $id)->get(),
-                'itens' => Item::where('item_state_id', '=', 1)->where('kit_id', null)->get()
-            ]);
-        }
-        return redirect('/');
-    }
-
-    public function update(Request $request, $id)
-    {
-        $kit = Kit::find($id);
-
-        if ($request->image != null) {
-            $request->image->image_resize = true;
-            $request->image->image_x = 400;
-            $request->image->image_y = 300;
-            $imagePath = $request->file('image');
-            $imageName = time() . '.' . $imagePath->getClientOriginalExtension();
-            $path = $request->file('image')->storeAs('images/kits', $imageName, 'public');
-        } else {
-            $path = $kit->image;
-        }
-
-        $request->validate(
-            [
-                'name' => 'required',
-                'description' => 'required',
-                'lia_code' => ['required', Rule::unique('kits', 'lia_code')->ignore($id)],
-                'price' => 'required'
-            ],
-            [
-                'name.required' => 'O kit deve ter um nome',
-                'description.required' => 'O kit deve ter uma descrição',
-                'lia_code.required' => 'O kit deve ter um código LIA associado',
-                'lia_code.unique' => 'Código LIA deve ser único',
-                'price.required' => 'O kit deve ter um preço associado'
-            ]
-        );
-
-
-        $kit->update([
-            'name' => $request->name,
-            'description' => $request->description,
-            'lia_code' => $request->lia_code,
-            'price' => $request->price,
-            'ipvc_ref' => $request->ipvc_ref,
-            'kit_state_id' => $request->state,
-            'image' => $path,
-            'categoria_id' => $request->categoria_id
-        ]);
-
-        $kit->save();
-
-        $itensKit = Item::where('kit_id', $id)->get();
-
-        foreach ($itensKit as $item) {
-            $item->kit_id = null;
-            $item->save();
-        }
-
-        if ($request->itens != null) {
-            foreach ($request->itens as $id) {
-                $Item = Item::find($id);
-                $Item->kit_id = $kit->id;
-                $Item->save();
-            }
-        }
-        
-        return redirect(route('kits.show', $kit->id));
-    }
-
-    public function destroy($id)
-    {
-        $kitsReserva = KitReserve::where('kit_id', $id)->get();
-        if ($kitsReserva->isEmpty()) {
-            $itensKit = Item::where('kit_id', $id)->get();
-
-            foreach ($itensKit as $item) {
-                $item->kit_id = null;
-                $item->save();
-            }
-
-            $kit = Kit::find($id);
-            $kit->delete();
-        } else {
-            return redirect()->to('/admin/kits/')->with('toast_error', 'Existe uma reserva com este kit!');
-        }
-        return redirect('/admin/kits');
-        
-    }
-}
-*/
-
-
-    /*public function indexocultos(Request $request)
-    {
-        if ($request->ajax()) {
-            $output = '';
-            $search = $request->search;
-
-            if (!empty($search)) {
-                $kits = Kit::where('kit_state_id', '!=', 1)
-                ->where(function ($query) use ($search) {
-                    $query->where('name', 'LIKE', '%' . $search . '%')
-                        ->orWhereRaw("LOWER(name) LIKE ?", ['%' . strtolower($search) . '%']);
-                })
-                ->get();
-            } else {
-                $kits = Kit::where('kit_state_id', '!=', 1)->get();
-            }
-
-            if ($kits->count() > 0) {
-                foreach ($kits as $kit) {
-                    $output .= '<div class="col-sm-3 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-body d-flex flex-column justify-content-center text-center">
-                                        <h5 class="card-title">' . htmlspecialchars($kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
-                                        <p class="card-text">' . number_format($kit->price, 2, ',', '.') . '€ / dia</p>
-                                        <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $kit->id]) . '">VER DETALHES</a>
-                                    </div>
-                                </div>
-                            </div>';
-                }
-            } else {
-                $output = '<p>Nenhum kit encontrado.</p>';
-            }
-
-            return response()->json($output);
-        } else {
-            $kits = Kit::where('kit_state_id', '!=', 1)->get();
-        }
-
-        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            return view('admin.kits.indexocultos', ['kits' => $kits]);
-        }
-        return redirect('/');
-    }
-*/

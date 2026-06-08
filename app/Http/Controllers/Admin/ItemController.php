@@ -80,7 +80,7 @@ class ItemController extends Controller
         public function show($id)
     {
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            // Buscamos a UNIDADE específica pelo ID dela, trazendo o item e o estado associados
+           
             //$unidade = ItemUnity::with(['item', 'itemUnityState'])->find($id);
             $unidade = ItemUnity::with(['item.itemCategorie', 'itemUnityState'])->find($id);
             if (!$unidade) {
@@ -117,11 +117,23 @@ class ItemController extends Controller
                 'data_aquisicao.before_or_equal' => 'A data de aquisição não pode ser uma data futura.',
             ]);
 
-            $unidade = ItemUnity::find($id);
+            $unidade = ItemUnity::with('kitUnity.kit')->find($id);
             
             if ($unidade) {
                 
                 $unidade->update($request->only(['lia_code', 'item_unity_state_id', 'data_aquisicao']));
+
+              
+          if ($unidade->item_unity_state_id == 2 && 
+                $unidade->kitUnity && 
+                $unidade->kitUnity->kit_unity_state_id != 2) {
+                
+               
+                $unidade->kitUnity->kit_unity_state_id = 2;
+                $unidade->kitUnity->save();
+            }
+
+            
                 return redirect()->route('itens.show', $id)->with('toast_success', 'Unidade atualizada com sucesso!');
             }
 
@@ -152,10 +164,18 @@ class ItemController extends Controller
 
            
             \Illuminate\Support\Facades\DB::transaction(function () use ($unidade) {
-                // 1. Atualiza o estado da unidade para 3 (Anulado)
+               
                 $unidade->update([
                     'item_unity_state_id' => 3 
                 ]);
+
+                if ($unidade->kitUnity) {
+                if ($unidade->kitUnity->kit_unity_state_id != 2) {
+                    $unidade->kitUnity->update([
+                        'kit_unity_state_id' => 2
+                    ]);
+                }
+            }
 
                 $item = $unidade->item;
                 if ($item) {
@@ -225,11 +245,11 @@ class ItemController extends Controller
                 $path = "images/empty.png";
             }
 
-                // MUDANÇA AQUI: Juntamos todos os dados do formulário num array
+               
             $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity']);
-            $itemData['image'] = $path; // adiciona o caminho da imagem
+            $itemData['image'] = $path; 
 
-            // Guardamos tudo na sessão. Nada foi para a BD ainda!
+            
             return redirect()->route('itens.createUnities')->with([
                 'item_data' => $itemData,
                 'item_nome' => $request->nome,
@@ -253,7 +273,7 @@ class ItemController extends Controller
             }
 
             //session()->keep(['item_data', 'item_nome', 'quantity']);
-            // Segura os dados do item na sessão para o próximo clique de botão
+            
             session()->flash('item_data', $itemData);
             session()->flash('item_nome', $item_nome);
             session()->flash('quantity', $quantity);
@@ -323,20 +343,20 @@ class ItemController extends Controller
 
     public function ocultos(Request $request)
     {
-        // 1. SE FOR A PESQUISA (AJAX)
+       
         if ($request->ajax()) {
             $output = '';
             $search = $request->search;
 
-            // FILTRO MUDA AQUI: procuramos apenas pelo estado 2 (Oculto)
+           
             $query = ItemUnity::with('item')->where('item_unity_state_id', 2);
 
             if (!empty($search)) {
             $query->where(function($q) use ($search) {
-                // 1. Procura pelo LIA CODE diretamente na tabela de unidades
+               
                 $q->where('lia_code', 'LIKE', '%' . $search . '%')
                 
-                // 2. Ou procura pelo Nome e Modelo lá dentro do Item Pai
+               
                 ->orWhereHas('item', function($subQuery) use ($search) {
                     $subQuery->where('nome', 'LIKE', '%' . $search . '%')
                              ->orWhere('model', 'LIKE', '%' . $search . '%');
@@ -348,7 +368,7 @@ class ItemController extends Controller
 
             if ($unidades->count() > 0) {
                 foreach ($unidades as $unidade) {
-                    // HTML alterado para ficar exatamente igual ao da View Blade (Sem cinzentos indesejados)
+                    
                     $output .= '<div class="col-sm-3 mb-4">
                                     <div class="card h-100"> 
                                         <div class="card-body d-flex flex-column justify-content-center text-center">
@@ -368,13 +388,13 @@ class ItemController extends Controller
             return response()->json($output);
         } 
         
-        // 2. SE FOR O CARREGAMENTO NORMAL
+       
         else {
-            // FILTRO MUDA AQUI: estado 2
+            
             $unidades = ItemUnity::with('item')->where('item_unity_state_id', 2)->get();
         }
 
-        // 3. SEGURANÇA E REDIRECIONAMENTO
+        
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
             return view('admin.itemUnities.ocultos', ['unidades' => $unidades]);
         }
@@ -475,7 +495,7 @@ public function update(Request $request, $id)
             return redirect()->route('itens.index')->with('toast_error', 'Item não encontrado.');
         }
 
-        // ... (Mantém as tuas validações normais de Nome, Preço, Quantidade, etc) ...
+        
 
         $path = $item->image;
         if ($request->hasFile('image')) {
@@ -487,16 +507,16 @@ public function update(Request $request, $id)
         $dadosItem = $request->except(['image']);
         $dadosItem['image'] = $path; 
         
-        // Guarda os dados na sessão
+        
         session(['dados_item_edicao' => $dadosItem]);
 
-        // EM VEZ DE RETURN VIEW, FAZEMOS REDIRECT:
+        
         return redirect()->route('itens.createUnitiesEtapa', $item->id);
     }
     return redirect('/');
 }
 
-// NOVO MÉTODO APENAS PARA MOSTRAR A VIEW DAS UNIDADES
+
 public function showUnitiesEtapa($id)
 {
     if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
@@ -508,7 +528,7 @@ public function showUnitiesEtapa($id)
         }
 
         $unidadesAtuais = ItemUnity::where('item_id', $item->id)->get();
-        // Usamos a quantidade que veio do formulário (e está na sessão)
+        
         $novasUnidadesQtd = $dadosItem['quantity'] - $unidadesAtuais->count();
 
         return view('admin.itemUnities.edit', [
@@ -525,7 +545,7 @@ public function showUnitiesEtapa($id)
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
             $item = Item::find($id);
 
-            // 1. Validar os códigos LIA vindos da segunda página
+           
             $request->validate([
                 'lias_atuais'              => 'required|array',
                
@@ -564,10 +584,10 @@ public function showUnitiesEtapa($id)
                 }
             }
 
-            // Garante que nenhum LIA atual foi alterado para um valor que já existe na BD noutros itens
+           
             foreach ($request->lias_atuais as $unityId => $liaCode) {
                 $existeNoutro = \App\Models\ItemUnity::where('lia_code', $liaCode)
-                                    ->where('id', '!=', $unityId) // ignora a si próprio
+                                    ->where('id', '!=', $unityId) 
                                     ->exists();
                 if ($existeNoutro) {
                     return redirect()->back()
@@ -577,14 +597,14 @@ public function showUnitiesEtapa($id)
             }
 
 
-            // 2. Recuperar os dados gerais do Item que guardámos na Sessão no Passo 1
+           
             $dadosItem = session('dados_item_edicao');
 
             if (!$dadosItem) {
                 return redirect()->route('itens.edit', $id)->with('toast_error', 'Sessão expirada. Por favor tente novamente.');
             }
 
-            // 3. AGORA SIM: Fazemos o update real na tabela de Itens
+            
             $item->update([
                 'nome' => $dadosItem['nome'],
                 'model' => $dadosItem['model'],
@@ -606,7 +626,7 @@ public function showUnitiesEtapa($id)
                 if ($unity) {
                     $unity->update([
                         'lia_code'       => $liaCode,
-                        'data_aquisicao' => $request->data_aquisicao_atuais[$unityId] ?? null // Grava a data enviada (ou null se vazia)
+                        'data_aquisicao' => $request->data_aquisicao_atuais[$unityId] ?? null 
                     ]);
                 }
             }
@@ -618,7 +638,7 @@ public function showUnitiesEtapa($id)
                 ItemUnity::create([
                     'item_id'             => $item->id,
                     'lia_code'            => $novoLia,
-                    'data_aquisicao'      => $request->data_aquisicao_novas[$index] ?? null, // Usa o index correspondente
+                    'data_aquisicao'      => $request->data_aquisicao_novas[$index] ?? null, 
                     'item_unity_state_id' => 1 
                 ]);
             }
@@ -632,6 +652,8 @@ public function showUnitiesEtapa($id)
         return redirect('/');
     }
 
+
+  
 
 
 
