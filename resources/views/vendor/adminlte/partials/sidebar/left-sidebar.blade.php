@@ -44,6 +44,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{{ route('itens.manutencao') }}" class="nav-link">
+                            <i class="nav-icon fas fa-fw fa-tools"></i>
+                            <p>Itens em Manutenção</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{{ route('itens.create') }}" class="nav-link">
                             <i class="nav-icon fas fa-fw fa-th"></i>
                             <p>Criar novo Item</p>

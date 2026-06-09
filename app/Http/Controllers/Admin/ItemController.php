@@ -587,6 +587,17 @@ public function showUnitiesEtapa($id)
         return redirect('/');
     }
 
+    public function manutencao()
+    {
+    $unidades = \App\Models\ItemUnity::where('item_unity_state_id', 4)
+        ->with('item')
+        ->get();
+
+    return view('admin.ItemUnities.manutencao', ['unidades' => $unidades]);
+    }
+
+
+
 
   
 

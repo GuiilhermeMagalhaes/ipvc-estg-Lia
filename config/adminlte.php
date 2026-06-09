@@ -264,6 +264,10 @@ return [
                     'url'  => '/admin/itens/lista-ocultos',
                 ],
                 [
+                    'text' => 'Itens em Manutenção',
+                    'url'  => '/admin/itens/manutencao',
+                ],
+                [
                     'text' => 'Criar Novo Item',
                     'url'  => '/admin/itens/create'
                 ]

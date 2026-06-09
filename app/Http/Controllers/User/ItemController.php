@@ -269,44 +269,41 @@ class ItemController extends Controller
 
     public function checkItem($id)
     {
-        $item = Item::find($id);
-        $dataInicio = session()->get('reserve.start_date');
-        $dataFim = session()->get('reserve.end_date');
+    $item = Item::find($id);
+    $dataInicio = session()->get('reserve.start_date');
+    $dataFim = session()->get('reserve.end_date');
 
-        // Se não houver datas em sessão, permite a visualização
-        if (!$dataInicio || !$dataFim) {
-            return true;
+    if (!$dataInicio || !$dataFim) {
+        return true;
+    }
+
+    $totalUnidades = \App\Models\ItemUnity::where('item_id', $id)
+        ->where('item_unity_state_id', 1)
+        ->count();
+
+    if ($totalUnidades == 0) {
+        return false;
+    }
+
+    // Conta quantos deste item já estão no carrinho da sessão
+    $itensNoCarrinho = session()->get('reserve.itens', []);
+    $qtdNoCarrinho = count(array_filter($itensNoCarrinho, function($i) use ($id) {
+        return $i->id == $id;
+    }));
+
+    $unidadesOcupadas = 0;
+    $itemReserves = ItemReserve::where('item_id', $id)->pluck('reserve_id');
+    $reserves = Reserve::whereIn('id', $itemReserves)->get();
+
+    foreach ($reserves as $reserve) {
+        if ($this->isPeriodoOcupado($reserve, $dataInicio, $dataFim)) {
+            $qtdNestaReserva = ItemReserve::where('reserve_id', $reserve->id)->where('item_id', $id)->count();
+            $unidadesOcupadas += $qtdNestaReserva;
         }
+    }
 
-        // 1. Conta o total de unidades físicas ativas para este item
-        $totalUnidades = \App\Models\ItemUnity::where('item_id', $id)
-            ->where('item_unity_state_id', 1)
-            ->count();
-
-        // Se o laboratório já não tem nenhuma câmara destas, esconde logo.
-        if ($totalUnidades == 0) {
-            return false;
-        }
-
-        // 2. Conta quantas unidades já estão ocupadas em reservas para este período
-        $unidadesOcupadas = 0;
-        
-        // Vai buscar as reservas que contêm este item
-        $itemReserves = ItemReserve::where('item_id', $id)->pluck('reserve_id');
-        $reserves = Reserve::whereIn('id', $itemReserves)->get();
-
-        foreach ($reserves as $reserve) {
-            // Se as datas da reserva entrarem em conflito com o pedido do aluno
-            if ($this->isPeriodoOcupado($reserve, $dataInicio, $dataFim)) {
-                // Conta quantas unidades o aluno levou nessa reserva específica
-                $qtdNestaReserva = ItemReserve::where('reserve_id', $reserve->id)->where('item_id', $id)->count();
-                $unidadesOcupadas += $qtdNestaReserva;
-            }
-        }
-
-  
-        // Só esconde do site se as Unidades Ocupadas forem iguais ou maiores que o Total no Laboratório
-        return ($totalUnidades - $unidadesOcupadas) > 0;
+    // Subtrai também o que está no carrinho
+    return ($totalUnidades - $unidadesOcupadas - $qtdNoCarrinho) > 0;
     }
 
     private function isPeriodoOcupado($reserve, $dataInicio, $dataFim) 

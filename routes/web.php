@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ItemController::class, 'create'])->name('itens.create');
             Route::get('/lista-ocultos', [ItemController::class, 'ocultos'])->name('itens.ocultos'); // ← adiciona aqui
             Route::post('/', [ItemController::class, 'store'])->name('itens.store');
+            Route::get('/manutencao', [ItemController::class, 'manutencao'])->name('itens.manutencao');
             Route::get('/create-unities', [ItemController::class, 'createUnities'])->name('itens.createUnities');
             Route::post('/store-unities', [ItemController::class, 'storeUnities'])->name('itens.storeUnities');
             //Route::get('/{id}', [ItemController::class, 'show'])->name('itens.show');

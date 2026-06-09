@@ -43,10 +43,10 @@
                                     data-kit-lia="{{ $unidade->kitUnity ? $unidade->kitUnity->lia_code : '' }}">
                                 <option value="1" {{ $unidade->item_unity_state_id == 1 ? 'selected' : '' }}>Ativo (Visível)</option>
                                 <option value="2" {{ $unidade->item_unity_state_id == 2 ? 'selected' : '' }}>Oculto</option>
+                                <option value="4" {{ $unidade->item_unity_state_id == 4 ? 'selected' : '' }}>Manutenção</option>
                             </select>
                         </li>
-
-
+                        
                         <li class="list-group-item d-flex align-items-center">
                             <span style="width: 150px; display: inline-block;">Data de Aquisição: </span>
                             <input type="date" id="data_aquisicao" name="data_aquisicao" class="form-control form-control-sm" value="{{ $unidade->data_aquisicao ? $unidade->data_aquisicao->format('Y-m-d') : '' }}" max="{{ date('Y-m-d') }}" style="width: 180px; display: inline-block;">

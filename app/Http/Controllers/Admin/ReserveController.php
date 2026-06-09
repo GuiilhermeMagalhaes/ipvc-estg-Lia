@@ -166,7 +166,7 @@ class ReserveController extends Controller
             if ($ur->item_unity_id) {
                 ItemUnity::where('id', $ur->item_unity_id)->update([
                     // Com problema -> estado 2 (Manutenção); sem problema -> estado 1 (Disponível)
-                    'item_unity_state_id' => $temProblema ? 2 : 1,
+                    'item_unity_state_id' => $temProblema ? 4 : 1,
                 ]);
             }
         }
@@ -193,7 +193,7 @@ class ReserveController extends Controller
         foreach ($itensReserva as $ri) {
             if ($ri->item_unity_id) {
                 // Só volta a visível se a reserva não tiver problemas
-                $novoEstado = $reserve->return_notes ? 2 : 1;
+                $novoEstado = $reserve->return_notes ? 4 : 1;
                 ItemUnity::where('id', $ri->item_unity_id)
                     ->update(['item_unity_state_id' => $novoEstado]);
             }
