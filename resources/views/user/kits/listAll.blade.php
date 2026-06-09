@@ -35,7 +35,7 @@
                 <img class="card-img-top rounded-top" src="../{{ $kit->image }}" alt="..." />
                 <div class="card-body p-4">
                     <div class="text-center">
-                        <h5 class="fw-bolder">{{ $kit->name }}</h5>
+                      <h5 class="fw-bolder">{{ $kit->name }}</h5>
                         <h6>{{ $kit->description }}</h6>
                         {{number_format($kit->price, 2, ',', '.')}} € / dia
                     </div>

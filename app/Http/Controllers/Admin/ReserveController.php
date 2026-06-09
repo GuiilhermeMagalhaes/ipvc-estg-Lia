@@ -234,9 +234,7 @@ class ReserveController extends Controller
         return back()->with('warning', 'Esta reserva já se encontra paga ou não tem valor a cobrar.');
     }
 
-    // -------------------------------------------------------------------------
-    // MÉTODO PRIVADO: Calcula e aplica o custo da reserva ao Centro de Custos
-    // -------------------------------------------------------------------------
+    
     private function aplicarCustoReserva($reserve)
     {
         $start = Carbon::parse($reserve->start_date);

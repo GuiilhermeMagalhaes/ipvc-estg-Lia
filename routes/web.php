@@ -93,15 +93,8 @@ Route::middleware('auth')->group(function () {
             // Rota para processar a segunda etapa da edição (LIAs e novas unidades)
             Route::post('/{id}/update-unities', [ItemController::class, 'updateUnitiesEtapa'])->name('itens.updateUnitiesEtapa');
             //Route::delete('{id}', [ItemController::class, 'destroy'])->name('itens.destroy');
-<<<<<<< HEAD
             Route::get('/kit-unities/{id}', [KitUnityController::class, 'show'])->name('kitUnity.show');
             Route::get('/{id}/create-unities-step', [ItemController::class, 'showUnitiesEtapa'])->name('itens.createUnitiesEtapa');            
-=======
-            //Route::get('/kit-unities/{id}', [KitUnityController::class, 'show'])->name('kitUnity.show');
-            Route::get('/{id}/create-unities-step', [ItemController::class, 'showUnitiesEtapa'])->name('itens.createUnitiesEtapa');
-           
-            
->>>>>>> b3e639c2da85771936a794cc4a8f457b8aef38c7
         });
 
         Route::prefix('item-unities')->group(function () {

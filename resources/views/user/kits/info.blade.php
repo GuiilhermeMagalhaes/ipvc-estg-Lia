@@ -38,11 +38,7 @@
                         {{ $kit->name }}
                     </h3>
                     <p>{{ $kit->description }}</p>
-                    @foreach ($categoria as $cat)
-                    @if( $kit->categoria_id == $cat->id)
-                    <p>Categoria: {{ $cat->description}}</p>
-                    @endif
-                    @endforeach
+                    
                     <hr>
                     <div class="container d-flex justify-content-center align-items-center text-center flex-column" id="calendar">
                         <div id="datepicker"></div>
@@ -65,11 +61,13 @@
                             <h4>Preço <i class="fas fa-info-circle" data-toggle="popover" data-trigger="hover" title="Informação de Preço" data-content="Este é o preço por dia do kit."></i></h4>
                             <h6>{{number_format($kit->price, 2, ',', '.')}} € / dia</h6>
                         </div>
-                        <div class="col-4" style="flex: 1;">
+                            <div class="col-4" style="flex: 1;">
                             <h4>Disponíveis</h4>
                             <h6>
-                                @if(isset($kitCount))
-                                {{ $kitCount }} Unid.
+                                @if(session()->has('reserve'))
+                                    {{ $kitCount }} Unid. 
+                                @else
+                                    {{ $kitCount }} Unid. Total
                                 @endif
                             </h6>
                         </div>
@@ -88,36 +86,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="row">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>
-                                <h3>Conteúdo do Kit</h3>
-                            </th>
-                            <th>
-                            <th>
-                            <th>
-                        </tr>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Modelo</th>
-                            <th>Observações</th>
-                            <th>Preço</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($kit->items as $item)
-                        <tr>
-                            <td>{{ $item->nome }}</td>
-                            <td>{{ $item->model }}</td>
-                            <td>{{ $item->observation }}</td>
-                            <td>{{number_format($item->preco, 2, ',', '.')}} € / dia</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>

@@ -245,22 +245,12 @@ class ItemController extends Controller
                 $path = "images/empty.png";
             }
 
-<<<<<<< HEAD
-     
-            $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity']);
-            $itemData['image'] = $path; 
-            $itemData['item_state_id'] = 1; // Visível
-
-            
-            return redirect()->route('itens.createUnities')->with([ 
-=======
                
             $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity']);
             $itemData['image'] = $path; 
 
             
             return redirect()->route('itens.createUnities')->with([
->>>>>>> b3e639c2da85771936a794cc4a8f457b8aef38c7
                 'item_data' => $itemData,
                 'item_nome' => $request->nome,
                 'quantity'  => $request->quantity
@@ -455,12 +445,8 @@ public function update(Request $request, $id)
         
         session(['dados_item_edicao' => $dadosItem]);
 
-<<<<<<< HEAD
-        return redirect()->route('itens.createUnitiesEtapa', ['id' => $item->id]);
-=======
         
         return redirect()->route('itens.createUnitiesEtapa', $item->id);
->>>>>>> b3e639c2da85771936a794cc4a8f457b8aef38c7
     }
     return redirect('/');
 }

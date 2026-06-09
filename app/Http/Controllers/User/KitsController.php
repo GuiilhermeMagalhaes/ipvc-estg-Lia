@@ -18,10 +18,48 @@ class KitsController extends Controller
 {
 
 
-   public function index()
+public function index()
 {
-    $kits = Kit::all();
+    // 1. VAI BUSCAR TODOS OS KITS QUE TÊM UNIDADES ATIVAS
+    $kits = Kit::whereHas('kitUnities', function ($query) {
+        $query->where('kit_unity_state_id', 1);
+    })->get();
 
+    // 2. SE O UTILIZADOR JÁ INICIOU UMA RESERVA, FILTRA O STOCK PELAS DATAS
+    if (session()->has('reserve')) {
+        $startDate = session()->get('reserve.start_date');
+        $endDate = session()->get('reserve.end_date');
+
+        $kits = $kits->filter(function ($kit) use ($startDate, $endDate) {
+            // Conta o total de malas/unidades físicas deste kit no laboratório
+            $totalUnidades = \App\Models\KitUnity::where('kit_id', $kit->id)
+                ->where('kit_unity_state_id', 1)
+                ->count();
+
+            // Conta quantas unidades deste kit já estão ocupadas por outros nesses dias
+            $ocupados = DB::table('kit_reserve')
+                ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
+                ->where('kit_reserve.kit_id', $kit->id)
+                ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('reserves.start_date', [$startDate, $endDate])
+                          ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
+                          ->orWhere(function ($q) use ($startDate, $endDate) {
+                              $q->where('reserves.start_date', '<=', $startDate)
+                                ->where('reserves.end_date', '>=', $endDate);
+                          });
+                })
+                ->count();
+
+            // Cria uma variável temporária dentro do kit com o stock que sobrou
+            $kit->quantidade_disponivel = $totalUnidades - $ocupados;
+
+            // Só mantém o kit na lista se o stock livre for maior que zero
+            return $kit->quantidade_disponivel > 0;
+        });
+    }
+
+    // 3. RETORNA A VIEW COM A LISTA COMPLETA OU FILTRADA
     return view('user.kits.listAll', ['kits' => $kits]);
 }
 
@@ -29,22 +67,55 @@ class KitsController extends Controller
 public function all(Request $request)
 {
     if ($request->ajax()) {
-
         $output = '';
 
-        $kits = Kit::where('name', 'LIKE', '%' . $request->search . '%')
-            ->get();
+        $kits = Kit::whereHas('kitUnities', function ($query) {
+            $query->where('kit_unity_state_id', 1);
+        })
+        ->where('name', 'LIKE', '%' . $request->search . '%')
+        ->get();
+
+        
+        if (session()->has('reserve')) {
+            $startDate = session()->get('reserve.start_date');
+            $endDate = session()->get('reserve.end_date');
+
+            $kits = $kits->filter(function ($kit) use ($startDate, $endDate) {
+                $totalUnidades = \App\Models\KitUnity::where('kit_id', $kit->id)
+                    ->where('kit_unity_state_id', 1)
+                    ->count();
+
+                $ocupados = DB::table('kit_reserve')
+                    ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
+                    ->where('kit_reserve.kit_id', $kit->id)
+                    ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                    ->where(function ($query) use ($startDate, $endDate) {
+                        $query->whereBetween('reserves.start_date', [$startDate, $endDate])
+                              ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
+                              ->orWhere(function ($q) use ($startDate, $endDate) {
+                                  $q->where('reserves.start_date', '<=', $startDate)
+                                    ->where('reserves.end_date', '>=', $endDate);
+                              });
+                    })
+                    ->count();
+
+                $kit->quantidade_disponivel = $totalUnidades - $ocupados;
+
+                return $kit->quantidade_disponivel > 0;
+            });
+        }
 
         if ($kits->count() > 0) {
-
             foreach ($kits as $kit) {
+                // Se houver reserva ativa, mostra o stock ao lado do nome na pesquisa
+                $txtDisponivel = session()->has('reserve') ? ' (Disponíveis: ' . $kit->quantidade_disponivel . ')' : '';
 
                 $output .= '<div class="col mb-5">
                                 <div class="card h-100">
                                     <img class="card-img-top" src="../../' . $kit->image . '" alt="..." />
                                     <div class="card-body p-4">
                                         <div class="text-center">
-                                            <h5 class="fw-bolder">' . $kit->name . '</h5>
+                                            <h5 class="fw-bolder">' . $kit->name . $txtDisponivel . '</h5>
                                             <h6>' . $kit->description . '</h6>
                                             ' . $kit->price . ' € / dia
                                         </div>
@@ -59,21 +130,73 @@ public function all(Request $request)
                                 </div>
                             </div>';
             }
-
         } else {
-
             $output = '<p>Nenhum item encontrado.</p>';
         }
 
         return response()->json($output);
 
     } else {
-
-        $kits = Kit::all();
+        $kits = Kit::whereHas('kitUnities', function ($query) {
+            $query->where('kit_unity_state_id', 1);
+        })->get();
     }
 
     return view('user.kits.listAll', ['kits' => $kits]);
 }
+
+
+
+public function show($id)
+{
+    
+    $kit = Kit::find($id);
+
+    if (!$kit) {
+        abort(404, 'Kit não encontrado');
+    }
+
+    
+    //$kitCount = Kit::where('name', $kit->name)->count();
+
+    $kitCount = \App\Models\KitUnity::where('kit_id', $kit->id)
+        ->where('kit_unity_state_id', 1)
+        ->count();
+
+    $today = \Carbon\Carbon::today();
+
+    // Obtém as reservas para o kit específico com as condicionantes de reserve_state_id
+    // Obtém apenas os períodos onde a quantidade reservada esgota o stock total do kit
+    $reservas = DB::table('kit_reserve')
+        ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
+        ->where('kit_reserve.kit_id', $id)
+        ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+        ->whereDate('reserves.end_date', '>=', $today)
+        ->select('reserves.start_date', 'reserves.end_date', DB::raw('SUM(kit_reserve.quantity) as total_reserved'))
+        ->groupBy('reserves.id', 'reserves.start_date', 'reserves.end_date')
+        ->get()
+        ->filter(function ($reserva) use ($kitCount) {
+            // Só mantém no calendário se as unidades ocupadas preencherem todo o stock
+            return $reserva->total_reserved >= $kitCount;
+        });
+
+    // Converte as datas para o formato dia/mes/ano
+    $reservasFormatted = $reservas->map(function ($reserva) {
+        return [
+            'start_date' => \Carbon\Carbon::parse($reserva->start_date)->format('d/m/Y'),
+            'end_date' => \Carbon\Carbon::parse($reserva->end_date)->format('d/m/Y')
+        ];
+    });
+
+    // Retorna a visualização APENAS com os dados necessários
+    return view('user.kits.info', [
+        'kit' => $kit,
+        'kitCount' => $kitCount,
+        'reservas' => $reservasFormatted
+    ]);
+}
+    
+
 
     /*  
     public function index()
