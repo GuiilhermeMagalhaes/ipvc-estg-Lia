@@ -31,7 +31,7 @@ public function index()
         $endDate = session()->get('reserve.end_date');
 
         $kits = $kits->filter(function ($kit) use ($startDate, $endDate) {
-            // Conta o total de malas/unidades físicas deste kit no laboratório
+            // Conta o total de malas/unidades físicas com estdo 1 deste kit 
             $totalUnidades = \App\Models\KitUnity::where('kit_id', $kit->id)
                 ->where('kit_unity_state_id', 1)
                 ->count();
@@ -49,7 +49,7 @@ public function index()
                                 ->where('reserves.end_date', '>=', $endDate);
                           });
                 })
-                ->count();
+                ->sum('kit_reserve.quantity');
 
             // Cria uma variável temporária dentro do kit com o stock que sobrou
             $kit->quantidade_disponivel = $totalUnidades - $ocupados;
@@ -59,7 +59,7 @@ public function index()
         });
     }
 
-    // 3. RETORNA A VIEW COM A LISTA COMPLETA OU FILTRADA
+    
     return view('user.kits.listAll', ['kits' => $kits]);
 }
 
@@ -97,7 +97,7 @@ public function all(Request $request)
                                     ->where('reserves.end_date', '>=', $endDate);
                               });
                     })
-                    ->count();
+                    ->sum('kit_reserve.quantity');
 
                 $kit->quantidade_disponivel = $totalUnidades - $ocupados;
 
@@ -107,7 +107,7 @@ public function all(Request $request)
 
         if ($kits->count() > 0) {
             foreach ($kits as $kit) {
-                // Se houver reserva ativa, mostra o stock ao lado do nome na pesquisa
+                // Se houver reserva
                 $txtDisponivel = session()->has('reserve') ? ' (Disponíveis: ' . $kit->quantidade_disponivel . ')' : '';
 
                 $output .= '<div class="col mb-5">
@@ -165,28 +165,52 @@ public function show($id)
 
     $today = \Carbon\Carbon::today();
 
-    // Obtém as reservas para o kit específico com as condicionantes de reserve_state_id
-    // Obtém apenas os períodos onde a quantidade reservada esgota o stock total do kit
-    $reservas = DB::table('kit_reserve')
-        ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
-        ->where('kit_reserve.kit_id', $id)
-        ->whereIn('reserves.reserve_state_id', [1, 2, 7])
-        ->whereDate('reserves.end_date', '>=', $today)
-        ->select('reserves.start_date', 'reserves.end_date', DB::raw('SUM(kit_reserve.quantity) as total_reserved'))
-        ->groupBy('reserves.id', 'reserves.start_date', 'reserves.end_date')
-        ->get()
-        ->filter(function ($reserva) use ($kitCount) {
-            // Só mantém no calendário se as unidades ocupadas preencherem todo o stock
-            return $reserva->total_reserved >= $kitCount;
-        });
+    
+            $reservas = DB::table('kit_reserve')
+            ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
+            ->where('kit_reserve.kit_id', $id)
+            ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+            ->whereDate('reserves.end_date', '>=', $today)
+            ->select(
+                'reserves.start_date',
+                'reserves.end_date',
+                'kit_reserve.quantity'
+            )
+            ->get();
 
-    // Converte as datas para o formato dia/mes/ano
-    $reservasFormatted = $reservas->map(function ($reserva) {
-        return [
-            'start_date' => \Carbon\Carbon::parse($reserva->start_date)->format('d/m/Y'),
-            'end_date' => \Carbon\Carbon::parse($reserva->end_date)->format('d/m/Y')
-        ];
-    });
+        $ocupacaoPorDia = [];
+
+        foreach ($reservas as $reserva) {
+
+            $inicio = \Carbon\Carbon::parse($reserva->start_date);
+            $fim = \Carbon\Carbon::parse($reserva->end_date);
+
+            while ($inicio <= $fim) {
+
+                $dia = $inicio->format('Y-m-d');
+
+                if (!isset($ocupacaoPorDia[$dia])) {
+                    $ocupacaoPorDia[$dia] = 0;
+                }
+
+                $ocupacaoPorDia[$dia] += $reserva->quantity;
+
+                $inicio->addDay();
+            }
+        }
+
+        $reservasFormatted = [];
+
+        foreach ($ocupacaoPorDia as $dia => $ocupados) {
+
+            if ($ocupados >= $kitCount) {
+
+                $reservasFormatted[] = [
+                    'start_date' => \Carbon\Carbon::parse($dia)->format('d/m/Y'),
+                    'end_date' => \Carbon\Carbon::parse($dia)->format('d/m/Y')
+                ];
+            }
+        }
 
     // Retorna a visualização APENAS com os dados necessários
     return view('user.kits.info', [

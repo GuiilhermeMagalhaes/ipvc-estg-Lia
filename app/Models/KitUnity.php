@@ -32,4 +32,10 @@ class KitUnity extends Model
     {
         return $this->hasMany(ItemUnity::class, 'kit_unity_id'); 
     }
+
+
+    public function kitUnityReserves(): HasMany
+    {
+        return $this->hasMany(KitUnityReserve::class, 'kit_unity_id');
+    }
 }

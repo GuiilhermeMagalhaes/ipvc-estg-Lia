@@ -28,7 +28,7 @@ class KitReserve extends Model
         return $this->belongsTo(Reserve::class, 'reserve_id');
     }
 
-    public function kitUnities()
+    public function kitUnityReserves()
     {
         return $this->hasMany(KitUnityReserve::class, 'kit_reserve_id');
     }

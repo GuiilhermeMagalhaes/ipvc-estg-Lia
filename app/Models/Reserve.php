@@ -46,14 +46,10 @@ class Reserve extends Model
         return $this->BelongsTo(ReserveItem::class);
     }
 
-    /**
-     * Get the reserveKit that owns the Reserve
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function reserveKit(): BelongsTo
+    
+   public function kitReserves(): HasMany
     {
-        return $this->belongsTo(ReserveKit::class);
+        return $this->hasMany(KitReserve::class, 'reserve_id');
     }
 
     /**

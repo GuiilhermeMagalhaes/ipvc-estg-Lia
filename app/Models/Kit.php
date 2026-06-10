@@ -31,4 +31,9 @@ class Kit extends Model
         return $this->hasMany(KitUnity::class, 'kit_id');
     }
 
+    public function kitReserves(): HasMany
+    {
+        return $this->hasMany(KitReserve::class, 'kit_id');
+    }
+
 }
