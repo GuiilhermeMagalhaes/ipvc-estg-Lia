@@ -53,8 +53,8 @@
                     <option value="{{ $ciclica->id }}">{{ $ciclica->dia_semana }}</option>
                     @endforeach
                 </select>
-                @error('ciclica_')
-                <span class="error">{{ $message }}</span>
+                @error('ciclica_id')
+                <span style="color:red" class="error">{{ $message }}</span>
                 @enderror
             </div>
             <div class="form-group">

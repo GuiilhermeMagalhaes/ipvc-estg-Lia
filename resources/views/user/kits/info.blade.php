@@ -64,8 +64,9 @@
                             <div class="col-4" style="flex: 1;">
                             <h4>Disponíveis</h4>
                             <h6>
+                                {{-- 1. ALTERAÇÃO NO TEXTO --}}
                                 @if(session()->has('reserve'))
-                                    {{ $kitCount }} Unid. 
+                                    {{ $quantidadeDisponivel }} Unid. (Nestas datas)
                                 @else
                                     {{ $kitCount }} Unid. Total
                                 @endif
@@ -76,9 +77,10 @@
                                 @csrf
                                 @method('POST')
                                 <div class="form-group" style="margin-right: 10px; margin-top:15px;">
-                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ $kitCount }}" value="1" style="width: 50px;">
+                                    {{-- 2. ALTERAÇÃO NO ATRIBUTO MAX --}}
+                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ session()->has('reserve') ? $quantidadeDisponivel : $kitCount }}" value="1" style="width: 50px;">
                                 </div>
-                                <button type="send" class="btn btn-outline-dark" id="kit">
+                                <button type="submit" class="btn btn-outline-dark" id="kit">
                                     <i class="fas fa-cart-plus fa-lg mr-2"></i>
                                     Reservar
                                 </button>

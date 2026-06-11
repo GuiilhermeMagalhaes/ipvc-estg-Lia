@@ -35,22 +35,24 @@
                     <table class="table">
                         <thead>
                             <th>Nome</th>
-                            <th>Descrição</th>
                             <th>Preço</th>
                             <th></th>
                         </thead>
-                        @if (session()->has('reserve.kits'))
+                       @if (session()->has('reserve.kits'))
                             <tbody>
-                                @foreach (session()->get('reserve.kits') as $kit)
+                                @foreach (session()->get('reserve.kits') as $kitId => $kitData)
                                     <tr>
-                                        <td>{{ $kit->name }}</td>
-                                        <td>{{ $kit->description }}</td>
-                                        <td>{{number_format($kit->price_day, 2, ',', '.')}} € / dia</td>
+                                        <td>{{ $kitData['name'] }}</td>
+                                        
                                         <td>
-                                            <form action="{{ route('kit.remove', ['id' => $kit->id]) }}" method="post">
+                                            {{ number_format($kitData['price'], 2, ',', '.') }} € / dia 
+                                            <small class="text-muted">(Qtd: {{ $kitData['quantity'] }})</small>
+                                        </td>
+                                        <td>
+                                            <form action="{{ route('kit.remove', ['id' => $kitId]) }}" method="post">
                                                 @csrf
                                                 @method('POST')
-                                                <button type="send" class="btn btn-outline-dark mt-auto" style="width: 140px;">Retirar</button>
+                                                <button type="submit" class="btn btn-outline-dark mt-auto" style="width: 140px;">Retirar</button>
                                             </form>
                                         </td>
                                     </tr>

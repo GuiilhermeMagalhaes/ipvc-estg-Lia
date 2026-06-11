@@ -8,13 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Ciclica extends Model
 {
     protected $table = "ciclica";
-    /**
-     * Get the reserve that owns the Ciclica
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
-     */
-    public function reserves(): BelongsToMany
+
+
+
+   public function reserves(): HasMany // <- Alterado de BelongsToMany para HasMany
     {
-        return $this->belongsToMany(Reserve::class);
+        return $this->hasMany(Reserve::class, 'ciclica_id');
     }
 }
