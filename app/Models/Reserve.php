@@ -41,9 +41,9 @@ class Reserve extends Model
      *
      * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function reserveItens(): BelongsTo
+    public function itemReserves(): HasMany
     {
-        return $this->BelongsTo(ReserveItem::class);
+        return $this->hasMany(ItemReserve::class, 'reserve_id');
     }
 
     
