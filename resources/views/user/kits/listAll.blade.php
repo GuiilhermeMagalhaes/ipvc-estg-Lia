@@ -37,7 +37,7 @@
                     <div class="text-center">
                       <h5 class="fw-bolder">{{ $kit->name }}</h5>
                         <h6>{{ $kit->description }}</h6>
-                        {{number_format($kit->price, 2, ',', '.')}} € / dia
+                        {{number_format($kit->price_day, 2, ',', '.')}} € / dia
                     </div>
                 </div>
                 <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
