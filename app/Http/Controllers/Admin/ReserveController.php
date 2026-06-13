@@ -145,7 +145,7 @@ class ReserveController extends Controller
             }
 
             Reserve::where('id', $id)->update([
-                'reserve_state_id' => 4, // Entregue
+                'reserve_state_id' => 4, 
                 'delivery_date'    => Carbon::now(),
             ]);
         });
@@ -283,8 +283,13 @@ class ReserveController extends Controller
         if ($reserve->cost_center_id) {
             $centro = CostCenter::find($reserve->cost_center_id);
             if ($centro) {
-                $centro->total_cost += $custo_total_reserva;
-                $centro->total_debt += $custo_total_reserva;
+
+                $centro->total_cost = ($centro->total_cost - $custo_antigo_reserva) + $custo_total_reserva;
+                $centro->total_debt = ($centro->total_debt - $custo_antigo_reserva) + $custo_total_reserva;
+                
+                if ($centro->total_debt < 0) $centro->total_debt = 0;
+                if ($centro->total_cost < 0) $centro->total_cost = 0;
+
                 $centro->save();
             }
         }
