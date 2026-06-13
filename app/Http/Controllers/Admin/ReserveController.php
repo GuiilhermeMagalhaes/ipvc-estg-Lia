@@ -126,87 +126,141 @@ class ReserveController extends Controller
         return back()->with('toast_success', 'Reserva recusada.');
     }
 
-    public function deliver(Request $request, $id)
+    public function deliver(Request $request, $id) 
     {
-        $request->validate([
-            'atribuicao' => 'required|array',
-        ]);
+        // Se não vier nem atribuição de itens nem de kits, dá erro
+        if (!$request->has('atribuicao') && (!$request->has('atribuicao_kit'))) {
+            return back()->with('toast_error', 'Selecione pelo menos uma unidade para entregar.');
+        }
 
-        DB::transaction(function () use ($request, $id) {
-            foreach ($request->atribuicao as $reserve_item_id => $unity_id) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $id) {
+            
+            // 1. ATRIBUIR UNIDADES AOS ITENS
+            if ($request->has('atribuicao')) {
+                foreach ($request->atribuicao as $reserve_item_id => $unity_ids) {
+                    foreach ($unity_ids as $unity_id) {
+                        if (empty($unity_id)) continue;
 
-                // CORRIGIDO: usar where()->update() em vez de find()->update()
-                // para garantir que o Eloquent persiste corretamente na BD
-                ItemReserve::where('id', $reserve_item_id)
-                    ->update(['item_unity_id' => $unity_id]);
+                        \Illuminate\Support\Facades\DB::table('item_unity_reserve')->insert([
+                            'item_reserve_id' => $reserve_item_id,
+                            'item_unity_id'   => $unity_id
+                        ]);
 
-                ItemUnity::where('id', $unity_id)
-                    ->update(['item_unity_state_id' => 2]); // 2 = Ocupada
+                        \App\Models\ItemUnity::find($unity_id)->update([
+                            'item_unity_state_id' => 2 // Ocupado
+                        ]);
+                    }
+                }
             }
 
-            Reserve::where('id', $id)->update([
-                'reserve_state_id' => 4, // Entregue
-                'delivery_date'    => Carbon::now(),
+            // 2. ATRIBUIR UNIDADES AOS KITS
+            if ($request->has('atribuicao_kit')) {
+                foreach ($request->atribuicao_kit as $reserve_kit_id => $unity_ids) {
+                    foreach ($unity_ids as $unity_id) {
+                        if (empty($unity_id)) continue;
+
+                        \Illuminate\Support\Facades\DB::table('kit_unity_reserve')->insert([
+                            'kit_reserve_id' => $reserve_kit_id,
+                            'kit_unity_id'   => $unity_id
+                        ]);
+
+                        \App\Models\KitUnity::find($unity_id)->update([
+                            'kit_unity_state_id' => 2 // Ocupado
+                        ]);
+                    }
+                }
+            }
+
+            // 3. Atualiza estado da Reserva Principal para "Entregue" (Estado 4)
+            \App\Models\Reserve::find($id)->update([
+                'reserve_state_id' => 4, 
+                'delivery_date' => \Carbon\Carbon::now()
             ]);
         });
 
-        return back()->with('toast_success', 'Material entregue e unidades atribuídas com sucesso!');
-    }
+        return back()->with('toast_success', 'Equipamentos entregues e atribuídos com sucesso!');
+    }  
 
     public function receive(Request $request, $id)
     {
-        $reserve = Reserve::findOrFail($id);
-        $reserve->return_date = Carbon::now();
+        $reserve = Reserve::find($id);
+        $reserve->return_date = \Carbon\Carbon::now();
+        $isDefective = ($request->has('return_notes') && $request->return_notes != null);
+        
+        // 1. RECEBER ITENS
+        $itemReserves = ItemReserve::where('reserve_id', $id)->pluck('id');
+        $unidades_fisicas = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+                                ->whereIn('item_reserve_id', $itemReserves)->get();
 
-        $temProblema = $request->filled('return_notes');
-
-        $unidades_da_reserva = ItemReserve::where('reserve_id', $id)->get();
-
-        foreach ($unidades_da_reserva as $ur) {
-            if ($ur->item_unity_id) {
-                ItemUnity::where('id', $ur->item_unity_id)->update([
-                    // Com problema -> estado 2 (Manutenção); sem problema -> estado 1 (Disponível)
-                    'item_unity_state_id' => $temProblema ? 4 : 1,
-                ]);
+        foreach ($unidades_fisicas as $uf) {
+            $unidade = \App\Models\ItemUnity::find($uf->item_unity_id);
+            if ($unidade) {
+                $unidade->item_unity_state_id = $isDefective ? 2 : 1; 
+                $unidade->save();
             }
         }
 
-        if ($temProblema) {
+        // 2. RECEBER KITS
+        $kitReserves = KitReserve::where('reserve_id', $id)->pluck('id');
+        $kits_fisicos = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                                ->whereIn('kit_reserve_id', $kitReserves)->get();
+
+        foreach ($kits_fisicos as $kf) {
+            $kit_unidade = \App\Models\KitUnity::find($kf->kit_unity_id);
+            if ($kit_unidade) {
+                $kit_unidade->kit_unity_state_id = $isDefective ? 2 : 1; 
+                $kit_unidade->save();
+            }
+        }
+
+        // 3. Guardar notas e Finalizar
+        if ($isDefective) {
             $reserve->return_notes = $request->return_notes;
         }
 
-        $todaydate = Carbon::today();
-        $endDate   = Carbon::parse($reserve->end_date);
-
-        // 8 = Devolvida a tempo; 9 = Devolvida com atraso
-        $reserve->reserve_state_id = $todaydate->lte($endDate) ? 8 : 9;
+        $todaydate = date('Y-m-d');
+        if($todaydate <= \Carbon\Carbon::parse($reserve->end_date)->format('Y-m-d')){
+            $reserve->reserve_state_id = 8;
+        } else {
+            $reserve->reserve_state_id = 9;
+        }
+        
         $reserve->save();
-
+        
         return back()->with('toast_success', 'Material recebido e stock atualizado!');
     }
 
     public function finalize($id)
-{
-    DB::transaction(function () use ($id) {
-        $reserve = Reserve::findOrFail($id);
-        $itensReserva = ItemReserve::where('reserve_id', $id)->get();
-        foreach ($itensReserva as $ri) {
-            if ($ri->item_unity_id) {
-                // Só volta a visível se a reserva não tiver problemas
-                $novoEstado = $reserve->return_notes ? 4 : 1;
-                ItemUnity::where('id', $ri->item_unity_id)
-                    ->update(['item_unity_state_id' => $novoEstado]);
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
+            $reserve = Reserve::findOrFail($id);
+            
+            // 1. Libertar ITENS
+            $itemReserves = ItemReserve::where('reserve_id', $id)->pluck('id');
+            $unidades_fisicas = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+                                    ->whereIn('item_reserve_id', $itemReserves)->get();
+
+            foreach ($unidades_fisicas as $uf) {
+                \App\Models\ItemUnity::where('id', $uf->item_unity_id)->update(['item_unity_state_id' => 1]);
             }
-        }
 
-        $todaydate = Carbon::today();
-        $endDate = Carbon::parse($reserve->end_date);
-        $reserve->reserve_state_id = $todaydate->lte($endDate) ? 5 : 6;
-        $reserve->save();
-    });
+            // 2. Libertar KITS
+            $kitReserves = KitReserve::where('reserve_id', $id)->pluck('id');
+            $kits_fisicos = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                                    ->whereIn('kit_reserve_id', $kitReserves)->get();
 
-    return back()->with('toast_success', 'Reserva finalizada e unidades libertadas.');
-}
+            foreach ($kits_fisicos as $kf) {
+                \App\Models\KitUnity::where('id', $kf->kit_unity_id)->update(['kit_unity_state_id' => 1]);
+            }
+
+            // 3. Finalizar estado da reserva
+            $todaydate = date('Y-m-d');
+            $reserve->reserve_state_id = ($todaydate <= $reserve->end_date) ? 5 : 6;
+            $reserve->save();
+        });
+        
+        return back()->with('toast_success', 'Reserva finalizada e unidades libertadas.');
+    }
 
     public function pay($id)
     {

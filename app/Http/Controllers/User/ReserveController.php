@@ -252,8 +252,8 @@ class ReserveController extends Controller
     public function confirmReserve()
 {
     // PASSO 1: Verificação de Segurança
-    if (empty(session()->get('reserve.kits'))) {
-        return back()->with('warning', 'Adicione kits à reserva para poder concluir!');
+    if (empty(session()->get('reserve.kits')) && empty(session()->get('reserve.itens'))) {
+        return back()->with('warning', 'Adicione itens ou kits à reserva para poder concluir!');
     }
 
     // PASSO 2: Início da Transação de Segurança
@@ -274,31 +274,51 @@ class ReserveController extends Controller
             'return_date'      => null  
         ]);
 
-        // PASSO 4: Gravação dos Kits com as Quantidades Reais
-        foreach (session()->get('reserve.kits') as $kitId => $kitData) {
-            KitReserve::create([
-                'reserve_id' => $reserve->id,
-                'kit_id'     => $kitId, 
-                'quantity'   => $kitData['quantity'] 
-            ]);
+       // PASSO 4: Gravação dos Kits com as Quantidades Reais
+        if (session()->get('reserve.kits')) {
+            foreach (session()->get('reserve.kits') as $kitId => $kitData) {
+                KitReserve::create([
+                    'reserve_id' => $reserve->id,
+                    'kit_id'     => $kitId, 
+                    'quantity'   => $kitData['quantity'] 
+                ]);
+            }
         }
 
-        // PASSO 5: Finalização com Sucesso (Commit)
+        // PASSO 5: Gravação dos Itens (Agrupando e contando para preencher a coluna 'quantity')
+        if (session()->get('reserve.itens')) {
+            // Transformamos o array de itens da sessão numa Coleção do Laravel
+            $itensNaSessao = collect(session()->get('reserve.itens'));
+            
+            // O countBy conta quantas vezes o mesmo ID de item aparece no carrinho
+            // Exemplo: se houver 3 câmaras com ID 5, gera: [5 => 3]
+            $quantidadesItens = $itensNaSessao->countBy('id');
+
+            foreach ($quantidadesItens as $itemId => $quantity) {
+                ItemReserve::create([
+                    'reserve_id' => $reserve->id,
+                    'item_id'    => $itemId,
+                    'quantity'   => $quantity // Grava o valor da contagem diretamente aqui
+                ]);
+            }
+        }
+
+        // PASSO 6: Finalização com Sucesso (Commit)
         DB::commit();
 
     } catch (\Exception $e) {
-        // PASSO 6: Cancelamento em caso de Falha (Rollback)
+        // PASSO 7: Cancelamento em caso de Falha (Rollback)
         DB::rollBack();
         return back()->with('toast_error', 'Ocorreu um erro ao processar a reserva. Tente novamente.');
     }
 
-    // PASSO 7: Notificação dos Gestores
+    // PASSO 8: Notificação dos Gestores
     $gestores = User::where('user_type_id', 1)->get(); 
     if ($gestores->isNotEmpty()) {
         Notification::send($gestores, new PedidoRequisicao($reserve));
     }
 
-    // PASSO 8: Limpeza de Memória
+    // PASSO 9: Limpeza de Memória
     session()->forget('reserve');
 
     return redirect('/')->with('success', 'Reserva efetuada com sucesso!');
