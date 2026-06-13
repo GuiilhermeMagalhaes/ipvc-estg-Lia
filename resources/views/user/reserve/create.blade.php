@@ -27,14 +27,14 @@
         <div class="card-body">
             <div class="form-group">
                 <label for="startDate">Data de Início</label>
-                <input name="start_date" id="start_date" type="date" class="form-control">
+                <input name="start_date" id="start_date" type="date" class="form-control" value="{{ old('start_date') }}">
                 @error('start_date')
                 <span style="color:red" class="error">{{ $message }}</span>
                 @enderror
             </div>
             <div class="form-group">
                 <label for="endDate">Data de Fim</label>
-                <input name="end_date" id="end_date" type="date" class="form-control">
+                <input name="end_date" id="end_date" type="date" class="form-control" value="{{ old('end_date') }}">
                 @error('end_date')
                 <span style="color:red" class="error">{{ $message }}</span>
                 @enderror
@@ -202,7 +202,7 @@
         ]
     });
 
-    // Botão para iniciar o tutorial
+    
     document.getElementById('start-tutorial').addEventListener('click', function () {
         tour.start();
     });

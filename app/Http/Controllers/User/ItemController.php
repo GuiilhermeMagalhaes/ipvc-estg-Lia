@@ -25,7 +25,6 @@ class ItemController extends Controller
 
         $category = ItemCategorie::findOrFail($id);
 
-        // ALTERAÇÃO: Passa a variável 'category' para a View
         return view('user.itens.listAll', [
             'itens' => $itens, 
             'category' => $category
@@ -41,12 +40,12 @@ class ItemController extends Controller
 
     $query = Item::where('categoria_id', '=', $categoria_id)
             ->whereHas('itemUnities', function ($q) {
-                $q->where('item_unity_state_id', 1); // Ajusta o ID do estado ativo se for diferente de 1
+                $q->where('item_unity_state_id', 1); 
             });
 
 
     if ($search) {
-        // Ajustado para 'nome' que é o campo na tua tabela item
+        
         $query->where('nome', 'LIKE', '%' . $search . '%');
     }
 
@@ -57,7 +56,7 @@ class ItemController extends Controller
         $endDate = Carbon::parse(session()->get('reserve.end_date'));
         $sessionCiclicaId = (int) session()->get('reserve.ciclica_id', 1);
 
-        // GERAR O CALENDÁRIO DO UTILIZADOR ATUAL
+        
         $periodoDatas = [];
         for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
             if ($sessionCiclicaId === 1 || $date->dayOfWeek === ($sessionCiclicaId - 2)) {
@@ -68,7 +67,7 @@ class ItemController extends Controller
             }
         }
 
-        // BUSCAR RESERVAS DE ITENS NO MESMO INTERVALO
+        
         $reservasOcupantes = DB::table('item_reserve')
             ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
             ->whereIn('reserves.reserve_state_id', [1, 2, 7])
@@ -85,12 +84,12 @@ class ItemController extends Controller
 
         
         $totaisUnidades = DB::table('item_unity')
-            ->where('item_state_id', 1) 
+            ->where('item_unity_state_id', 1) 
             ->select('item_id', DB::raw('count(*) as total'))
             ->groupBy('item_id')
             ->pluck('total', 'item_id');
 
-        // FILTRAR OS ITENS DIA-A-DIA COM A LÓGICA CÍCLICA
+        
         $items = $items->filter(function ($item) use ($periodoDatas, $reservasOcupantes, $totaisUnidades) {
             $totalFisico = $totaisUnidades->get($item->id, 0);
             if ($totalFisico <= 0) return false;
@@ -104,14 +103,14 @@ class ItemController extends Controller
 
                 foreach ($reservasOcupantes as $reserva) {
                     if ($reserva->item_id == $item->id) {
-                        // Verifica se o dia está dentro do intervalo de datas da reserva antiga
+                        
                         if ($dia >= $reserva->start_date && $dia <= $reserva->end_date) {
                             
-                            // CASO A: A reserva antiga era contínua (Ocupa todos os dias)
+                            
                             if ((int)$reserva->ciclica_id === 1) {
                                 $ocupadosHoje += $reserva->quantity;
                             } 
-                            // CASO B: A reserva antiga também era cíclica (Só ocupa no mesmo dia da semana)
+                            
                             else {
                                 $diaSemanaReservaAntiga = (int)$reserva->ciclica_id - 2;
                                 if ($diaSemanaAtual === $diaSemanaReservaAntiga) {
@@ -128,10 +127,10 @@ class ItemController extends Controller
                 }
             }
 
-            // Injeta o atributo dinâmico para usares na View
+            
             $item->quantidade_disponivel = $minimoDisponivelNoPeriodo;
             
-            // Só deixa listar o item se sobrar pelo menos 1 unidade livre no período
+            
             return $minimoDisponivelNoPeriodo > 0;
         });
     }
@@ -257,7 +256,7 @@ class ItemController extends Controller
         'item' => $item,
         'itemCount' => $itemCount,
         'quantidadeDisponivel' => $quantidadeDisponivel,
-        'reservas' => $reservasFormatted
+        'reservas' => $reservasFormatted,
     ]);
 }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ciclica extends Model
 {
@@ -11,7 +12,7 @@ class Ciclica extends Model
 
 
 
-   public function reserves(): HasMany // <- Alterado de BelongsToMany para HasMany
+   public function reserves(): HasMany 
     {
         return $this->hasMany(Reserve::class, 'ciclica_id');
     }

@@ -80,38 +80,97 @@ class ReserveController extends Controller
 
 
     public function addItem(Request $request, $id)
-    {
-        $item = Item::find($id);
-        
-        if (!session()->has('reserve')) {
-            return redirect()->route('reserve.index')->with('warning', 'Deve iniciar uma reserva para poder adicionar itens!');
-        }
+{
+    $item = Item::findOrFail($id);
 
-        $quantidade = $request->input('quantity', 1);
-        $existingItems = session()->get('reserve.itens', []);
-
-        // 1. Verifica quantas unidades físicas existem no total
-        $totalUnidadesFisicas = \App\Models\ItemUnity::where('item_id', $item->id)
-                                ->where('item_unity_state_id', 1)
-                                ->count();
-
-        // 2. Verifica quantos itens iguais a este já estão no carrinho
-        $reservedCount = count(array_filter($existingItems, function($i) use ($item) {
-            return $i->id == $item->id;
-        }));
-
-        // 3. Verifica se há stock suficiente no laboratório
-        if (($reservedCount + $quantidade) > $totalUnidadesFisicas) {
-            return back()->with('warning', 'A quantidade desejada excede o nosso stock físico disponível!');
-        }
-
-        // 4. Adiciona o item à reserva as vezes que o utilizador pediu
-        for ($i = 0; $i < $quantidade; $i++) {
-            session()->push('reserve.itens', $item);
-        }
-
-        return back()->with('toast_success', 'Item adicionado à reserva!');
+    if (!session()->has('reserve')) {
+        return redirect()->route('reserve.index')->with('warning', 'Deve iniciar uma reserva para poder adicionar itens!');
     }
+
+    $quantidadeDesejada = (int) $request->input('quantity', 1);
+    if ($quantidadeDesejada <= 0) return back()->with('warning', 'Quantidade inválida!');
+
+    $startDate = Carbon::parse(session()->get('reserve.start_date'));
+    $endDate = Carbon::parse(session()->get('reserve.end_date'));
+    $sessionCiclicaId = (int) session()->get('reserve.ciclica_id', 1);
+    
+    
+    $existingItems = session()->get('reserve.items', []);
+    $jaNoCarrinho = isset($existingItems[$item->id]) ? $existingItems[$item->id]['quantity'] : 0;
+    $totalAAdicionar = $jaNoCarrinho + $quantidadeDesejada;
+
+    
+    $periodoDatas = [];
+    for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+        if ($sessionCiclicaId === 1 || $date->dayOfWeek === ($sessionCiclicaId - 2)) {
+            $periodoDatas[] = ['data' => $date->format('Y-m-d'), 'dayOfWeek' => $date->dayOfWeek];
+        }
+    }
+
+    
+    $totalFisico = DB::table('item_unity')
+        ->where('item_id', $item->id)
+        ->where('item_unity_state_id', 1)
+        ->count();
+
+    
+    $reservasOcupantes = DB::table('item_reserve')
+        ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
+        ->where('item_reserve.item_id', $item->id)
+        ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+        ->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('reserves.start_date', [$startDate, $endDate])
+              ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
+              ->orWhere(function ($sub) use ($startDate, $endDate) {
+                  $sub->where('reserves.start_date', '<=', $startDate)
+                      ->where('reserves.end_date', '>=', $endDate);
+              });
+        })
+        ->select('reserves.start_date', 'reserves.end_date', 'item_reserve.quantity', 'reserves.ciclica_id')
+        ->get();
+
+    
+    $minimoDisponivelNoPeriodo = $totalFisico;
+
+    foreach ($periodoDatas as $pData) {
+        $dia = $pData['data'];
+        $diaSemanaAtual = $pData['dayOfWeek'];
+        $ocupadosHoje = 0;
+
+        foreach ($reservasOcupantes as $reserva) {
+            if ($dia >= $reserva->start_date && $dia <= $reserva->end_date) {
+                if ((int)$reserva->ciclica_id === 1) {
+                    $ocupadosHoje += $reserva->quantity;
+                } else {
+                    $diaSemanaReservaAntiga = (int)$reserva->ciclica_id - 2;
+                    if ($diaSemanaAtual === $diaSemanaReservaAntiga) {
+                        $ocupadosHoje += $reserva->quantity;
+                    }
+                }
+            }
+        }
+
+        $disponivelHoje = $totalFisico - $ocupadosHoje;
+        if ($disponivelHoje < $minimoDisponivelNoPeriodo) {
+            $minimoDisponivelNoPeriodo = $disponivelHoje;
+        }
+    }
+
+    if ($totalAAdicionar > $minimoDisponivelNoPeriodo) {
+        return back()->with('warning', 'Quantidade indisponível! Máximo livre neste período: ' . $minimoDisponivelNoPeriodo);
+    }
+
+    
+    $existingItems[$item->id] = [
+        'id'       => $item->id,
+        'name'     => $item->nome,
+        'price'    => $item->price_day,
+        'quantity' => $totalAAdicionar
+    ];
+
+    session()->put('reserve.items', $existingItems);
+    return back()->with('toast_success', 'Item adicionado!');
+}
 
 
 
@@ -134,7 +193,7 @@ class ReserveController extends Controller
     $jaNoCarrinho = isset($existingKits[$kit->id]) ? $existingKits[$kit->id]['quantity'] : 0;
     $totalAAdicionar = $jaNoCarrinho + $quantidadeDesejada;
 
-    // 1. GERAR CALENDÁRIO DO PEDIDO ATUAL
+    
     $periodoDatas = [];
     for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
         if ($sessionCiclicaId === 1 || $date->dayOfWeek === ($sessionCiclicaId - 2)) {
@@ -144,7 +203,7 @@ class ReserveController extends Controller
 
     $totalFisico = KitUnity::where('kit_id', $kit->id)->where('kit_unity_state_id', 1)->count();
 
-    // 2. BUSCAR RESERVAS QUE COINCIDEM
+    
     $reservasOcupantes = DB::table('kit_reserve')
         ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
         ->where('kit_reserve.kit_id', $kit->id)
@@ -160,7 +219,7 @@ class ReserveController extends Controller
         ->select('reserves.start_date', 'reserves.end_date', 'kit_reserve.quantity', 'reserves.ciclica_id')
         ->get();
 
-    // 3. RESTRINÇÃO DE STOCK CÍCLICO
+    
     $minimoDisponivelNoPeriodo = $totalFisico;
 
     foreach ($periodoDatas as $pData) {
@@ -207,7 +266,7 @@ class ReserveController extends Controller
 
 
 
-    public function removeKit($id)
+   /* public function removeKit($id)
     {
         // 1. Vai buscar os kits (como uma Collection do Laravel)
         $kits = collect(session()->get('reserve.kits', []));
@@ -237,10 +296,43 @@ class ReserveController extends Controller
         return back()->with('toast_success', 'Item removido!');
     }
 
+*/
+
+
+
+    public function removeKit($id)
+{
+    
+    $kits = session()->get('reserve.kits', []);
+
+    
+    if (isset($kits[$id])) {
+        unset($kits[$id]);
+        session()->put('reserve.kits', $kits);
+    }
+
+    return back()->with('toast_success', 'Kit removido!');
+}
+
+public function removeItem($id)
+{
+    
+    $items = session()->get('reserve.items', []);
+
+    
+    if (isset($items[$id])) {
+        unset($items[$id]);
+        session()->put('reserve.items', $items);
+    }
+
+    return back()->with('toast_success', 'Item removido!');
+}
+
+
+
 
     public function cancelReserve()
 {
-    // Verifica se existe alguma reserva iniciada na sessão antes de tentar cancelar
     if (session()->has('reserve')) {
         session()->forget('reserve');
     }
@@ -251,9 +343,12 @@ class ReserveController extends Controller
 
     public function confirmReserve()
 {
-    // PASSO 1: Verificação de Segurança
-    if (empty(session()->get('reserve.kits'))) {
-        return back()->with('warning', 'Adicione kits à reserva para poder concluir!');
+    $kits = session()->get('reserve.kits', []);
+    $items = session()->get('reserve.items', []);
+
+    // --- ALTERAÇÃO 2: Verificação de Segurança (Bloqueia se AMBOS estiverem vazios) ---
+    if (empty($kits) && empty($items)) {
+        return back()->with('warning', 'Adicione pelo menos um kit ou um item à reserva para poder concluir!');
     }
 
     // PASSO 2: Início da Transação de Segurança
@@ -274,13 +369,26 @@ class ReserveController extends Controller
             'return_date'      => null  
         ]);
 
-        // PASSO 4: Gravação dos Kits com as Quantidades Reais
-        foreach (session()->get('reserve.kits') as $kitId => $kitData) {
-            KitReserve::create([
-                'reserve_id' => $reserve->id,
-                'kit_id'     => $kitId, 
-                'quantity'   => $kitData['quantity'] 
-            ]);
+        
+
+        if (!empty($kits)) {
+            foreach ($kits as $kitId => $kitData) {
+                KitReserve::create([
+                    'reserve_id' => $reserve->id,
+                    'kit_id'     => $kitId, 
+                    'quantity'   => $kitData['quantity'] 
+                ]);
+            }
+        }
+
+        if (!empty($items)) {
+            foreach ($items as $itemId => $itemData) {
+                ItemReserve::create([
+                    'reserve_id' => $reserve->id,
+                    'item_id'    => $itemId, 
+                    'quantity'   => $itemData['quantity'] 
+                ]);
+            }
         }
 
         // PASSO 5: Finalização com Sucesso (Commit)

@@ -33,30 +33,25 @@
         <div class="card-body">
             <div class="row">
 
-                {{-- Imagem --}}
+               
                 <div class="col-12 col-sm-6 mt-4">
                     <img src="../{{ $item->image }}" width="100%" style="border-radius:10px;">
                 </div>
 
-                {{-- Detalhes --}}
+                
                 <div class="col-12 col-sm-6">
                     <h3 class="my-3">{{ $item->nome }}</h3>
                     <p>Modelo: {{ $item->model }}</p>
 
-                    @foreach ($categoria as $cat)
-                        @if ($item->categoria_id == $cat->id)
-                            <p>Categoria: {{ $cat->description }}</p>
-                        @endif
-                    @endforeach
+                    <p>Categoria: {{ $item->itemCategorie->description ?? 'Sem Categoria' }}</p>
 
                     <p>Observação: {{ $item->observation }}</p>
                     <p>Acessórios: {{ $item->acessorio }}</p>
-                    <p>Data de Aquisição: {{ $item->data_aquisicao ? $item->data_aquisicao->format('d/m/Y') : 'N/A' }}</p>
-                    <p>Tempo de Vida: {{ $item->tempo_de_vida }}</p>
+                
 
                     <hr>
 
-                    {{-- Calendário --}}
+                  
                     <div class="container d-flex justify-content-center align-items-center text-center flex-column" id="calendar">
                         <div id="datepicker"></div>
                         @php
@@ -70,13 +65,11 @@
                             }
                         @endphp
                         @if (count($reservas) == 0)
-                            <p>Nenhuma reserva encontrada para este kit.</p>
+                            <p>Nenhuma reserva encontrada para este item.</p>
                         @endif
                     </div>
 
                     <hr>
-
-                    {{-- Preço, Disponíveis e Botão Reservar --}}
                     <div class="row" style="display: flex; justify-content: space-between; align-items: center; text-align: center; padding: 10px; margin: 10px 0;">
 
                         <div class="col-3" style="flex: 1;">
@@ -87,9 +80,10 @@
                         <div class="col-4" style="flex: 1;">
                             <h4>Disponíveis</h4>
                             <h6 id="contador-disponivel">
-                                @if (isset($itemCount))
-                                    {{ $itemCount }} Unid.
-                                @endif
+                                @if(session()->has('reserve'))
+                                    {{ $quantidadeDisponivel }} Unid. (Nestas datas)
+                                @else
+                                    {{ $item->quantidade_total }} Unid. Total  @endif
                             </h6>
                         </div>
 
@@ -98,9 +92,9 @@
                                 @csrf
                                 @method('POST')
                                 <div class="form-group" style="margin-right: 10px; margin-top: 15px;">
-                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ $itemCount }}" value="1" style="width: 50px;">
+                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ session()->has('reserve') ? $quantidadeDisponivel : $item->quantidade_total }}" value="{{ $quantidadeDisponivel > 0 ? 1 : 0 }}" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }} style="width: 50px;">
                                 </div>
-                                <button type="submit" class="btn btn-outline-dark" id="item">
+                                    <button type="submit" class="btn btn-outline-dark" id="item" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }}>
                                     <i class="fas fa-cart-plus fa-lg mr-2"></i>
                                     Reservar
                                 </button>
@@ -117,7 +111,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/shepherd.js/dist/js/shepherd.min.js"></script>
 
-{{-- Tutorial --}}
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const tour = new Shepherd.Tour({
@@ -143,7 +137,7 @@
     });
 </script>
 
-{{-- Calendário --}}
+
 <script>
     $(document).ready(function () {
         $('[data-toggle="popover"]').popover();
@@ -224,36 +218,32 @@
     });
 </script>
 
-{{-- Atualizar contador de disponíveis após adicionar ao carrinho --}}
+
 <script>
-    $('#form-reservar').on('submit', function (e) {
-        e.preventDefault();
 
-        var quantidade = parseInt($('#quantity').val());
-        var textoAtual = $('#contador-disponivel').text().trim();
-        var disponivel = parseInt(textoAtual);
+        $('#form-reservar').on('submit', function (e) {
+    e.preventDefault();
 
-        $.ajax({
-            type : 'POST',
-            url  : $(this).attr('action'),
-            data : $(this).serialize(),
-            success: function (response) {
-                var novoDisponivel = disponivel - quantidade;
-                if (novoDisponivel < 0) novoDisponivel = 0;
-                $('#contador-disponivel').text(novoDisponivel + ' Unid.');
-                $('#quantity').attr('max', novoDisponivel);
-            },
-            error: function (xhr) {
-                // O Laravel redireciona (302) após o POST — tratamos como sucesso
-                if (xhr.status === 302 || xhr.status === 200) {
-                    var novoDisponivel = disponivel - quantidade;
-                    if (novoDisponivel < 0) novoDisponivel = 0;
-                    $('#contador-disponivel').text(novoDisponivel + ' Unid.');
-                    $('#quantity').attr('max', novoDisponivel);
-                }
-            }
-        });
+    var form = $(this);
+    var quantidade = parseInt($('#quantity').val());
+    var disponivel = parseInt($('#contador-disponivel').text().trim());
+
+    $.ajax({
+        type : 'POST',
+        url  : form.attr('action'),
+        data : form.serialize(),
+        success: function (response) {
+            
+            var novoDisponivel = disponivel - quantity;
+            if (novoDisponivel < 0) novoDisponivel = 0;
+            $('#contador-disponivel').text(novoDisponivel + ' Unid.');
+            $('#quantity').attr('max', novoDisponivel);
+        },
+        error: function (xhr) {
+            window.location.reload();
+        }
     });
+});
 </script>
 
 @endsection

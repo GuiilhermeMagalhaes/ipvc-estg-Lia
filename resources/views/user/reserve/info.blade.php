@@ -61,35 +61,37 @@
                         @endif
                     </table>
                 </div>
-                <div class="callout callout-info" id="itens">
-                    <h5>Itens para Reserva</h5>
-                    <table class="table">
-                        <thead>
-                            <th>Nome</th>
-                            <th>Modelo</th>
-                            <th>Preço</th>
-                            <th></th>
-                        </thead>
-                        @if (session()->has('reserve.itens'))
-                            <tbody>
-                                @foreach (session()->get('reserve.itens') as $item)
-                                    <tr>
-                                        <td>{{ $item->nome }}</td>
-                                        <td>{{ $item->model }}</td>
-                                        <td>{{number_format($item->price_day, 2, ',', '.')}} € / dia</td>
-                                        <td>
-                                            <form action="{{ route('item.remove', ['id' => $item->id]) }}" method="post">
-                                                @csrf
-                                                @method('POST')
-                                                <button type="send" class="btn btn-outline-dark mt-auto float-end">Retirar</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        @endif
-                    </table>
-                </div>
+               <div class="callout callout-info" id="itens">
+    <h5>Itens para Reserva</h5>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Preço</th>
+                <th>Quantidade</th>
+                <th></th>
+            </tr>
+        </thead>
+        @if (session()->has('reserve.items'))
+            <tbody>
+                @foreach (session()->get('reserve.items') as $itemId => $item)
+                    <tr>
+                        <td>{{ $item['name'] }}</td>
+                        <td>{{ number_format($item['price'], 2, ',', '.') }} € / dia</td>
+                        <td>{{ $item['quantity'] }}</td>
+                        <td>
+                            <form action="{{ route('item.remove', ['id' => $itemId]) }}" method="post">
+                                @csrf
+                                @method('POST')
+                                <button type="submit" class="btn btn-outline-dark mt-auto float-end">Retirar</button>
+                            </form>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        @endif
+    </table>
+</div>
             </div>
         </div>
 
@@ -199,7 +201,7 @@
             cancelButtonText: 'Não'
         }).then((result) => {
             if (result.value == true) {
-                document.getElementById("cancelForm").submit(); // Submete o formulário de cancelamento
+                document.getElementById("cancelForm").submit(); 
             }
         });
     }
@@ -215,7 +217,7 @@
             cancelButtonText: 'Não'
         }).then((result) => {
             if (result.value == true) {
-                document.getElementById("confirmForm").submit(); // Submete o formulário de confirmação
+                document.getElementById("confirmForm").submit(); 
             }
         });
     }
