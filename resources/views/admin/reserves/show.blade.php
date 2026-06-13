@@ -182,38 +182,91 @@
             @endif
 
             {{-- Estado 2: Autorizada - Atribuição de Equipamento (Entrega) --}}
-            @if ($reserve->reserveState->id == 2)
-            <div class="card card-warning card-outline mt-3">
-                <div class="card-header">
-                    <h3 class="card-title">Atribuição de Equipamento (Entrega)</h3>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('reserve.deliver', $reserve->id) }}" method="POST">
-                        @csrf
-                        <div class="row">
-                            @foreach ($reserve_itens as $ri)
-                                @if (!$ri->item_unity_id)
-                                <div class="col-md-4 mb-3">
-                                    <label><strong>{{ $ri->item->nome }} ({{ $ri->item->model }})</strong></label>
-                                    <select name="atribuicao[{{ $ri->id }}]" class="form-control" required>
-                                        <option value="">-- Escolha LIA disponível --</option>
-                                        @foreach(\App\Models\ItemUnity::where('item_id', $ri->item_id)->where('item_unity_state_id', 1)->get() as $unity)
-                                            <option value="{{ $unity->id }}">
-                                                LIA: {{ $unity->lia_code }} (Ref: {{ $ri->item->ipvc_ref }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                @endif
-                            @endforeach
+            {{-- FORMULÁRIO DE ENTREGA COMPLETO (KITS + ITENS) --}}
+@if ($reserve->reserveState->id == 2)
+<div class="card card-warning card-outline mt-3">
+    <div class="card-header">
+        <h3 class="card-title">Atribuição de Equipamento (Entrega)</h3>
+    </div>
+    <div class="card-body">
+        <form action="{{ route('reserve.deliver', $reserve->id) }}" method="POST">
+            @csrf
+            <div class="row">
+                
+                {{-- 1. ATRIBUIR UNIDADES FÍSICAS DOS KITS --}}
+                @foreach ($reserve_kits as $rk)
+                    @php
+                        // Vê quantos LIAs de Kit já foram entregues para esta linha
+                        $assignedKitCount = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                                        ->where('kit_reserve_id', $rk->id)
+                                        ->count();
+                        
+                        $quantidadeKitPedida = $rk->quantity ?? 1;
+                        $toAssignKit = $quantidadeKitPedida - $assignedKitCount;
+
+                        // Vai buscar o nome do Kit (já que o $rk só tem o kit_id)
+                        $nomeKit = $kits->firstWhere('id', $rk->kit_id)->name ?? 'Kit';
+                    @endphp
+
+                    @if ($toAssignKit > 0)
+                        @for ($i = 0; $i < $toAssignKit; $i++)
+                        <div class="col-md-4 mb-3" style="background-color: #f8f9fa; padding: 10px; border-radius: 8px;">
+                            <label class="text-primary">
+                                <strong><i class="fas fa-box"></i> {{ $nomeKit }} (KIT)</strong>
+                                <br><small class="text-dark">Unid. {{ $i + 1 }}/{{ $toAssignKit }}</small>
+                            </label>
+                            {{-- Repara no nome: atribuicao_kit --}}
+                            <select name="atribuicao_kit[{{ $rk->id }}][]" class="form-control border-primary" required>
+                                <option value="">-- Escolha LIA do Kit --</option>
+                                {{-- Vai à tabela kit_unity buscar os kits físicos disponíveis (estado 1) --}}
+                                @foreach(\App\Models\KitUnity::where('kit_id', $rk->kit_id)->where('kit_unity_state_id', 1)->get() as $unity)
+                                    <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-truck"></i> Confirmar Entrega
-                        </button>
-                    </form>
-                </div>
+                        @endfor
+                    @endif
+                @endforeach
+
+                {{-- 2. ATRIBUIR UNIDADES FÍSICAS DOS ITENS --}}
+                @foreach ($reserve_itens as $ri)
+                    @php
+                        $assignedCount = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+                                        ->where('item_reserve_id', $ri->id)
+                                        ->count();
+                        
+                        $quantidadePedida = $ri->quantity ?? 1;
+                        $toAssign = $quantidadePedida - $assignedCount;
+                    @endphp
+
+                    @if ($toAssign > 0)
+                        @for ($i = 0; $i < $toAssign; $i++)
+                        <div class="col-md-4 mb-3">
+                            <label>
+                                <strong>{{ $ri->item->nome }} (Item)</strong>
+                                <br><small>Unid. {{ $i + 1 }}/{{ $toAssign }}</small>
+                            </label>
+                            {{-- Repara no nome: atribuicao --}}
+                            <select name="atribuicao[{{ $ri->id }}][]" class="form-control" required>
+                                <option value="">-- Escolha LIA do Item --</option>
+                                @foreach(\App\Models\ItemUnity::where('item_id', $ri->item_id)->where('item_unity_state_id', 1)->get() as $unity)
+                                    <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }} (Ref: {{ $ri->item->ipvc_ref }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        @endfor
+                    @endif
+                @endforeach
+
             </div>
-            @endif
+            
+            <button type="submit" class="btn btn-success btn-lg mt-3">
+                <i class="fas fa-truck"></i> Confirmar Entrega
+            </button>
+        </form>
+    </div>
+</div>
+@endif  
 
             {{-- Estados 4 e 7: Receber equipamento --}}
             @if (in_array($reserve->reserveState->id, [4, 7]))
@@ -271,45 +324,63 @@
         </div>
     </div>
     <br>
-
-    {{-- KITS DA RESERVA --}}
+{{-- KITS DA RESERVA (VISUALIZAÇÃO) --}}
     <div class="card card-dark card-outline">
-        <div class="card-header">KITS DA RESERVA</div>
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Descrição</th>
-                    <th>Preço/dia</th>
-                    <th>Código LIA</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($reserve_kits as $rk)
-                    @foreach ($kits as $k)
-                        @if ($k->id == $rk->kit_id)
-                        <tr>
-                            <td>{{ $k->name }}</td>
-                            <td>{{ $k->description }}</td>
-                            <td>{{ number_format($k->price, 2, ',', '.') }} €</td>
-                            <td>{{ $k->lia_code }}</td>
-                        </tr>
-                        @endif
-                    @endforeach
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-
-    {{-- ITENS DA RESERVA --}}
-    <div class="card card-dark card-outline">
-        <div class="card-header">ITENS DA RESERVA</div>
+        <div class="card-header">KITS DA RESERVA E UNIDADES ATRIBUÍDAS</div>
         <div class="card-body">
             <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>Nome</th>
-                        <th>Modelo</th>
+                        <th>Descrição / Quantidade</th>
+                        <th>Estado / LIA Atribuído</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($reserve_kits as $rk)
+                        @foreach ($kits as $k)
+                            @if ($k->id == $rk->kit_id)
+                            <tr>
+                                <td>{{ $k->name }}</td>
+                                <td>
+                                    {{ $k->description }}
+                                    <span class="badge badge-secondary ml-2">Qtd: {{ $rk->quantity ?? 1 }}</span>
+                                </td>
+                                <td>
+                                    @php
+                                        // Vai à tabela pivot dos KITS procurar os LIAs
+                                        $assignedKitUnities = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                                            ->join('kit_unity', 'kit_unity_reserve.kit_unity_id', '=', 'kit_unity.id')
+                                            ->where('kit_unity_reserve.kit_reserve_id', $rk->id)
+                                            ->pluck('kit_unity.lia_code');
+                                    @endphp
+
+                                    @if ($assignedKitUnities->count() > 0)
+                                        @foreach($assignedKitUnities as $lia)
+                                            <span class="badge badge-info mb-1" style="font-size: 14px;">LIA: {{ $lia }}</span><br>
+                                        @endforeach
+                                    @else
+                                        <span class="badge badge-warning">Pendente de Entrega</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endif
+                        @endforeach
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- ITENS DA RESERVA (VISUALIZAÇÃO) --}}
+    <div class="card card-dark card-outline mt-3">
+        <div class="card-header">ITENS DA RESERVA E UNIDADES ATRIBUÍDAS</div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Modelo / Quantidade</th>
                         <th>Estado / LIA Atribuído</th>
                     </tr>
                 </thead>
@@ -317,12 +388,23 @@
                     @foreach ($reserve_itens as $ri)
                     <tr>
                         <td>{{ $ri->item->nome }}</td>
-                        <td>{{ $ri->item->model }}</td>
                         <td>
-                            @if ($ri->item_unity_id)
-                                <span class="badge badge-info" style="font-size: 14px;">
-                                    LIA: {{ \App\Models\ItemUnity::find($ri->item_unity_id)->lia_code }}
-                                </span>
+                            {{ $ri->item->model }} 
+                            <span class="badge badge-secondary ml-2">Qtd: {{ $ri->quantity ?? 1 }}</span>
+                        </td>
+                        <td>
+                            @php
+                                // Vai à tabela pivot dos ITENS procurar os LIAs
+                                $assignedUnities = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+                                    ->join('item_unity', 'item_unity_reserve.item_unity_id', '=', 'item_unity.id')
+                                    ->where('item_unity_reserve.item_reserve_id', $ri->id)
+                                    ->pluck('item_unity.lia_code');
+                            @endphp
+
+                            @if ($assignedUnities->count() > 0)
+                                @foreach($assignedUnities as $lia)
+                                    <span class="badge badge-info mb-1" style="font-size: 14px;">LIA: {{ $lia }}</span><br>
+                                @endforeach
                             @else
                                 <span class="badge badge-warning">Pendente de Entrega</span>
                             @endif
@@ -333,6 +415,78 @@
             </table>
         </div>
     </div>
+
+    {{-- FORMULÁRIO DE ENTREGA COMPLETO (KITS + ITENS) --}}
+    @if ($reserve->reserveState->id == 2)
+    <div class="card card-warning card-outline mt-3">
+        <div class="card-header"><h3 class="card-title">Atribuição de Equipamento (Entrega)</h3></div>
+        <div class="card-body">
+            <form action="{{ route('reserve.deliver', $reserve->id) }}" method="POST">
+                @csrf
+                <div class="row">
+                    
+                    {{-- A. ATRIBUIR KITS --}}
+                    @foreach ($reserve_kits as $rk)
+                        @php
+                            $assignedKitCount = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                                            ->where('kit_reserve_id', $rk->id)->count();
+                            $quantidadeKitPedida = $rk->quantity ?? 1;
+                            $toAssignKit = $quantidadeKitPedida - $assignedKitCount;
+                        @endphp
+
+                        @if ($toAssignKit > 0)
+                            @for ($i = 0; $i < $toAssignKit; $i++)
+                            <div class="col-md-4 mb-3" style="background-color: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                <label class="text-primary">
+                                    @foreach($kits as $k) @if($k->id == $rk->kit_id) <strong><i class="fas fa-box"></i> {{ $k->name }} (KIT)</strong> @endif @endforeach
+                                    <br><small class="text-dark">Unid. {{ $i + 1 }}/{{ $toAssignKit }}</small>
+                                </label>
+                                <select name="atribuicao_kit[{{ $rk->id }}][]" class="form-control border-primary" required>
+                                    <option value="">-- Escolha LIA do Kit --</option>
+                                    @foreach(\App\Models\KitUnity::where('kit_id', $rk->kit_id)->where('kit_unity_state_id', 1)->get() as $unity)
+                                        <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endfor
+                        @endif
+                    @endforeach
+
+                    {{-- B. ATRIBUIR ITENS --}}
+                    @foreach ($reserve_itens as $ri)
+                        @php
+                            $assignedCount = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+                                            ->where('item_reserve_id', $ri->id)->count();
+                            $quantidadePedida = $ri->quantity ?? 1;
+                            $toAssign = $quantidadePedida - $assignedCount;
+                        @endphp
+
+                        @if ($toAssign > 0)
+                            @for ($i = 0; $i < $toAssign; $i++)
+                            <div class="col-md-4 mb-3">
+                                <label>
+                                    <strong>{{ $ri->item->nome }} (Item)</strong>
+                                    <br><small>Unid. {{ $i + 1 }}/{{ $toAssign }}</small>
+                                </label>
+                                <select name="atribuicao[{{ $ri->id }}][]" class="form-control" required>
+                                    <option value="">-- Escolha LIA do Item --</option>
+                                    @foreach(\App\Models\ItemUnity::where('item_id', $ri->item_id)->where('item_unity_state_id', 1)->get() as $unity)
+                                        <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }} (Ref: {{ $ri->item->ipvc_ref }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endfor
+                        @endif
+                    @endforeach
+
+                </div>
+                <button type="submit" class="btn btn-success btn-lg mt-3">
+                    <i class="fas fa-truck"></i> Confirmar Entrega
+                </button>
+            </form>
+        </div>
+    </div>
+    @endif
 
 </div>
 @endsection
