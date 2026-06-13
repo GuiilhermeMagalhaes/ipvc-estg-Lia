@@ -57,21 +57,65 @@
 
         <h3 style="text-align:center;">Equipamento</h3>
         <ul>
-            @foreach ($reserve_kits as $reserve_kit)
-            @foreach ($kits as $kit)
-            @if ($kit->id == $reserve_kit->kit_id)
-            <li>Kit: {{ $kit->name }} - {{ $kit->description }} - {{ $kit->lia_code }} - {{ $kit->price }}€</li>
-            @endif
+            {{-- KITS DA RESERVA --}}
+            @foreach ($reserve_kits as $rk)
+                @php
+                    $kit = $kits->firstWhere('id', $rk->kit_id);
+                    
+                    // Vai buscar os LIAs atribuídos a este pedido de Kit na tabela pivot
+                    $assignedKitUnities = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                        ->join('kit_unity', 'kit_unity_reserve.kit_unity_id', '=', 'kit_unity.id')
+                        ->where('kit_unity_reserve.kit_reserve_id', $rk->id)
+                        ->pluck('kit_unity.lia_code');
+                    
+                    // Formata os LIAs (se houver vários, separa por vírgula)
+                    $liaKitText = $assignedKitUnities->count() > 0 
+                                  ? implode(', ', $assignedKitUnities->toArray()) 
+                                  : 'Pendente de Entrega';
+                @endphp
+
+                @if($kit)
+                <li>
+                    <b>Kit:</b> {{ $kit->name }} - {{ $kit->description }} 
+                    (<b>Qtd:</b> {{ $rk->quantity ?? 1 }}) 
+                    - <b>LIA(s):</b> {{ $liaKitText }} 
+                    - {{ $kit->price_day }}€ por dia
+                </li>
+                @endif
             @endforeach
-            @endforeach
-            @foreach ($reserve_itens as $reserve_item)
-            @foreach ($itens as $item)
-            @if ($item->id == $reserve_item->item_id)
-            <li>Item: {{ $item->nome }} - {{ $item->model }} - {{ $item->serial_number }} - {{ $item->preco }}€</li>
-            @endif
-            @endforeach
+
+            {{-- ITENS DA RESERVA --}}
+            @foreach ($reserve_itens as $ri)
+                @php
+                    $item = $itens->firstWhere('id', $ri->item_id);
+
+                    // Vai buscar os LIAs atribuídos a este pedido de Item na tabela pivot
+                    $assignedUnities = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+                        ->join('item_unity', 'item_unity_reserve.item_unity_id', '=', 'item_unity.id')
+                        ->where('item_unity_reserve.item_reserve_id', $ri->id)
+                        ->pluck('item_unity.lia_code');
+                    
+                    // Formata os LIAs (se houver vários, separa por vírgula)
+                    $liaText = $assignedUnities->count() > 0 
+                               ? implode(', ', $assignedUnities->toArray()) 
+                               : 'Pendente de Entrega';
+                @endphp
+
+                @if($item)
+                <li>
+                    <b>Item:</b> {{ $item->nome }} - {{ $item->model }} 
+                    (<b>Qtd:</b> {{ $ri->quantity ?? 1 }}) 
+                    - <b>LIA(s):</b> {{ $liaText }} 
+                    - {{ $item->price_day }}€ por dia
+                </li>
+                @endif
             @endforeach
         </ul>
+
+        <div class="total-cost">
+            <b>Custo Total da Reserva:</b> 
+            <span style="color: #28a745; font-weight: bold;">{{ number_format($reserve->cost, 2, ',', '.') }} €</span>
+        </div>
 
         <h4>
             Após receber o equipamento e ter verificado a sua composição e o seu estado de conservação declaro

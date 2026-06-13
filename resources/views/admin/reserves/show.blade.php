@@ -71,7 +71,7 @@
                         foreach ($kits as $k) {
                             if ($k->id == $rk->kit_id) {
                                 $qtd = $rk->quantity ?? 1;
-                                $custo_calculado += ($k->price * $dias * $qtd);
+                                $custo_calculado += ($k->price_day * $dias * $qtd);
                             }
                         }
                     }
