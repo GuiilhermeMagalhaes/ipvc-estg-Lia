@@ -15,6 +15,9 @@
                         Descrição
                     </th>
                     <th>
+                        Realizada em
+                    </th> 
+                    <th>
                         Início
                     </th>
                     <th>
@@ -37,6 +40,9 @@
                         </td>
                         <td>
                             {{ $reserve->description }}
+                        </td>
+                        <td class="align-middle">
+                            {{ \Carbon\Carbon::parse($reserve->created_at)->format('Y/m/d H:i') }}
                         </td>
                         <td>
                             {{\Carbon\Carbon::parse($reserve->start_date)->format('d/m/Y')}}
@@ -65,7 +71,11 @@
         jQuery(function($){
             var table = 
             $('#reserves').DataTable({
-                "columnDefs": [{ targets: 'no-sort', orderable: false }]
+                "order": [[ 2, "desc" ]], // ADICIONAR ESTA LINHA PARA ORDENAR
+                "columnDefs": [{ targets: 'no-sort', orderable: false }],
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Portuguese.json" 
+                }
             });
         })
     </script>
