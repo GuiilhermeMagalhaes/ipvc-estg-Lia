@@ -63,7 +63,7 @@
                         </div>
                             <div class="col-4" style="flex: 1;">
                             <h4>Disponíveis</h4>
-                            <h6>
+                            <h6 id="contador-disponivel">
                                 {{-- 1. ALTERAÇÃO NO TEXTO --}}
                                 @if(session()->has('reserve'))
                                     {{ $quantidadeDisponivel }} Unid. (Nestas datas)
@@ -73,14 +73,13 @@
                             </h6>
                         </div>
                         <div class="col-4" style="flex: 1; text-align: right;">
-                            <form action="{{ route('kit.add', ['id' => $kit->id]) }}" method="post" style="display: flex;">
+                            <form id="form-reservar" action="{{ route('kit.add', ['id' => $kit->id]) }}" method="post" style="display: flex;">
                                 @csrf
                                 @method('POST')
                                 <div class="form-group" style="margin-right: 10px; margin-top:15px;">
-                                    {{-- 2. ALTERAÇÃO NO ATRIBUTO MAX --}}
-                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ session()->has('reserve') ? $quantidadeDisponivel : $kitCount }}" value="1" style="width: 50px;">
+                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ session()->has('reserve') ? $quantidadeDisponivel : $kitCount }}" value="{{ (session()->has('reserve') ? $quantidadeDisponivel : $kitCount) > 0 ? 1 : 0 }}" {{ (session()->has('reserve') ? $quantidadeDisponivel : $kitCount) <= 0 ? 'disabled' : '' }} style="width: 50px;">
                                 </div>
-                                <button type="submit" class="btn btn-outline-dark" id="kit">
+                                <button type="submit" class="btn btn-outline-dark" id="kit" {{ (session()->has('reserve') ? $quantidadeDisponivel : $kitCount) <= 0 ? 'disabled' : '' }}>
                                     <i class="fas fa-cart-plus fa-lg mr-2"></i>
                                     Reservar
                                 </button>
@@ -196,5 +195,44 @@
             document.querySelector('.pika-single').style.zIndex = '1';
         }
     });
+</script>
+
+
+<script>
+$('#form-reservar').on('submit', function (e) {
+    e.preventDefault();
+
+    var form = $(this);
+    var quantidade = parseInt($('#quantity').val());
+    
+    var textoDisponivel = $('#contador-disponivel').text();
+    var disponivel = parseInt(textoDisponivel.replace(/[^0-9]/g, ''));
+
+    $.ajax({
+        type : 'POST',
+        url  : form.attr('action'),
+        data : form.serialize(),
+        success: function (response) {
+            
+            var novoDisponivel = disponivel - quantidade;
+            if (novoDisponivel < 0) novoDisponivel = 0;
+            
+            $('#contador-disponivel').text(novoDisponivel + ' Unid. (Nestas datas)');
+            $('#quantity').attr('max', novoDisponivel);
+            
+            if (novoDisponivel <= 0) {
+                $('#quantity').val(0).prop('disabled', true);
+                $('#kit').prop('disabled', true); // Bloqueia o botão do kit
+            } else {
+                $('#quantity').val(1);
+            }
+
+            alert('Kit adicionado ao carrinho!');
+        },
+        error: function (xhr) {
+            window.location.reload();
+        }
+    });
+});
 </script>
 @endsection

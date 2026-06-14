@@ -71,7 +71,7 @@
                         foreach ($kits as $k) {
                             if ($k->id == $rk->kit_id) {
                                 $qtd = $rk->quantity ?? 1;
-                                $custo_calculado += ($k->price * $dias * $qtd);
+                                $custo_calculado += ($k->price_day * $dias * $qtd);
                             }
                         }
                     }
@@ -296,9 +296,59 @@
                         <form action="{{ route('reserve.receive', $reserve->id) }}" method="post">
                             @csrf
                             <div class="modal-body">
-                                <p>Descreva o problema com que o material foi entregue pelo utilizador:</p>
+                                
+                                <p><strong>1. Selecione as unidades avariadas:</strong></p>
+                                <div style="max-height: 180px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 5px; margin-bottom: 15px; background-color: #f8f9fa;">
+                                    
+                                    {{-- Listar KITS para Checkbox --}}
+                                    @foreach ($reserve_kits as $rk)
+                                        @php
+                                            $kit = $kits->firstWhere('id', $rk->kit_id);
+                                            $assignedKitUnities = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                                                ->join('kit_unity', 'kit_unity_reserve.kit_unity_id', '=', 'kit_unity.id')
+                                                ->where('kit_unity_reserve.kit_reserve_id', $rk->id)
+                                                ->select('kit_unity.id', 'kit_unity.lia_code')
+                                                ->get();
+                                        @endphp
+                                        @if($kit)
+                                            @foreach($assignedKitUnities as $unity)
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="broken_kits[]" value="{{ $unity->id }}" id="kit_{{ $unity->id }}">
+                                                    <label class="form-check-label text-danger font-weight-bold" for="kit_{{ $unity->id }}">
+                                                        [KIT] {{ $kit->name }} (LIA: {{ $unity->lia_code }})
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        @endif
+                                    @endforeach
+
+                                    {{-- Listar ITENS para Checkbox --}}
+                                    @foreach ($reserve_itens as $ri)
+                                        @php
+                                            $item = $itens->firstWhere('id', $ri->item_id);
+                                            $assignedUnities = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+                                                ->join('item_unity', 'item_unity_reserve.item_unity_id', '=', 'item_unity.id')
+                                                ->where('item_unity_reserve.item_reserve_id', $ri->id)
+                                                ->select('item_unity.id', 'item_unity.lia_code')
+                                                ->get();
+                                        @endphp
+                                        @if($item)
+                                            @foreach($assignedUnities as $unity)
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" name="broken_items[]" value="{{ $unity->id }}" id="item_{{ $unity->id }}">
+                                                    <label class="form-check-label text-danger font-weight-bold" for="item_{{ $unity->id }}">
+                                                        [ITEM] {{ $item->nome }} (LIA: {{ $unity->lia_code }})
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        @endif
+                                    @endforeach
+
+                                </div>
+
+                                <p><strong>2. Descreva o problema geral:</strong></p>
                                 <div class="form-group">
-                                    <textarea class="form-control" name="return_notes" rows="4" placeholder="Ex: A câmara tem a lente riscada e falta a tampa..." required></textarea>
+                                    <textarea class="form-control" name="return_notes" rows="3" placeholder="Ex: O utilizador deixou cair a câmara com o LIA XPTO..." required></textarea>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -416,77 +466,6 @@
         </div>
     </div>
 
-    {{-- FORMULÁRIO DE ENTREGA COMPLETO (KITS + ITENS) --}}
-    @if ($reserve->reserveState->id == 2)
-    <div class="card card-warning card-outline mt-3">
-        <div class="card-header"><h3 class="card-title">Atribuição de Equipamento (Entrega)</h3></div>
-        <div class="card-body">
-            <form action="{{ route('reserve.deliver', $reserve->id) }}" method="POST">
-                @csrf
-                <div class="row">
-                    
-                    {{-- A. ATRIBUIR KITS --}}
-                    @foreach ($reserve_kits as $rk)
-                        @php
-                            $assignedKitCount = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
-                                            ->where('kit_reserve_id', $rk->id)->count();
-                            $quantidadeKitPedida = $rk->quantity ?? 1;
-                            $toAssignKit = $quantidadeKitPedida - $assignedKitCount;
-                        @endphp
-
-                        @if ($toAssignKit > 0)
-                            @for ($i = 0; $i < $toAssignKit; $i++)
-                            <div class="col-md-4 mb-3" style="background-color: #f8f9fa; padding: 10px; border-radius: 8px;">
-                                <label class="text-primary">
-                                    @foreach($kits as $k) @if($k->id == $rk->kit_id) <strong><i class="fas fa-box"></i> {{ $k->name }} (KIT)</strong> @endif @endforeach
-                                    <br><small class="text-dark">Unid. {{ $i + 1 }}/{{ $toAssignKit }}</small>
-                                </label>
-                                <select name="atribuicao_kit[{{ $rk->id }}][]" class="form-control border-primary" required>
-                                    <option value="">-- Escolha LIA do Kit --</option>
-                                    @foreach(\App\Models\KitUnity::where('kit_id', $rk->kit_id)->where('kit_unity_state_id', 1)->get() as $unity)
-                                        <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            @endfor
-                        @endif
-                    @endforeach
-
-                    {{-- B. ATRIBUIR ITENS --}}
-                    @foreach ($reserve_itens as $ri)
-                        @php
-                            $assignedCount = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
-                                            ->where('item_reserve_id', $ri->id)->count();
-                            $quantidadePedida = $ri->quantity ?? 1;
-                            $toAssign = $quantidadePedida - $assignedCount;
-                        @endphp
-
-                        @if ($toAssign > 0)
-                            @for ($i = 0; $i < $toAssign; $i++)
-                            <div class="col-md-4 mb-3">
-                                <label>
-                                    <strong>{{ $ri->item->nome }} (Item)</strong>
-                                    <br><small>Unid. {{ $i + 1 }}/{{ $toAssign }}</small>
-                                </label>
-                                <select name="atribuicao[{{ $ri->id }}][]" class="form-control" required>
-                                    <option value="">-- Escolha LIA do Item --</option>
-                                    @foreach(\App\Models\ItemUnity::where('item_id', $ri->item_id)->where('item_unity_state_id', 1)->get() as $unity)
-                                        <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }} (Ref: {{ $ri->item->ipvc_ref }})</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            @endfor
-                        @endif
-                    @endforeach
-
-                </div>
-                <button type="submit" class="btn btn-success btn-lg mt-3">
-                    <i class="fas fa-truck"></i> Confirmar Entrega
-                </button>
-            </form>
-        </div>
-    </div>
-    @endif
 
 </div>
 @endsection

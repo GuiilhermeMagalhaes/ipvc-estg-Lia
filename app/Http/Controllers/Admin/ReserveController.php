@@ -184,69 +184,76 @@ class ReserveController extends Controller
         $reserve->return_date = Carbon::now();
         $temProblema = $request->filled('return_notes');
         
+        // Vamos buscar os arrays com os IDs que o admin selecionou na Modal (se não houver, fica array vazio)
+        $brokenItems = $request->input('broken_items', []); 
+        $brokenKits = $request->input('broken_kits', []); 
+
+        $kitsIncompletos = []; // Para guardar que kits ficam incompletos devido a uma peça avariada
+
+        // 1. RECEBER ITENS SOLTOS
         $itemReserves = ItemReserve::where('reserve_id', $id)->pluck('id');
         $unidades_fisicas = DB::table('item_unity_reserve')->whereIn('item_reserve_id', $itemReserves)->get();
 
         foreach ($unidades_fisicas as $uf) {
             $unidade = ItemUnity::find($uf->item_unity_id);
             if ($unidade) {
-                $unidade->item_unity_state_id = $temProblema ? 4 : 1; 
+                // VERIFICAÇÃO PRECISA: Este LIA específico foi selecionado na modal?
+                $isBroken = in_array($unidade->id, $brokenItems);
+                
+                $unidade->item_unity_state_id = $isBroken ? 4 : 1; 
                 $unidade->save();
+
+                // Lógica de Segurança: Se este item partiu e faz parte de uma mala/kit, a mala tem de ser bloqueada
+                if ($isBroken && $unidade->kit_unity_id) {
+                    $kitsIncompletos[] = $unidade->kit_unity_id;
+                }
             }
         }
 
+        // 2. RECEBER KITS
         $kitReserves = KitReserve::where('reserve_id', $id)->pluck('id');
         $kits_fisicos = DB::table('kit_unity_reserve')->whereIn('kit_reserve_id', $kitReserves)->get();
 
         foreach ($kits_fisicos as $kf) {
             $kit_unidade = KitUnity::find($kf->kit_unity_id);
             if ($kit_unidade) {
-                $kit_unidade->kit_unity_state_id = $temProblema ? 4 : 1; 
+                // VERIFICAÇÃO PRECISA: A mala avariou? OU falta-lhe alguma peça que avariou no passo acima?
+                $isKitBroken = in_array($kit_unidade->id, $brokenKits) || in_array($kit_unidade->id, $kitsIncompletos);
+                
+                $kit_unidade->kit_unity_state_id = $isKitBroken ? 4 : 1; 
                 $kit_unidade->save();
             }
         }
 
+        // 3. REGISTAR A AVARIA NA RESERVA
         if ($temProblema) {
             $reserve->return_notes = $request->return_notes;
         }
 
+        // 4. FINALIZAR ESTADO DA RESERVA
         $todaydate = Carbon::today();
         $endDate   = Carbon::parse($reserve->end_date);
 
         $reserve->reserve_state_id = $todaydate->lte($endDate) ? 8 : 9;
         $reserve->save();
         
-        return back()->with('toast_success', 'Material recebido e stock atualizado!');
+        return back()->with('toast_success', 'Material recebido! Avarias isoladas com precisão cirúrgica.');
     }
 
     public function finalize($id)
     {
         DB::transaction(function () use ($id) {
             $reserve = Reserve::findOrFail($id);
-            
-            $itemReserves = ItemReserve::where('reserve_id', $id)->pluck('id');
-            $unidades_fisicas = DB::table('item_unity_reserve')->whereIn('item_reserve_id', $itemReserves)->get();
-
-            foreach ($unidades_fisicas as $uf) {
-                $novoEstado = $reserve->return_notes ? 4 : 1;
-                ItemUnity::where('id', $uf->item_unity_id)->update(['item_unity_state_id' => $novoEstado]);
-            }
-
-            $kitReserves = KitReserve::where('reserve_id', $id)->pluck('id');
-            $kits_fisicos = DB::table('kit_unity_reserve')->whereIn('kit_reserve_id', $kitReserves)->get();
-
-            foreach ($kits_fisicos as $kf) {
-                $novoEstado = $reserve->return_notes ? 4 : 1;
-                KitUnity::where('id', $kf->kit_unity_id)->update(['kit_unity_state_id' => $novoEstado]);
-            }
 
             $todaydate = Carbon::today();
             $endDate = Carbon::parse($reserve->end_date);
+            
+            // 5 = Concluída a Tempo | 6 = Concluída com Atraso
             $reserve->reserve_state_id = $todaydate->lte($endDate) ? 5 : 6;
             $reserve->save();
         });
         
-        return back()->with('toast_success', 'Reserva finalizada e unidades libertadas.');
+        return back()->with('toast_success', 'Reserva finalizada com sucesso e processo fechado!');
     }
 
     public function pay($id)
@@ -297,6 +304,9 @@ class ReserveController extends Controller
             if ($numero_dias == 0) $numero_dias = 1;
         }
 
+        // GUARDAMOS O CUSTO ANTIGO ANTES DE FAZER NOVAS CONTAS
+        $custo_antigo_reserva = $reserve->cost ?? 0;
+        
         $custo_total_reserva = 0;
 
         $itemReserves = ItemReserve::where('reserve_id', $reserve->id)->get();
@@ -317,9 +327,11 @@ class ReserveController extends Controller
             }
         }
 
+        // ATUALIZAMOS A RESERVA COM O NOVO CUSTO
         $reserve->cost = $custo_total_reserva;
         $reserve->save();
 
+        // ATUALIZAMOS O CENTRO DE CUSTOS (SE EXISTIR)
         if ($reserve->cost_center_id) {
             $centro = CostCenter::find($reserve->cost_center_id);
             if ($centro) {

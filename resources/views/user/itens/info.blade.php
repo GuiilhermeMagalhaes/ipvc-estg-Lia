@@ -220,13 +220,15 @@
 
 
 <script>
-
-        $('#form-reservar').on('submit', function (e) {
+$('#form-reservar').on('submit', function (e) {
     e.preventDefault();
 
     var form = $(this);
     var quantidade = parseInt($('#quantity').val());
-    var disponivel = parseInt($('#contador-disponivel').text().trim());
+    
+    // Extrai o número do texto atual
+    var textoDisponivel = $('#contador-disponivel').text();
+    var disponivel = parseInt(textoDisponivel.replace(/[^0-9]/g, ''));
 
     $.ajax({
         type : 'POST',
@@ -234,10 +236,26 @@
         data : form.serialize(),
         success: function (response) {
             
-            var novoDisponivel = disponivel - quantity;
+            // CORRIGIDO: Variável 'quantidade' em vez de 'quantity'
+            var novoDisponivel = disponivel - quantidade;
             if (novoDisponivel < 0) novoDisponivel = 0;
-            $('#contador-disponivel').text(novoDisponivel + ' Unid.');
+            
+            // 1. Atualiza o texto do ecrã
+            $('#contador-disponivel').text(novoDisponivel + ' Unid. (Nestas datas)');
+            
+            // 2. Atualiza o limite máximo da caixa de número
             $('#quantity').attr('max', novoDisponivel);
+            
+            // 3. Se acabar o stock, bloqueia o botão e o input
+            if (novoDisponivel <= 0) {
+                $('#quantity').val(0).prop('disabled', true);
+                $('#item').prop('disabled', true);
+            } else {
+                $('#quantity').val(1);
+            }
+
+            // Alerta visual de sucesso
+            alert('Item adicionado ao carrinho!');
         },
         error: function (xhr) {
             window.location.reload();

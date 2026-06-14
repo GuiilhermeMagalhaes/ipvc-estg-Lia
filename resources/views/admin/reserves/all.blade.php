@@ -15,11 +15,13 @@
                         <tr>
                             <th>Reservante</th>
                             <th class="no-sort">Descrição</th>
+                            <th>Realizada em</th> {{-- NOVA COLUNA --}}
                             <th>Início</th>
                             <th>Fim</th>
                             <th>Cíclica</th>
                             <th>Estado da reserva</th>
-                            <th>Pagamento</th> <th class="no-sort"></th>
+                            <th>Pagamento</th> 
+                            <th class="no-sort"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -30,6 +32,10 @@
                                 </td>
                                 <td class="align-middle">
                                     {{ $reserve->description }}
+                                </td>
+                                {{-- NOVO DADO: Data de criação da reserva --}}
+                                <td class="align-middle">
+                                    {{ \Carbon\Carbon::parse($reserve->created_at)->format('Y/m/d H:i') }}
                                 </td>
                                 <td class="align-middle">
                                     {{\Carbon\Carbon::parse($reserve->start_date)->format('Y/m/d')}}
@@ -73,9 +79,10 @@
         jQuery(function($){
             var table = 
             $('#reserves').DataTable({
+                "order": [[ 2, "desc" ]], // ORDENAÇÃO NOVA: Coluna índice 2 (Realizada em) de forma decrescente
                 "columnDefs": [{ targets: 'no-sort', orderable: false }],
                 "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Portuguese.json" // Tradução da tabela para Português
+                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Portuguese.json" 
                 }
             });
         })

@@ -15,6 +15,7 @@
                         <tr>
                             <th>Reservante</th>
                             <th class="no-sort">Descrição</th>
+                            <th>Realizada em</th>
                             <th>Início</th>
                             <th>Fim</th>
                             <th>Dias em atraso</th>
@@ -31,6 +32,9 @@
                                 </td>
                                 <td class="align-middle">
                                     {{ $reserve->description }}
+                                </td>
+                                <td class="align-middle">
+                                    {{ \Carbon\Carbon::parse($reserve->created_at)->format('Y/m/d H:i') }}
                                 </td>
                                 <td class="align-middle">
                                     {{\Carbon\Carbon::parse($reserve->start_date)->format('Y/m/d')}}
@@ -86,6 +90,7 @@
         jQuery(function($){
             var table = 
             $('#reserves').DataTable({
+                "order": [[ 2, "desc" ]],
                 "columnDefs": [{ targets: 'no-sort', orderable: false }],
                 "language": {
                     "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Portuguese.json" // Tradução da tabela
