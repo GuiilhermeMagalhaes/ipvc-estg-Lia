@@ -52,6 +52,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/downloadind', [HomeController::class, 'PDFItensInd'])->name('pdfitensind-download');
         Route::post('/downloadres', [HomeController::class, 'ExcelRes'])->name('excelres-download');
         Route::post('/downloadreslia', [HomeController::class, 'ExcelResLia'])->name('excelreslia-download');
+
+
         Route::prefix('kits')->group(function () {
             Route::get('/', [KitsController::class, 'index'])->name('kits.index');
             //Route::get('/indexocultos', [KitsController::class, 'indexocultos'])->name('kits.indexocultos');
@@ -65,7 +67,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{id}/unities-etapa', [KitsController::class, 'showKitUnitiesEtapa'])->name('kits.unitiesEtapa');
             Route::post('/{id}/update-unities-etapa', [KitsController::class, 'updateKitUnitiesEtapa'])->name('kits.updateUnitiesEtapa');
             */
-            Route::delete('{id}', [KitsController::class, 'destroy'])->name('kits.destroy');
+            Route::delete('/{id}', [KitsController::class, 'destroy'])->name('kits.destroy');
             Route::get('/edit/searchitens', [ItemController::class, 'searchItens'])->name('search.itens');
       
         });

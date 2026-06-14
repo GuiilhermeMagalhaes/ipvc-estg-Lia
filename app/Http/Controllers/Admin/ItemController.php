@@ -48,8 +48,8 @@ class ItemController extends Controller
                                 <div class="card h-100">
                                     <div class="card-body d-flex flex-column justify-content-center text-center">
                                         <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                        <small class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</small>
-                                        <p class="card-text">' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</p>
+                                        <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                         <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                         <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
                                         <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                                     </div>
@@ -57,15 +57,16 @@ class ItemController extends Controller
                             </div>';
             }
         } else {
-            $output = '<p>Nenhuma unidade encontrada.</p>';
+            $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade encontrada.</p></div>';
+            
         }
+
 
         return response()->json($output);
         }
 
         else {
-            
-            $unidades = ItemUnity::with('item')->where('item_unity_state_id', 1)->get();
+            $unidades = ItemUnity::with('item')->where('item_unity_state_id', 1)->whereHas('item')->get();
         }
 
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
@@ -207,31 +208,58 @@ class ItemController extends Controller
         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
             $request->validate(
                 [
-                    'nome' => 'required',
-                    'model' => 'required',
+                    'nome' => 'required|string|max:190',
+                    'model' => 'required|string|max:190',
+                    'ipvc_ref'    => 'nullable|string|max:190',
                     'preco' => 'required|numeric|min:0',
                     'price_day'     => 'required|numeric|min:0',
                     'quantity'      => 'required|integer|min:1',
                     'categoria_id'  => 'required|exists:item_categories,id',
                     'image'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+                    'serial_number'=> 'nullable|string|max:190',
                 
                 ],
                 [
-                    'nome.required' => 'O item deve ter um nome',
-                    'model.required' => 'O item deve ter um modelo',
-                    'preco.required' => 'O item deve ter um preço associado',
-                    'price_day.required'     => 'O item deve ter um preço por dia associado.',
-                    'quantity.required'      => 'Insira a quantidade total.',
 
-                    'quantity.integer'       => 'A quantidade total deve ser um número inteiro.',
-                    
-                    'preco.min'              => 'O preço não pode ser inferior a 0.',
-                    'price_day.min'          => 'O preço por dia não pode ser inferior a 0.',
-                    'quantity.min'           => 'A quantidade total deve ser pelo menos 1.',
+                    'nome.required'        => 'O item deve ter um nome.',
+                    'nome.string'          => 'O nome deve ser um texto válido.',
+                    'nome.max'             => 'O nome não pode ter mais de 190 caracteres.',
+
+                    // MODELO
+                    'model.required'       => 'O item deve ter um modelo.',
+                    'model.string'         => 'O modelo deve ser um texto válido.',
+                    'model.max'            => 'O modelo não pode ter mais de 190 caracteres.',
+
+                    // IPVC REF
+                    'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
+                    'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 190 caracteres.',
+
+                    'serial_number.string'      => 'O número de série deve ser um texto válido.',
+                    'serial_number.max'         => 'O número de série não pode ter mais de 190 caracteres.',
+
+                    // PREÇO
+                    'preco.required'       => 'O item deve ter um preço associado.',
+                    'preco.numeric'        => 'O preço deve ser um número válido.',
+                    'preco.min'            => 'O preço não pode ser inferior a 0 €.',
+
+                    // PREÇO POR DIA
+                    'price_day.required'   => 'O item deve ter um preço por dia associado.',
+                    'price_day.numeric'    => 'O preço por dia deve ser um número válido.',
+                    'price_day.min'        => 'O preço por dia não pode ser inferior a 0 €.',
+
+                    // QUANTIDADE
+                    'quantity.required'    => 'Insira a quantidade total.',
+                    'quantity.integer'     => 'A quantidade total deve ser um número inteiro.',
+                    'quantity.min'         => 'A quantidade total deve ser pelo menos 1.',
+
+                    // CATEGORIA
+                    'categoria_id.required' => 'Selecione uma categoria.',
                     'categoria_id.exists'   => 'A categoria selecionada é inválida.', 
-                    'image.image'           => 'O ficheiro selecionado deve ser uma imagem.',
-                    'image.mimes'           => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
-                    'image.max'             => 'A imagem não pode ter mais de 2MB.',
+
+                    // IMAGEM
+                    'image.image'          => 'O ficheiro selecionado deve ser uma imagem.',
+                    'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
+                    'image.max'            => 'A imagem não pode ter mais de 2MB.',
 
                     
                 ]
@@ -375,14 +403,14 @@ class ItemController extends Controller
                                             <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
                                             <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
                                             <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
-                                            <p class="card-text card-text-preco">' . number_format($unidade->item->preco, 2, ',', '.') . ' € / dia</p>
+                                            <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
                                             <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                                         </div>
                                     </div>
                                 </div>';
                 }
             } else {
-                $output = '<p>Nenhuma unidade oculta encontrada.</p>';
+                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade oculta encontrada.</p></div>';
             }
 
             return response()->json($output);
@@ -391,7 +419,7 @@ class ItemController extends Controller
        
         else {
             
-            $unidades = ItemUnity::with('item')->where('item_unity_state_id', 2)->get();
+            $unidades = ItemUnity::with('item')->where('item_unity_state_id', 2)->whereHas('item')->get();
         }
 
         
@@ -430,6 +458,61 @@ public function update(Request $request, $id)
             return redirect()->route('itens.index')->with('toast_error', 'Item não encontrado.');
         }
 
+        $request->validate([
+            'nome'         => 'required|string|max:190',
+            'model'        => 'required|string|max:190',
+            'preco'        => 'required|numeric|min:0',
+            'price_day'    => 'required|numeric|min:0',
+            'quantity'     => 'required|integer|min:' . $item->quantity,
+            'categoria_id' => 'required|exists:item_categories,id',
+            'image'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'ipvc_ref'     => 'nullable|string|max:190',
+            'serial_number'=> 'nullable|string|max:190',
+
+            
+        ], [
+    
+                    'nome.required'        => 'O item deve ter um nome.',
+                    'nome.string'          => 'O nome deve ser um texto válido.',
+                    'nome.max'             => 'O nome não pode ter mais de 190 caracteres.',
+
+                    // MODELO
+                    'model.required'       => 'O item deve ter um modelo.',
+                    'model.string'         => 'O modelo deve ser um texto válido.',
+                    'model.max'            => 'O modelo não pode ter mais de 190 caracteres.',
+
+                    // IPVC REF
+                    'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
+                    'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 190 caracteres.',
+
+                    'serial_number.string'      => 'O número de série deve ser um texto válido.',
+                    'serial_number.max'         => 'O número de série não pode ter mais de 190 caracteres.',
+
+                    // PREÇO
+                    'preco.required'       => 'O item deve ter um preço associado.',
+                    'preco.numeric'        => 'O preço deve ser um número válido.',
+                    'preco.min'            => 'O preço não pode ser inferior a 0 €.',
+
+                    // PREÇO POR DIA
+                    'price_day.required'   => 'O item deve ter um preço por dia associado.',
+                    'price_day.numeric'    => 'O preço por dia deve ser um número válido.',
+                    'price_day.min'        => 'O preço por dia não pode ser inferior a 0 €.',
+
+                    // QUANTIDADE
+                    'quantity.required'    => 'Insira a quantidade total.',
+                    'quantity.integer'     => 'A quantidade total deve ser um número inteiro.',
+                    'quantity.min'         => 'A quantidade não pode ser inferior à quantidade atual (' . $item->quantity . ').',
+
+                    // CATEGORIA
+                    'categoria_id.required' => 'Selecione uma categoria.',
+                    'categoria_id.exists'   => 'A categoria selecionada é inválida.', 
+
+                    // IMAGEM
+                    'image.image'          => 'O ficheiro selecionado deve ser uma imagem.',
+                    'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
+                    'image.max'            => 'A imagem não pode ter mais de 2MB.',
+
+        ]);
         
 
         $path = $item->image;
@@ -462,7 +545,9 @@ public function showUnitiesEtapa($id)
             return redirect()->route('itens.edit', $id)->with('toast_error', 'Sessão expirada ou item inválido.');
         }
 
-        $unidadesAtuais = ItemUnity::where('item_id', $item->id)->get();
+        $unidadesAtuais = ItemUnity::where('item_id', $item->id)
+                                    ->whereIn('item_unity_state_id', [1, 2, 4])
+                                    ->get();
         
         $novasUnidadesQtd = $dadosItem['quantity'] - $unidadesAtuais->count();
 

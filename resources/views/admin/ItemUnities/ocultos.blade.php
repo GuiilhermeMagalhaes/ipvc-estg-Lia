@@ -10,6 +10,7 @@
     </form>
     <br>
     <div class="row mycard">
+        @if($unidades->count() > 0)
         @foreach($unidades as $unidade)
         <div class="col-sm-3 mb-4">
             <div class="card h-100">
@@ -23,6 +24,11 @@
             </div>
         </div>
         @endforeach
+        @else
+                <div class="col-12 text-center my-5">
+                    <p class="text-muted">Nenhuma unidade oculta encontrada.</p>
+                </div>
+                @endif
     </div>
 </div>
 

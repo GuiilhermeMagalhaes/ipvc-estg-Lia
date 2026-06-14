@@ -13,11 +13,14 @@
     </div>
 
     <div class="row">
-        <div class="col-md-4 col-sm-12 mb-4">
-            <div class="text-center text-md-left">
-                <img id="img" src="../../{{ $item->image }}" class="img-fluid rounded shadow-sm" style="max-width: 400px; width: 100%;">
-            </div>
-        </div>
+       <div class="col-md-4 col-sm-12 mb-4">
+    <div class="text-center text-md-left">
+        <img id="img" 
+             src="../../{{ $item->image }}" 
+             class="img-fluid rounded shadow-sm" 
+             style="max-width: 400px; width: 100%; height: 310px; object-fit: contain;">
+    </div>
+</div>
 
         <div class="col-md-8 col-sm-12">
             

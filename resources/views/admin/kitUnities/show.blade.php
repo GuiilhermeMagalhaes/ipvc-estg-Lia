@@ -14,11 +14,14 @@
 
     <div class="row">
        
-        <div class="col-md-4 col-sm-12 mb-4">
-            <div class="text-center text-md-left">
-                <img id="img" src="{{ asset('storage/' . $kit->image) }}" class="img-fluid rounded shadow-sm" style="max-width: 400px; width: 100%; object-fit: cover;">
-            </div>
-        </div>
+          <div class="col-md-4 col-sm-12 mb-4">
+    <div class="text-center text-md-left">
+        <img id="img" 
+             src="../../{{ $kit->image }}" 
+             class="img-fluid rounded shadow-sm" 
+             style="max-width: 400px; width: 100%; height: 310px; object-fit: contain;">
+    </div>
+</div>
 
        
         <div class="col-md-8 col-sm-12">
@@ -113,9 +116,27 @@
                 
                 <ul class="list-group shadow-sm">
                     <li class="list-group-item">Descrição: {{ $kit->description }}</li>
+                    <li class="list-group-item">Referência IPVC: {{ $kit->ipvc_ref ?? 'Não definida' }}</li>
                     <li class="list-group-item">Preço: {{ number_format($kit->price, 2, ',', '.') }} €</li>
                     <li class="list-group-item">Preço / dia : {{ number_format($kit->price_day, 2, ',', '.') }} € / dia</li>
                     <li class="list-group-item bg-light">Quantidade Total: {{ $kit->quantity }}</li>
+
+                    <li class="list-group-item text-muted italic small">
+                        Mais unidades do mesmo kit registadas: 
+                    </li>
+
+                    <li class="list-group-item bg-light text-break">
+                        Quantidade Total: {{ $kit->quantity }}
+                    </li>
+
+                    @if(isset($unidadesDoKit) && $unidadesDoKit->count() > 0)
+                        <li class="list-group-item bg-light text-break">
+                            Códigos LIA das Unidades:
+                            @foreach($unidadesDoKit as $u)
+                               {{ $u->lia_code }}{{ !$loop->last ? ' ' : '' }}
+                            @endforeach
+                        </li>
+                    @endif
                 </ul>
 
                 
@@ -123,7 +144,7 @@
                     <form action="{{ route('kitUnity.destroy', $unidade->id) }}" method="POST" class="form-inline" onsubmit="return confirm('Tem a certeza que deseja anular esta unidade de kit? Os itens associados serão libertados.');">
                         @csrf
                         @method('DELETE')
-                        <button class="btn btn-danger" style="width: 160px;">Eliminar Unidade</button>
+                        <button class="btn btn-danger" style="width: 150px;">Eliminar Unidade</button>
                     </form>
                 </div>
             </div>

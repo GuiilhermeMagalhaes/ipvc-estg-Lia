@@ -20,6 +20,21 @@
                 <input type="text" name="model" class="form-control" value="{{ old('model', $item->model) }}">
                 <span style="color:red">{{$errors->first('model')}}</span>
             </div>
+
+             <div class="form-group">
+                <label for="categoria_id">Categoria</label>
+                <select id="categoria_id" name="categoria_id" class="form-control">
+                    @foreach ($categorias as $cat)
+                        {{-- O old() recebe um segundo parâmetro que serve como valor padrão (o que está na BD) --}}
+                        <option value="{{ $cat->id }}" {{ old('categoria_id', $item->categoria_id) == $cat->id ? 'selected' : '' }}>
+                            {{ $cat->description }}
+                        </option>
+                    @endforeach
+                </select>
+                <span style="color:red">{{ $errors->first('categoria_id') }}</span>
+            </div>
+
+
             <div class="form-group">
                 <label for="ipvc_ref">Referência IPVC</label>
                 <input type="text" name="ipvc_ref" class="form-control" value="{{ old('ipvc_ref', $item->ipvc_ref) }}">
@@ -62,15 +77,7 @@
                 <span style="color:red">{{$errors->first('quantity')}}</span>
             </div>
 
-            <div class="form-group">
-                <label for="categoria_id">Categoria</label>
-                <br>
-                <select id="categoria_id" name="categoria_id">
-                    @foreach ($categorias as $cat)
-                        <option value={{ $cat->id }} <?php if($item->categoria_id == $cat->id){echo("selected");}?>>{{ $cat->description }}</option>
-                    @endforeach
-                </select>
-            </div>
+           
             <div class="form-group">
                 <label for="">Imagem para Item</label>
                 <input type="file" class="form-control-file" name="image" id="image">

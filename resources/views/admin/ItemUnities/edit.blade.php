@@ -8,7 +8,7 @@
             <p class="text-dark list-group-item-text mb-4" style="font-size: 1.2rem;">
                 Códigos LIA para as {{ session('dados_item_edicao.quantity') }} Unidades de "{{ $item->nome }}"
             </p>
-            <form action="{{ route('itens.updateUnitiesEtapa', $item->id) }}" method="POST">
+            <form action="{{ route('itens.updateUnitiesEtapa', $item->id) }}" method="POST" novalidate>
                 @csrf
 
                 <p class="text-dark list-group-item-text mt-2" style="font-size: 1.2rem;">Unidades Já Registadas</p> 
@@ -35,13 +35,13 @@
 
                 @if($novasUnidadesQtd > 0)
                     <hr>
-                     <p class="text-primary mt-4" style="font-size: 1.2rem;">Novas Unidades Detetadas (+{{ $novasUnidadesQtd }})</p> 
+                     <p class="text-primary mt-4" style="font-size: 1.2rem;">Novas Unidades (+{{ $novasUnidadesQtd }})</p> 
                     
                     <p class="text-muted">Insere o código LIA para o novo stock adicionado.</p>
 
                     @for ($i = 0; $i < $novasUnidadesQtd; $i++)
                         <div class="form-group">
-                            <label class="text-primary">Novo Código LIA #{{ $unidadesAtuais->count() + $i + 1 }}</label>
+                            <label class="text-dark">Novo Código LIA #{{ $unidadesAtuais->count() + $i + 1 }}</label>
                             <input type="text" name="novos_lias[]" class="form-control" value="{{ old('novos_lias.'.$i) }}" placeholder="Introduza o novo código LIA" required>
                             @if($errors->has("novos_lias.".$i))
                                 <span style="color:red">{{ $errors->first("novos_lias.".$i) }}</span>

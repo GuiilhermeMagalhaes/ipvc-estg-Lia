@@ -242,7 +242,7 @@ return [
                 ],
                 [
                     'text' => 'Lista de Kits Ocultos',
-                    'url'  => '/admin/kits/indexocultos',
+                    'url'  => '/admin/kit-unities/ocultos',
                 ],
                 [
                     'text' => 'Criar Novo Kit',

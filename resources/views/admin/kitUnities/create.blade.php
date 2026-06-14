@@ -46,7 +46,7 @@
                 <div class="form-group">
                     <input type="text" name="lia_codes[{{ $i }}]" class="form-control" value="{{ old('lia_codes.'.$i) }}" required>
                     @if($errors->has("lia_codes.$i"))
-                        <span style="color:red">{{ $errors->first("lia_codes.$i") }}</span>
+                        <span class="text-danger">{{ $errors->first("lia_codes.$i") }}</span>
                     @endif
                 </div>
 
@@ -62,16 +62,40 @@
 
                     
                     <div class="alert alert-danger py-2 px-3 mb-2 d-none hidden-item-warning" id="warning-unity-{{ $i }}">
-                        <i class="fas fa-exclamation-triangle"></i> Selecionou um item oculto! Esta unidade vai ficar com estado oculto automaticamente.
+                         Selecionou um item oculto! Esta unidade vai ficar com estado oculto automaticamente.
                     </div>
 
-                    <div class="selected-items-list" id="selected-container-{{ $i }}">
-                        <p class="text-muted m-0 small visual-placeholder">Nenhum item adicionado a esta unidade.</p>
+                   <div class="selected-items-list" id="selected-container-{{ $i }}">
+                        @if(old("items_for_unity.$i"))
+                            @foreach(old("items_for_unity.$i") as $oldItemId)
+                                @php
+                                    // Encontra o objeto do item correspondente para recuperar o Nome e o Código LIA
+                                    $itemRecuperado = $itensLivres->firstWhere('id', $oldItemId);
+                                @endphp
+                                
+                                @if($itemRecuperado)
+                                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded bg-light style-row" 
+                                        id="selected-item-{{ $itemRecuperado->id }}" data-state="{{ $itemRecuperado->item_unity_state_id }}">
+                                        <input type="hidden" name="items_for_unity[{{ $i }}][]" value="{{ $itemRecuperado->id }}">
+                                        <span>
+                                            <strong>{{ $itemRecuperado->item->nome ?? 'Sem Nome' }}</strong> 
+                                            <span class="ml-3 text-secondary" style="font-size: 0.95rem; font-weight: 500;">({{ $itemRecuperado->lia_code }})</span>
+                                            @if($itemRecuperado->item_unity_state_id == 2)
+                                                <span class="badge badge-danger ml-2">Oculto</span>
+                                            @endif
+                                        </span>
+                                        <button type="button" class="btn btn-danger btn-sm remove-item-btn" data-id="{{ $itemRecuperado->id }}" data-unit="{{ $i }}">X</button>
+                                    </div>
+                                @endif
+                            @endforeach
+                        @else
+                            {{-- Estado inicial padrão quando a página é aberta pela primeira vez --}}
+                            <p class="text-muted m-0 small visual-placeholder">Nenhum item adicionado a esta unidade.</p>
+                        @endif
                     </div>
-
                     @if($errors->has("items_for_unity.$i"))
-                        <span style="color:red; display:block;" class="mt-1 small">
-                            {{ $errors->first("items_for_unity.$i") }}
+                        <span class="text-danger">
+                             {{ $errors->first("items_for_unity.$i") }}
                         </span>
                     @endif
                 </div>
@@ -82,9 +106,9 @@
         @endfor
 
         
-        <div class="d-flex mb-5 mt-4">
+         <div class="mt-4">
             <button type="button" onclick="window.history.back();" class="btn btn-secondary" style="width: 140px;">Voltar</button>
-            <button type="submit" class="btn btn-primary" style="width: 180px; margin-right: 10px;">Criar Kit</button>
+            <button type="submit" class="btn btn-primary" style="width: 150px;">Criar Kit</button>
         </div>
     </form>
 </div>
@@ -227,7 +251,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <span>
                     <strong>${nome}</strong> 
                     <span class="ml-3 text-secondary" style="font-size: 0.95rem; font-weight: 500;">(${code})</span>
-                    ${state == 2 ? '<span class="badge badge-danger ml-2">Oculto</span>' : ''}
+                    ${state == 2 ? ' <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>' : ''}
                 </span>
                 <button type="button" class="btn btn-danger btn-sm remove-item-btn" data-id="${itemId}" data-unit="${activeUnitId}">X</button>
             </div>
@@ -270,6 +294,10 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             $(`#warning-unity-${unitId}`).addClass('d-none');
         }
+    }
+
+    for (let unitIdx = 0; unitIdx < {{ $quantity }}; unitIdx++) {
+        verificarItensOcultos(unitIdx);
     }
 });
 </script>

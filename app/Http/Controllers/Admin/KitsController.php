@@ -54,13 +54,13 @@ public function index(Request $request)
                                         <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                         <p class="card-text card-text-preco">' . number_format($unidade->kit->price_day, 2, ',', '.') . '€ / dia</p>
                                         
-                                        <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+                                        <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('kits.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                                     </div>
                                 </div>
                             </div>';
                 } 
             } else {
-                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade de kit ativa encontrada.</p></div>';
+                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade encontrada.</p></div>';
             }
 
             return response()->json($output);
@@ -79,8 +79,12 @@ public function index(Request $request)
 
       public function ocultos(Request $request)
 {
+    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+        return redirect('/');
+    }
 
     $query = KitUnity::with('kit')->where('kit_unity_state_id', 2)->whereHas('kit');
+    
 
    if ($request->has('search') && !empty($request->input('search'))) {
         $search = $request->input('search');
@@ -114,6 +118,9 @@ public function index(Request $request)
         }
         return response()->json($html);
     }
+    else {
+                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade oculta encontrada.</p></div>';
+            }
 
     return view('admin.kitunities.ocultos', compact('unidades'));
 }
@@ -133,11 +140,16 @@ public function show($id)
             return redirect()->route('kits.index')->with('toast_error', 'Unidade de Kit não encontrada.');
         }
 
+        $unidadesDoKit = KitUnity::where('kit_id', $unidade->kit_id)
+        ->whereIn('kit_unity_state_id', [1, 2])
+        ->get();
+
         $itensLivres = ItemUnity::with('item')->whereNull('kit_unity_id')->get();
 
         return view('admin.kitUnities.show', [
             'unidade'     => $unidade,
             'kit'         => $unidade->kit,
+            'unidadesDoKit' => $unidadesDoKit,
             'itensLivres' => $itensLivres
         ]);
     }
@@ -169,6 +181,33 @@ public function updateUnity(Request $request, $id)
        
         if (count($itemsKept) === 0) {
             return redirect()->back()->with('toast_error', 'Erro: O kit não pode ficar sem nenhum item associado.');
+        }
+
+        
+        if ($request->input('kit_unity_state_id') == 1) {
+            
+            
+            $invalidItemsStates = \App\Models\ItemUnity::whereIn('id', $itemsKept)
+                ->whereIn('item_unity_state_id', [2, 3, 4])
+                ->pluck('item_unity_state_id')
+                ->unique()
+                ->toArray();
+
+            if (!empty($invalidItemsStates)) {
+                $nomesEstados = [];
+                foreach ($invalidItemsStates as $estadoId) {
+                    $nomesEstados[] = match($estadoId) {
+                        2 => 'Oculto',
+                        3 => 'Anulado',
+                        4 => 'Em Manutenção',
+                        default => 'Inválido'
+                    };
+                }
+
+                $listaEstados = implode(', ', $nomesEstados);
+                
+                return redirect()->back()->withInput()->with('toast_error', "Não é possível definir o kit como Ativo, porque o kit tem itens com o(s) estado(s): {$listaEstados}. Precisa de editar o item ou eliminá-lo do kit.");
+            }
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($unidade, $request, $itemsKept) {
@@ -264,24 +303,42 @@ public function store(Request $request)
     }
     $request->validate(
         [
-            'name' => 'required|string|max:191',
-            'description' => 'required|string|max:191',
+            'name' => 'required|string|max:190',
+            'description' => 'required|string|max:1100',
             'price' => 'required|numeric|min:0',
             'price_day' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:1',
-            'ipvc_ref'    => 'nullable|string|max:191',
+            'ipvc_ref'    => 'nullable|string|max:190',
             'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+
         ],
         [
             'name.required'        => 'O kit deve ter um nome.',
+            'name.string'          => 'O nome deve ser um texto válido.',
+            'name.max'             => 'O nome não pode ter mais de 190 caracteres.',
+
             'description.required' => 'O kit deve ter uma descrição.',
+            'description.string' => 'A descrição deve ser um texto válido.',
+            'description.max' => 'A descrição não pode ter mais de 1100 caracteres.',
+
             'price.required'       => 'O kit deve ter um preço associado.', 
+            'price.numeric'        => 'O preço deve ser um número válido.',
             'price.min'            => 'O preço não pode ser inferior a 0.',
+           
+
             'price_day.required'   => 'O kit deve ter um preço por dia associado.',
-            'price_day.min'        => 'O preço por dia não pode ser inferior a 0.',
+            'price_day.numeric'    => 'O preço por dia deve ser um número válido.',
+            'price_day.min'        => 'O preço por dia não pode ser inferior a 0 €.',
+
+
             'quantity.required'    => 'Insira a quantidade total.',
             'quantity.integer'     => 'A quantidade total deve ser um número inteiro.',
             'quantity.min'         => 'A quantidade total deve ser pelo menos 1.',
+
+            'ipvc_ref.string'      => 'O número de série deve ser um texto válido.',
+            'ipvc_ref.max'         => 'O número de série não pode ter mais de 190 caracteres.',
+
+
             'image.image'          => 'O ficheiro selecionado deve ser uma imagem.',
             'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
             'image.max'            => 'A imagem não pode ter mais de 2MB.',
