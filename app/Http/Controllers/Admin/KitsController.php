@@ -536,34 +536,40 @@ public function update(Request $request, $id)
 
     
     $request->validate([
-        'name'        => 'required|string|max:190',
-        'description' => 'nullable|string',
-        'ipvc_ref'    => 'string|max:255',
-        'price'       => 'required|numeric|min:0',     
-        'price_day'   => 'required|numeric|min:0',      
+
+        'name' => 'required|string|max:190',
+        'description' => 'required|string|max:1100',
+        'price' => 'required|numeric|min:0',
+        'price_day' => 'required|numeric|min:0',
+        'ipvc_ref'    => 'nullable|string|max:190',
         'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
 
     ], [
        
-        'name.required'        => 'O nome do kit é obrigatório.',
-        'name.string'          => 'O nome do kit deve ser um texto válido.',
-        'name.max'             => 'O nome do kit não pode ter mais de 190 caracteres.',
-        
-        'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
-        'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 255 caracteres.',
-        
-        'price.required'       => 'O preço base é obrigatório.',
-        'price.numeric'        => 'O preço base deve ser um valor numérico.',
-        'price.min'            => 'O preço base não pode ser um valor negativo.',
-        
-        'price_day.required'   => 'O preço por dia é obrigatório.',
-        'price_day.numeric'    => 'O preço por dia deve ser um valor numérico.',
-        'price_day.min'        => 'O preço por dia não pode ser um valor negativo.',
-    
-        
-        'image.image'          => 'O ficheiro selecionado deve ser uma imagem válida.',
-        'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
-        'image.max'            => 'A imagem não pode ter um tamanho superior a 2MB.',
+        'name.required'        => 'O kit deve ter um nome.',
+            'name.string'          => 'O nome deve ser um texto válido.',
+            'name.max'             => 'O nome não pode ter mais de 190 caracteres.',
+
+            'description.required' => 'O kit deve ter uma descrição.',
+            'description.string' => 'A descrição deve ser um texto válido.',
+            'description.max' => 'A descrição não pode ter mais de 1100 caracteres.',
+
+            'price.required'       => 'O kit deve ter um preço associado.', 
+            'price.numeric'        => 'O preço deve ser um número válido.',
+            'price.min'            => 'O preço não pode ser inferior a 0.',
+           
+
+            'price_day.required'   => 'O kit deve ter um preço por dia associado.',
+            'price_day.numeric'    => 'O preço por dia deve ser um número válido.',
+            'price_day.min'        => 'O preço por dia não pode ser inferior a 0 €.',
+
+            'ipvc_ref.string'      => 'O número de série deve ser um texto válido.',
+            'ipvc_ref.max'         => 'O número de série não pode ter mais de 190 caracteres.',
+
+
+            'image.image'          => 'O ficheiro selecionado deve ser uma imagem.',
+            'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
+            'image.max'            => 'A imagem não pode ter mais de 2MB.',
         
 
 
