@@ -165,6 +165,11 @@ class ReserveController extends Controller
                         KitUnity::find($unity_id)->update([
                             'kit_unity_state_id' => 2 
                         ]);
+
+                        //Trancar todas as peças que foram dentro desta mala!
+                        ItemUnity::where('kit_unity_id', $unity_id)->update([
+                            'item_unity_state_id' => 2
+                        ]);
                     }
                 }
             }
@@ -184,7 +189,7 @@ class ReserveController extends Controller
         $reserve->return_date = Carbon::now();
         $temProblema = $request->filled('return_notes');
         
-        // Vamos buscar os arrays com os IDs que o admin selecionou na Modal (se não houver, fica array vazio)
+        //buscar os arrays com os IDs que o admin selecionou na Modal (se não houver, fica array vazio)
         $brokenItems = $request->input('broken_items', []); 
         $brokenKits = $request->input('broken_kits', []); 
 
@@ -222,6 +227,12 @@ class ReserveController extends Controller
                 
                 $kit_unidade->kit_unity_state_id = $isKitBroken ? 4 : 1; 
                 $kit_unidade->save();
+
+                // LÓGICA: Se a mala voltou bem (1), as peças ficam bem (1). Se a mala avariou (4), as peças bloqueiam (4).
+                $estadoDasPecas = $isKitBroken ? 4 : 1;
+                ItemUnity::where('kit_unity_id', $kit_unidade->id)->update([
+                    'item_unity_state_id' => $estadoDasPecas
+                ]);
             }
         }
 

@@ -193,40 +193,47 @@
             @csrf
             <div class="row">
                 
-                {{-- 1. ATRIBUIR UNIDADES FÍSICAS DOS KITS --}}
-                @foreach ($reserve_kits as $rk)
-                    @php
-                        // Vê quantos LIAs de Kit já foram entregues para esta linha
-                        $assignedKitCount = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
-                                        ->where('kit_reserve_id', $rk->id)
-                                        ->count();
-                        
-                        $quantidadeKitPedida = $rk->quantity ?? 1;
-                        $toAssignKit = $quantidadeKitPedida - $assignedKitCount;
+                {{-- A. ATRIBUIR KITS --}}
+                    @foreach ($reserve_kits as $rk)
+                        @php
+                            $assignedKitCount = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
+                                            ->where('kit_reserve_id', $rk->id)->count();
+                            $quantidadeKitPedida = $rk->quantity ?? 1;
+                            $toAssignKit = $quantidadeKitPedida - $assignedKitCount;
 
-                        // Vai buscar o nome do Kit (já que o $rk só tem o kit_id)
-                        $nomeKit = $kits->firstWhere('id', $rk->kit_id)->name ?? 'Kit';
-                    @endphp
+                            // 1. LÓGICA DE SEGURANÇA: Criar uma "lista negra" de Kits Incompletos
+                            // Procura todos os itens que pertencem a um kit e que NÃO estão disponíveis (!= 1)
+                            $kitsIncompletos = \App\Models\ItemUnity::whereNotNull('kit_unity_id')
+                                ->where('item_unity_state_id', '!=', 1)
+                                ->pluck('kit_unity_id')
+                                ->toArray();
 
-                    @if ($toAssignKit > 0)
-                        @for ($i = 0; $i < $toAssignKit; $i++)
-                        <div class="col-md-4 mb-3" style="background-color: #f8f9fa; padding: 10px; border-radius: 8px;">
-                            <label class="text-primary">
-                                <strong><i class="fas fa-box"></i> {{ $nomeKit }} (KIT)</strong>
-                                <br><small class="text-dark">Unid. {{ $i + 1 }}/{{ $toAssignKit }}</small>
-                            </label>
-                            {{-- Repara no nome: atribuicao_kit --}}
-                            <select name="atribuicao_kit[{{ $rk->id }}][]" class="form-control border-primary" required>
-                                <option value="">-- Escolha LIA do Kit --</option>
-                                {{-- Vai à tabela kit_unity buscar os kits físicos disponíveis (estado 1) --}}
-                                @foreach(\App\Models\KitUnity::where('kit_id', $rk->kit_id)->where('kit_unity_state_id', 1)->get() as $unity)
-                                    <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @endfor
-                    @endif
-                @endforeach
+                            // 2. Buscar apenas os Kits físicos que estão no estado 1 (Disponível) 
+                            // E que NÃO estão na "lista negra" de kits incompletos
+                            $kitsDisponiveis = \App\Models\KitUnity::where('kit_id', $rk->kit_id)
+                                ->where('kit_unity_state_id', 1)
+                                ->whereNotIn('id', $kitsIncompletos)
+                                ->get();
+                        @endphp
+
+                        @if ($toAssignKit > 0)
+                            @for ($i = 0; $i < $toAssignKit; $i++)
+                            <div class="col-md-4 mb-3" style="background-color: #f8f9fa; padding: 10px; border-radius: 8px;">
+                                <label class="text-primary">
+                                    @foreach($kits as $k) @if($k->id == $rk->kit_id) <strong><i class="fas fa-box"></i> {{ $k->name }} (KIT)</strong> @endif @endforeach
+                                    <br><small class="text-dark">Unid. {{ $i + 1 }}/{{ $toAssignKit }}</small>
+                                </label>
+                                <select name="atribuicao_kit[{{ $rk->id }}][]" class="form-control border-primary" required>
+                                    <option value="">-- Escolha LIA do Kit --</option>
+                                    {{-- Agora usamos a variável $kitsDisponiveis perfeitamente limpa --}}
+                                    @foreach($kitsDisponiveis as $unity)
+                                        <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endfor
+                        @endif
+                    @endforeach
 
                 {{-- 2. ATRIBUIR UNIDADES FÍSICAS DOS ITENS --}}
                 @foreach ($reserve_itens as $ri)
