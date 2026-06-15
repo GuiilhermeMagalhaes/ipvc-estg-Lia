@@ -121,7 +121,7 @@ public function ocultos(Request $request)
 
 
 public function show($id)
-    {
+{
         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
             return redirect('/');
         }
@@ -140,7 +140,7 @@ public function show($id)
             'kit'         => $unidade->kit,
             'itensLivres' => $itensLivres
         ]);
-    }
+}
 
 
 public function updateUnity(Request $request, $id)

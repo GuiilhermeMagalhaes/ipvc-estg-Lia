@@ -129,6 +129,39 @@ class ReserveController extends Controller
 
     public function deliver(Request $request, $id) 
     {
+        
+
+        // 1. VALIDAÇÃO DE SEGURANÇA: Evitar entrega de itens individuais que estão dentro dos kits selecionados
+    $selectedItemUnities = [];
+    if ($request->has('atribuicao')) {
+        foreach ($request->atribuicao as $item_reserve_id => $unities) {
+            // Junta todos os IDs dos itens individuais escolhidos num único array
+            $selectedItemUnities = array_merge($selectedItemUnities, $unities);
+        }
+    }
+
+    $selectedKitUnities = [];
+    if ($request->has('atribuicao_kit')) {
+        foreach ($request->atribuicao_kit as $kit_reserve_id => $unities) {
+            // Junta todos os IDs das malas escolhidas num único array
+            $selectedKitUnities = array_merge($selectedKitUnities, $unities);
+        }
+    }
+
+    // Se ele escolheu peças individuais E malas ao mesmo tempo, cruzamos os dados
+    if (!empty($selectedItemUnities) && !empty($selectedKitUnities)) {
+        
+        // Vai procurar se algum dos Itens escolhidos pertence a algum dos Kits escolhidos
+        $conflitoFisico = \App\Models\ItemUnity::whereIn('id', $selectedItemUnities)
+                    ->whereIn('kit_unity_id', $selectedKitUnities)
+                    ->exists();
+
+        if ($conflitoFisico) {
+            return redirect()->back()->with('toast_error', 'Erro de Atribuição: Está a tentar entregar uma peça individual que já se encontra dentro de uma das Malas selecionadas!');
+        }
+    }
+
+
         if (!$request->has('atribuicao') && (!$request->has('atribuicao_kit'))) {
             return back()->with('toast_error', 'Selecione pelo menos uma unidade para entregar.');
         }
