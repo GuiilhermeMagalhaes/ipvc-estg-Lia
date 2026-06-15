@@ -54,7 +54,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/downloadreslia', [HomeController::class, 'ExcelResLia'])->name('excelreslia-download');
         Route::prefix('kits')->group(function () {
             Route::get('/', [KitsController::class, 'index'])->name('kits.index');
-            //Route::get('/indexocultos', [KitsController::class, 'indexocultos'])->name('kits.indexocultos');
+            Route::get('/indexocultos', [KitsController::class, 'ocultos'])->name('kits.indexocultos');
             Route::get('/create', [KitsController::class, 'create'])->name('kits.create');
             Route::post('/', [KitsController::class, 'store'])->name('kits.store');
              Route::get('/create-unities', [KitsController::class, 'createUnities'])->name('kits.createUnities');
