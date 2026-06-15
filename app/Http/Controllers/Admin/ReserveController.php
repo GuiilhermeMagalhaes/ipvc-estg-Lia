@@ -37,16 +37,19 @@ class ReserveController extends Controller
 
     public function delayed()
     {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
         Reserve::where('reserve_state_id', 7)
                ->whereDate('end_date', '<', Carbon::today())
                ->update(['reserve_state_id' => 4]);
 
-        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+        
             return view('admin.reserves.delayed', [
                 'reserves' => Reserve::whereIn('reserve_state_id', [4, 9])->get()
             ]);
-        }
-        return redirect('/');
+        
     }
 
     public function ongoing()
@@ -93,6 +96,10 @@ class ReserveController extends Controller
 
     public function PDFDownload($id)
     {
+         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
         $reserve       = Reserve::find($id);
         $reserve_kits  = KitReserve::where('reserve_id', $id)->get();
         $kits          = Kit::all();
@@ -106,6 +113,9 @@ class ReserveController extends Controller
 
     public function autorize($id)
     {
+         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
         $reserve = Reserve::findOrFail($id);
 
         if ($reserve->reserve_state_id == 1) {
@@ -120,6 +130,10 @@ class ReserveController extends Controller
 
     public function decline($id)
     {
+         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
         $reserve = Reserve::findOrFail($id);
         $reserve->reserve_state_id = 3;
         $reserve->save();
@@ -129,6 +143,10 @@ class ReserveController extends Controller
 
     public function deliver(Request $request, $id) 
     {
+
+         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
         if (!$request->has('atribuicao') && (!$request->has('atribuicao_kit'))) {
             return back()->with('toast_error', 'Selecione pelo menos uma unidade para entregar.');
         }
@@ -180,6 +198,10 @@ class ReserveController extends Controller
 
     public function receive(Request $request, $id)
     {
+         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
         $reserve = Reserve::findOrFail($id);
         $reserve->return_date = Carbon::now();
         $temProblema = $request->filled('return_notes');
@@ -242,6 +264,10 @@ class ReserveController extends Controller
 
     public function finalize($id)
     {
+         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
         DB::transaction(function () use ($id) {
             $reserve = Reserve::findOrFail($id);
 
@@ -258,6 +284,10 @@ class ReserveController extends Controller
 
     public function pay($id)
     {
+         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
+
         $reserve = Reserve::findOrFail($id);
 
         if ($reserve->cost > 0 && !$reserve->is_paid) {
@@ -284,6 +314,8 @@ class ReserveController extends Controller
 
     private function aplicarCustoReserva($reserve)
     {
+         
+
         $start = Carbon::parse($reserve->start_date);
         $end   = Carbon::parse($reserve->end_date);
         $numero_dias = 0;

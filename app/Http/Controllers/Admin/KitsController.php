@@ -236,7 +236,7 @@ public function updateUnity(Request $request, $id)
                 ->update(['kit_unity_id' => $unidade->id]);
         });
 
-        return redirect()->back()->with('toast_success', 'Unidade de kit e componentes atualizados com sucesso!');
+        return redirect()->back()->with('toast_success', 'Unidade de kit atualizada com sucesso!');
     }
     
     return redirect('/');
@@ -546,7 +546,7 @@ public function update(Request $request, $id)
 
     ], [
        
-        'name.required'        => 'O kit deve ter um nome.',
+            'name.required'        => 'O kit deve ter um nome.',
             'name.string'          => 'O nome deve ser um texto válido.',
             'name.max'             => 'O nome não pode ter mais de 190 caracteres.',
 

@@ -31,5 +31,9 @@ class AppServiceProvider extends ServiceProvider
         $throttlerPlugin = new \Swift_Plugins_ThrottlerPlugin($throttleRate, \Swift_Plugins_ThrottlerPlugin::MESSAGES_PER_MINUTE);
         Mail::getSwiftMailer()->registerPlugin($throttlerPlugin);
 }
+
+        \Illuminate\Support\Facades\View::composer('layouts.navbar', function ($view) {
+        $view->with('navbarCategories', \App\Models\ItemCategorie::all());
+    });
     }
 }

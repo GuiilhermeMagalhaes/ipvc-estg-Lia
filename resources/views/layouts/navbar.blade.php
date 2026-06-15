@@ -9,18 +9,17 @@
         </a>
 
         <nav id="navmenu" class="navmenu">
+    <ul>
+        <li><a href="/kits/">{{ "Kits" }}<br></a></li>
+        <li class="dropdown"><a href="#"><span>ITENS</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
             <ul>
-                <li><a href="/kits/">{{ "Kits" }}<br></a></li>
-                <li class="dropdown"><a href="#"><span>ITENS</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
-                    <ul>
-                        @foreach (session()->get('categories') as $category)
-                        <li><a href="/categoria/{{ $category->id }}">{{ $category->description }}</a></li>
-                        @endforeach
-                    </ul>
-                </li>
+                @foreach ($navbarCategories as $category)
+                    <li><a href="/categoria/{{ $category->id }}">{{ $category->description }}</a></li>
+                @endforeach
             </ul>
-        </nav>
-
+        </li>
+    </ul>
+</nav>
         <div class="header-user">
             @guest
             <a href="{{ route('login') }}">Entrar</a>

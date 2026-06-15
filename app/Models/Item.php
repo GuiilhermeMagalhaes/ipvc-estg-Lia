@@ -22,18 +22,12 @@ class Item extends Model
         'categoria_id',
         'image',
         'observation',
-        'data_aquisicao',
         'acessorio', 
         'price_day',
-        'item_state_id',
         'quantity',
     ];
 
     
-protected $casts = [
-        'data_aquisicao' => 'date',
-    ];
-   
     public function itemUnities(): hasMany
     {
         return $this->hasMany(ItemUnity::class, 'item_id'); 
@@ -45,14 +39,5 @@ protected $casts = [
         return $this->belongsTo(ItemCategorie::class, 'categoria_id');
     }
 
-    
- /*    public function getTempoDeVidaAttribute()
-{
-    if (!$this->data_aquisicao) {
-        return 'Data de aquisição desconhecida';
-    }
-   
-}
-*/
 
 }

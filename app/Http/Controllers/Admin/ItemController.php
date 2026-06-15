@@ -317,9 +317,7 @@ class ItemController extends Controller
         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
            
 
-            /*if ($request->validator && $request->validator->fails()) {
-            session()->reflash();
-        }*/
+        
 
         session()->keep(['item_data', 'item_nome', 'quantity']);
         $itemData = session('item_data');
@@ -652,7 +650,7 @@ public function showUnitiesEtapa($id)
             }
         }
 
-        // Criar as novas unidades físicas 
+        
         if ($request->has('novos_lias')) {
             foreach ($request->novos_lias as $index => $novoLia) {
                 ItemUnity::create([
@@ -664,7 +662,7 @@ public function showUnitiesEtapa($id)
             }
         }
            
-            // Limpa a sessão 
+            
             session()->forget('dados_item_edicao');
 
             return redirect()->route('itens.index')->with('toast_success', 'Item e unidades gravados com sucesso!');
@@ -674,6 +672,11 @@ public function showUnitiesEtapa($id)
 
     public function manutencao()
     {
+
+    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+        return redirect('/');
+    }
+    
     $unidades = \App\Models\ItemUnity::where('item_unity_state_id', 4)
         ->with('item')
         ->get();
