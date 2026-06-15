@@ -78,26 +78,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($unidade->itemUnities as $itemUnity)
-                    <tr>
-                        <td><strong>{{ $itemUnity->item->nome }}</strong></td>
-                        <td>{{ $itemUnity->item->model ?? 'N/A' }}</td>
-                        <td>{{ number_format($itemUnity->item->price_day ?? 0, 2, ',', '.') }} €</td>
-                        <td>{{ $itemUnity->lia_code }}</td> 
-                        
-                       
-                        <td>
-                            @if($itemUnity->item_unity_state_id == 2)
-                                <span class="text-danger">Oculto</span>
-                            @elseif($itemUnity->item_unity_state_id == 3)
-                                <span class="text-danger">Anulado</span>
-                            @else
-                                <span class="text-success">Ativo</span>
-                            @endif
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
+    @foreach ($unidade->itemUnities as $itemUnity)
+    <tr>
+        <td><strong>{{ $itemUnity->item->nome }}</strong></td>
+        <td>{{ $itemUnity->item->model ?? 'N/A' }}</td>
+        <td>{{ number_format($itemUnity->item->price_day ?? 0, 2, ',', '.') }} €</td>
+        <td>{{ $itemUnity->lia_code }}</td> 
+        <td>
+            <span class="badge 
+                @if($itemUnity->item_unity_state_id == 1) badge-success 
+                @elseif($itemUnity->item_unity_state_id == 2) badge-secondary 
+                @elseif($itemUnity->item_unity_state_id == 4) badge-warning 
+                @else badge-danger @endif">
+                {{ $itemUnity->itemUnityState->description ?? 'Estado ' . $itemUnity->item_unity_state_id }}
+            </span>
+        </td>
+    </tr>
+    @endforeach
+</tbody>
             </table>
         </div>
     @else
@@ -125,17 +123,38 @@
                         Mais unidades do mesmo kit registadas: 
                     </li>
 
-                    <li class="list-group-item bg-light text-break">
-                        Quantidade Total: {{ $kit->quantity }}
-                    </li>
 
                     @if(isset($unidadesDoKit) && $unidadesDoKit->count() > 0)
-                        <li class="list-group-item bg-light text-break">
-                            Códigos LIA das Unidades:
-                            @foreach($unidadesDoKit as $u)
-                               {{ $u->lia_code }}{{ !$loop->last ? ' ' : '' }}
-                            @endforeach
-                        </li>
+                    <li class="list-group-item bg-light p-0">
+                        <table class="table table-sm m-0">
+                            <thead>
+                                <tr>
+                                    <th class="border-top-0 pl-3">Código LIA</th>
+                                    <th class="border-top-0">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($unidadesDoKit as $u)
+                                <tr>
+                                    <td class="align-middle pl-3">
+                                        <a href="{{ route('kits.show', $u->id) }}" style="color: black; font-weight: 500;">
+                                            {{ $u->lia_code }}
+                                        </a>
+                                    </td>
+                                    <td class="align-middle">
+                                        @if($u->kit_unity_state_id == 1)
+                                            <span class="badge badge-success">Ativo</span>
+                                        @elseif($u->kit_unity_state_id == 2)
+                                            <span class="badge badge-secondary">Oculto</span>
+                                        @elseif($u->kit_unity_state_id == 3)
+                                            <span class="badge badge-danger">Anulado</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </li>
                     @endif
                 </ul>
 

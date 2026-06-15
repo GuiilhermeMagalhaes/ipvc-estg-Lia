@@ -133,24 +133,29 @@ public function show($id)
             return redirect('/');
         }
 
-        
-        $unidade = KitUnity::with(['kit', 'itemUnities.item'])->find($id);
+        // 1. Carregar a unidade atual, as peças lá de dentro, E os estados dessas peças
+        $unidade = KitUnity::with(['kit', 'itemUnities.item', 'itemUnities.itemUnityState'])->find($id);
 
         if (!$unidade) {
             return redirect()->route('kits.index')->with('toast_error', 'Unidade de Kit não encontrada.');
         }
 
-        $unidadesDoKit = KitUnity::where('kit_id', $unidade->kit_id)
-        ->whereIn('kit_unity_state_id', [1, 2])
-        ->get();
+        // 2. Trazer TODAS as malas iguais a esta (sem filtrar o estado) para a lista de LIA Codes
+        $unidadesDoKit = KitUnity::with('kitUnityState') // Carrega a relação de estado do Kit
+                                 ->where('kit_id', $unidade->kit_id)
+                                 ->get();
 
-        $itensLivres = ItemUnity::with('item')->whereNull('kit_unity_id')->get();
+        // 3. Os Itens Livres (Para adicionar à mala, estes sim devem continuar filtrados para não juntares lixo/peças avariadas)
+        $itensLivres = ItemUnity::with('item')
+                                ->whereNull('kit_unity_id')
+                                ->whereIn('item_unity_state_id', [1, 2]) 
+                                ->get();
 
         return view('admin.kitUnities.show', [
-            'unidade'     => $unidade,
-            'kit'         => $unidade->kit,
+            'unidade'       => $unidade,
+            'kit'           => $unidade->kit,
             'unidadesDoKit' => $unidadesDoKit,
-            'itensLivres' => $itensLivres
+            'itensLivres'   => $itensLivres
         ]);
 }
 
@@ -196,13 +201,20 @@ public function updateUnity(Request $request, $id)
             if (!empty($invalidItemsStates)) {
                 $nomesEstados = [];
                 foreach ($invalidItemsStates as $estadoId) {
-                    $nomesEstados[] = match($estadoId) {
-                        2 => 'Oculto',
-                        3 => 'Anulado',
-                        4 => 'Em Manutenção',
-                        default => 'Inválido'
-                    };
-                }
+    switch ($estadoId) {
+        case 2:
+            $nomesEstados[] = 'Oculto';
+            break;
+        case 3:
+            $nomesEstados[] = 'Anulado';
+            break;
+        case 4:
+            $nomesEstados[] = 'Em Manutenção';
+            break;
+        default:
+            $nomesEstados[] = 'Inválido';
+    }
+}
 
                 $listaEstados = implode(', ', $nomesEstados);
                 
