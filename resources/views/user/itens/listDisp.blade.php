@@ -29,7 +29,8 @@
 <br>
 <div>
     <div class="row mycard gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
-        @foreach ($itens as $item)
+        
+        @forelse ($itens as $item)
         <div class="col mb-5">
             <div class="card h-100" id="item">
                 <img class="card-img-top rounded-top" src="../../{{ $item->image }}" alt="..." />
@@ -44,7 +45,20 @@
                 </div>
             </div>
         </div>
-        @endforeach
+
+        @empty
+        {{-- MENSAGEM DE ECRÃ VAZIO --}}
+        <div class="col-12 text-center" style="margin-top: 80px; margin-bottom: 80px;">
+            <i class="fas fa-camera-slash fa-4x text-muted mb-3"></i>
+            <h3 class="text-muted font-weight-bold">Sem Equipamento Disponível</h3>
+            <p class="text-muted" style="font-size: 1.1rem;">
+                Neste momento, não há itens disponíveis nesta categoria para o período selecionado. <br>
+                Explore outras categorias ou verifique os nossos Kits.
+            </p>
+            <a href="{{ route('user.kits.disponivel') }}" class="btn btn-outline-info mt-2">Ver Kits</a>
+        </div>
+        @endforelse
+
     </div>
 </div>
 

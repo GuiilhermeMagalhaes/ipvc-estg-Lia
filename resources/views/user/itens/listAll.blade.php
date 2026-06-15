@@ -28,11 +28,12 @@
 </div>
 <br>
 <div>
-    <div class="row mycard gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center" id="items-container">
-        @foreach ($itens as $item)
+    <div class="row mycard gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
+        
+        @forelse ($itens as $item)
         <div class="col mb-5">
             <div class="card h-100" id="item">
-                <img class="card-img-top rounded-top" src="../../{{ $item->image }}" alt="..."/>
+                <img class="card-img-top rounded-top" src="../../{{ $item->image }}" alt="..." />
                 <div class="card-body p-4">
                     <div class="text-center">
                         <h5 class="fw-bolder">{{ $item->nome }}</h5>
@@ -44,7 +45,19 @@
                 </div>
             </div>
         </div>
-        @endforeach
+
+        @empty
+        {{-- MENSAGEM DE ECRÃ VAZIO --}}
+        <div class="col-12 text-center" style="margin-top: 80px; margin-bottom: 80px;">
+            <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+            <h3 class="text-muted font-weight-bold">Sem Equipamento Disponível</h3>
+            <p class="text-muted" style="font-size: 1.1rem;">
+                Neste momento, não há itens disponíveis nesta categoria para o período selecionado. <br>
+                Explore outras categorias ou verifique os nossos Kits.
+            </p>
+        </div>
+        @endforelse
+
     </div>
 </div>
 
