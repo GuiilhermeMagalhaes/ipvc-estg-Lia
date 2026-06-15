@@ -19,171 +19,198 @@ use Carbon\Carbon;
 
 class ItemController extends Controller
 {
-   public function index($id)
+    public function index($id, Request $request)
     {
-        $itens = $this->getItensComStockFiltrado($id);
+        return $this->disponivel($id, $request);
+    }
 
+    // 1. PÁGINA: TODOS OS ITENS
+    public function all($id, Request $request)
+    {
+        $items = $this->getItensComStockFiltrado($id, $request->search, 'all');
         $category = ItemCategorie::findOrFail($id);
 
-        return view('user.itens.listAll', [
-            'itens' => $itens, 
-            'category' => $category
-        ]);
-
-    }
-
-
-
-    private function getItensComStockFiltrado($categoria_id, $search = null)
-{
-
-
-    $query = Item::where('categoria_id', '=', $categoria_id)
-            ->whereHas('itemUnities', function ($q) {
-                $q->where('item_unity_state_id', 1); 
-            });
-
-
-    if ($search) {
-        
-        $query->where('nome', 'LIKE', '%' . $search . '%');
-    }
-
-    $items = $query->get();
-
-    if (session()->has('reserve')) {
-        $startDate = Carbon::parse(session()->get('reserve.start_date'));
-        $endDate = Carbon::parse(session()->get('reserve.end_date'));
-        $sessionCiclicaId = (int) session()->get('reserve.ciclica_id', 1);
-
-        
-        $periodoDatas = [];
-        for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-            if ($sessionCiclicaId === 1 || $date->dayOfWeek === ($sessionCiclicaId - 2)) {
-                $periodoDatas[] = [
-                    'data' => $date->format('Y-m-d'),
-                    'dayOfWeek' => $date->dayOfWeek
-                ];
-            }
+        if ($request->ajax()) {
+            return response()->json($this->gerarHtmlParaPesquisa($items));
         }
 
-        
-        $reservasOcupantes = DB::table('item_reserve')
-            ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
-            ->whereIn('reserves.reserve_state_id', [1, 2, 7])
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('reserves.start_date', [$startDate, $endDate])
-                  ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
-                  ->orWhere(function ($sub) use ($startDate, $endDate) {
-                      $sub->where('reserves.start_date', '<=', $startDate)
-                          ->where('reserves.end_date', '>=', $endDate);
-                  });
-            })
-            ->select('item_reserve.item_id', 'reserves.start_date', 'reserves.end_date', 'item_reserve.quantity', 'reserves.ciclica_id')
-            ->get();
+        return view('user.itens.listAll', [
+            'itens' => $items,
+            'category' => $category
+        ]);
+    }
 
-        
+    // 2. PÁGINA: ITENS DISPONÍVEIS
+    public function disponivel($id, Request $request)
+    {
+        $items = $this->getItensComStockFiltrado($id, $request->search, 'available');
+        $category = ItemCategorie::findOrFail($id);
+
+        if ($request->ajax()) {
+            return response()->json($this->gerarHtmlParaPesquisa($items));
+        }
+
+        return view('user.itens.listDisp', [
+            'itens' => $items,
+            'category' => $category
+        ]);
+    }
+
+    // 3. PÁGINA: ITENS INDISPONÍVEIS
+    public function indisponivel($id, Request $request)
+    {
+        $items = $this->getItensComStockFiltrado($id, $request->search, 'unavailable');
+        $category = ItemCategorie::findOrFail($id);
+
+        if ($request->ajax()) {
+            return response()->json($this->gerarHtmlParaPesquisa($items));
+        }
+
+        return view('user.itens.listIndisp', [
+            'itens' => $items,
+            'category' => $category
+        ]);
+    }
+
+
+    /**
+     * MOTOR CENTRAL: Busca o stock filtrando por pesquisa, disponibilidade e calendário
+     */
+    private function getItensComStockFiltrado($categoria_id, $search = null, $filter = 'all')
+    {
+        $query = Item::where('categoria_id', '=', $categoria_id)
+            ->whereHas('itemUnities', function ($q) {
+                $q->where('item_unity_state_id', 1);
+            });
+
+        if ($search) {
+            $query->where('nome', 'LIKE', '%' . $search . '%');
+        }
+
+        $items = $query->get();
+
+        $periodoDatas = [];
+        $reservasOcupantes = collect();
+
+        if (session()->has('reserve')) {
+            $startDate = Carbon::parse(session()->get('reserve.start_date'));
+            $endDate = Carbon::parse(session()->get('reserve.end_date'));
+            $sessionCiclicaId = (int) session()->get('reserve.ciclica_id', 1);
+
+            for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+                if ($sessionCiclicaId === 1 || $date->dayOfWeek === ($sessionCiclicaId - 2)) {
+                    $periodoDatas[] = [
+                        'data' => $date->format('Y-m-d'),
+                        'dayOfWeek' => $date->dayOfWeek
+                    ];
+                }
+            }
+
+            $reservasOcupantes = DB::table('item_reserve')
+                ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
+                ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('reserves.start_date', [$startDate, $endDate])
+                      ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
+                      ->orWhere(function ($sub) use ($startDate, $endDate) {
+                          $sub->where('reserves.start_date', '<=', $startDate)
+                              ->where('reserves.end_date', '>=', $endDate);
+                      });
+                })
+                ->select('item_reserve.item_id', 'reserves.start_date', 'reserves.end_date', 'item_reserve.quantity', 'reserves.ciclica_id')
+                ->get();
+        }
+
         $totaisUnidades = DB::table('item_unity')
-            ->where('item_unity_state_id', 1) 
+            ->where('item_unity_state_id', 1)
             ->select('item_id', DB::raw('count(*) as total'))
             ->groupBy('item_id')
             ->pluck('total', 'item_id');
 
-        
-        $items = $items->filter(function ($item) use ($periodoDatas, $reservasOcupantes, $totaisUnidades) {
+        $items = $items->filter(function ($item) use ($periodoDatas, $reservasOcupantes, $totaisUnidades, $filter) {
             $totalFisico = $totaisUnidades->get($item->id, 0);
-            if ($totalFisico <= 0) return false;
-
             $minimoDisponivelNoPeriodo = $totalFisico;
 
-            foreach ($periodoDatas as $pData) {
-                $dia = $pData['data'];
-                $diaSemanaAtual = $pData['dayOfWeek'];
-                $ocupadosHoje = 0;
+            if ($totalFisico > 0 && !empty($periodoDatas)) {
+                foreach ($periodoDatas as $pData) {
+                    $dia = $pData['data'];
+                    $diaSemanaAtual = $pData['dayOfWeek'];
+                    $ocupadosHoje = 0;
 
-                foreach ($reservasOcupantes as $reserva) {
-                    if ($reserva->item_id == $item->id) {
-                        
-                        if ($dia >= $reserva->start_date && $dia <= $reserva->end_date) {
-                            
-                            
+                    foreach ($reservasOcupantes as $reserva) {
+                        if ($reserva->item_id == $item->id && $dia >= $reserva->start_date && $dia <= $reserva->end_date) {
                             if ((int)$reserva->ciclica_id === 1) {
                                 $ocupadosHoje += $reserva->quantity;
-                            } 
-                            
-                            else {
+                            } else {
                                 $diaSemanaReservaAntiga = (int)$reserva->ciclica_id - 2;
                                 if ($diaSemanaAtual === $diaSemanaReservaAntiga) {
-                                    $ocupadosHoje += $reserva->quantity; 
+                                    $ocupadosHoje += $reserva->quantity;
                                 }
                             }
                         }
                     }
-                }
 
-                $disponivelHoje = $totalFisico - $ocupadosHoje;
-                if ($disponivelHoje < $minimoDisponivelNoPeriodo) {
-                    $minimoDisponivelNoPeriodo = $disponivelHoje;
+                    $disponivelHoje = $totalFisico - $ocupadosHoje;
+                    if ($disponivelHoje < $minimoDisponivelNoPeriodo) {
+                        $minimoDisponivelNoPeriodo = $disponivelHoje;
+                    }
                 }
+            } elseif ($totalFisico <= 0) {
+                $minimoDisponivelNoPeriodo = 0;
             }
 
-            
             $item->quantidade_disponivel = $minimoDisponivelNoPeriodo;
-            
-            
-            return $minimoDisponivelNoPeriodo > 0;
+
+            if ($filter === 'available') {
+                return $minimoDisponivelNoPeriodo > 0;
+            } elseif ($filter === 'unavailable') {
+                return $minimoDisponivelNoPeriodo <= 0;
+            }
+            return true;
         });
+
+        return $items;
     }
 
-    return $items;
-}
+    /**
+     * Função auxiliar para desenhar o HTML durante a Pesquisa AJAX
+     */
+    private function gerarHtmlParaPesquisa($items)
+    {
+        $output = '';
 
+        if ($items->count() > 0) {
+            foreach ($items as $item) {
+                $txtDisponivel = session()->has('reserve') ? ' (Disp: ' . $item->quantidade_disponivel . ')' : '';
 
- public function all($id, Request $request)
-{
-
-    if (!$request->ajax()) {
-            // ALTERAÇÃO: Adicionada a busca e envio da categoria aqui também por segurança
-            $category = ItemCategorie::findOrFail($id);
-            return view('user.itens.listAll', [
-                'items' => $this->getItensComStockFiltrado($id),
-                'category' => $category,
-            ]);
-        }
-
-    $output = '';
-    $items = $this->getItensComStockFiltrado($id, $request->search);
-
-    if ($items->count() > 0) {
-        foreach ($items as $item) {
-            // Se houver sessão de reserva, adiciona o indicador de stock disponível no período
-            $txtDisponivel = session()->has('reserve') ? ' (Disponíveis: ' . $item->quantidade_disponivel . ')' : '';
-
-            $output .= '<div class="col mb-5">
-                <div class="card h-100 kit-card">
-                   <img class="card-img-top rounded-top" src="../' . $item->image . '" alt="..." />
-                    <div class="card-body p-4">
-                        <div class="text-center">
-                            <h5 class="fw-bolder">' . htmlspecialchars($item->nome) . $txtDisponivel . '</h5>
-                            <h6>' . htmlspecialchars($item->observation ?? '') . '</h6>
-                            ' . number_format($item->price_day, 2, ',', '.') . ' € / dia
+                $output .= '<div class="col mb-5">
+                    <div class="card h-100 kit-card" id="item">
+                        <img class="card-img-top rounded-top" src="../../' . $item->image . '" alt="..." />
+                        <div class="card-body p-4">
+                            <div class="text-center">
+                                <h5 class="fw-bolder">' . htmlspecialchars($item->nome) . $txtDisponivel . '</h5>
+                                <h6>' . htmlspecialchars($item->observation ?? '') . '</h6>
+                                ' . number_format($item->price_day, 2, ',', '.') . ' € / dia
+                            </div>
+                        </div>
+                        <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                            <div class="text-center">
+                                <a class="btn btn-outline-dark mt-auto" href="/item/' . $item->id . '" style="width: 140px;">Ver Detalhes</a>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
-                        <div class="text-center">
-                            <a class="btn btn-outline-dark mt-auto" href="/item/' . $item->id . '" style="width: 140px;">Ver Detalhes</a>
-                        </div>
-                    </div>
-                </div>
+                </div>';
+            }
+        } else {
+            $output = '<div class="col-12 text-center" style="margin-top: 80px; margin-bottom: 80px;">
+                <i class="fas fa-camera-slash fa-4x text-muted mb-3"></i>
+                <h3 class="text-muted font-weight-bold">Sem Resultados</h3>
+                <p class="text-muted" style="font-size: 1.1rem;">Não encontrámos nenhum item com esse nome nesta categoria.</p>
             </div>';
         }
-    } else {
-        $output = '<div class="col-12 text-center"><p>Nenhum item encontrado nesta categoria.</p></div>';
-    }
 
-    return response()->json($output);
-}
-
+        return $output;
+}       
 
 
     public function show($id)
