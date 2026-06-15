@@ -221,6 +221,8 @@
                                     <span class="ml-3 text-secondary small">{{ $itemUnity->lia_code }}</span>
                                     @if($itemUnity->item_unity_state_id == 2)
                                           <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>
+                                    @elseif($itemUnity->item_unity_state_id == 4)
+                                          <span class="ml-2 text-warning" style="font-size: 0.8rem; font-weight: bold;">Manutenção</span>
                                     @endif
                                 </span>
                             </div>
@@ -240,7 +242,9 @@
                                         <strong>{{ $itemLivre->item->nome ?? 'Sem Nome' }}</strong>
                                         <span class="ml-3 text-secondary small">{{ $itemLivre->lia_code }}</span>
                                         @if($itemLivre->item_unity_state_id == 2)
-                                           <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>
+                                            <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>
+                                        @elseif($itemLivre->item_unity_state_id == 4)
+                                            <span class="ml-2 text-warning" style="font-size: 0.8rem; font-weight: bold;">Manutenção</span>
                                         @endif
                                     </span>
                                 </div>
@@ -298,7 +302,8 @@
             let itemOcultoMarcado = false;
             
             $('.check-item:checked').each(function() {
-                if ($(this).data('state') == 2 || $(this).data('state') == "2") {
+                let estadoItem = $(this).data('state');
+                if (estadoItem == 2 || estadoItem == "2" || estadoItem == 4 || estadoItem == "4") {
                     itemOcultoMarcado = true;
                 }
             });
@@ -320,18 +325,21 @@
             verificarItensOcultosSelecionados();
         });
 
-        // Filtro de pesquisa por texto em tempo real no Modal
+       // Filtro de pesquisa por texto em tempo real no Modal
         $('#search-items-modal').on('keyup', function() {
             let valor = $(this).val().toLowerCase().trim();
             
             $('#modalGerarItens .item-row').each(function() {
-                let nome = $(this).data('nome').toString().toLowerCase();
-                let code = $(this).data('code').toString().toLowerCase();
+                // Proteção extra: garantir que não dá erro se o data-nome vier vazio
+                let nome = $(this).data('nome') ? $(this).data('nome').toString().toLowerCase() : '';
+                let code = $(this).data('code') ? $(this).data('code').toString().toLowerCase() : '';
                 
                 if (nome.includes(valor) || code.includes(valor)) {
-                    $(this).removeClass('d-none');
+                    // Se encontrou: tira o d-none e RESTAURA o d-flex para não estragar o design
+                    $(this).removeClass('d-none').addClass('d-flex');
                 } else {
-                    $(this).addClass('d-none');
+                    // Se não encontrou: tira o d-flex (para ele deixar de forçar a visibilidade) e aplica o d-none
+                    $(this).removeClass('d-flex').addClass('d-none');
                 }
             });
         });
@@ -350,7 +358,7 @@
             // 2. Confirmação se houver itens ocultos selecionados
             let temOculto = !$('#aviso-item-oculto').hasClass('d-none');
             if (temOculto) {
-                let confirmacao = confirm('Os itens ocultos selecionados vão forçar esta unidade de Kit a ficar no estado Oculto.');
+                let confirmacao = confirm('Os itens ocultos/em manutenção selecionados vão forçar esta unidade de Kit a ficar no estado Oculto.');
                 if (!confirmacao) {
                     e.preventDefault();
                     return false;

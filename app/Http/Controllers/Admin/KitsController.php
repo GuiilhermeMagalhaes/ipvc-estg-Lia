@@ -148,7 +148,7 @@ public function show($id)
         // 3. Os Itens Livres (Para adicionar à mala, estes sim devem continuar filtrados para não juntares lixo/peças avariadas)
         $itensLivres = ItemUnity::with('item')
                                 ->whereNull('kit_unity_id')
-                                ->whereIn('item_unity_state_id', [1, 2]) 
+                                ->whereIn('item_unity_state_id', [1, 2, 4]) 
                                 ->get();
 
         return view('admin.kitUnities.show', [
@@ -158,7 +158,6 @@ public function show($id)
             'itensLivres'   => $itensLivres
         ]);
 }
-
 
 public function updateUnity(Request $request, $id)
 {
@@ -180,82 +179,63 @@ public function updateUnity(Request $request, $id)
             return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
         }
 
-        
         $itemsKept = $request->input('items_kept', []);
 
-       
         if (count($itemsKept) === 0) {
             return redirect()->back()->with('toast_error', 'Erro: O kit não pode ficar sem nenhum item associado.');
         }
 
-        
-        if ($request->input('kit_unity_state_id') == 1) {
-            
-            
-            $invalidItemsStates = \App\Models\ItemUnity::whereIn('id', $itemsKept)
-                ->whereIn('item_unity_state_id', [2, 3, 4])
-                ->pluck('item_unity_state_id')
-                ->unique()
-                ->toArray();
+        // Variável para sabermos se o sistema teve de intervir e mudar o estado contra a vontade do utilizador
+        $forcadoParaOculto = false;
 
-            if (!empty($invalidItemsStates)) {
-                $nomesEstados = [];
-                foreach ($invalidItemsStates as $estadoId) {
-    switch ($estadoId) {
-        case 2:
-            $nomesEstados[] = 'Oculto';
-            break;
-        case 3:
-            $nomesEstados[] = 'Anulado';
-            break;
-        case 4:
-            $nomesEstados[] = 'Em Manutenção';
-            break;
-        default:
-            $nomesEstados[] = 'Inválido';
-    }
-}
+        \Illuminate\Support\Facades\DB::transaction(function () use ($unidade, $request, $itemsKept, &$forcadoParaOculto) {
 
-                $listaEstados = implode(', ', $nomesEstados);
-                
-                return redirect()->back()->withInput()->with('toast_error', "Não é possível definir o kit como Ativo, porque o kit tem itens com o(s) estado(s): {$listaEstados}. Precisa de editar o item ou eliminá-lo do kit.");
-            }
-        }
-
-        \Illuminate\Support\Facades\DB::transaction(function () use ($unidade, $request, $itemsKept) {
-
-        // 1. Tira da mala as peças que o técnico removeu no formulário
+            // 1. Tira da mala as peças que o técnico removeu no formulário
             \App\Models\ItemUnity::where('kit_unity_id', $unidade->id)
                 ->whereNotIn('id', $itemsKept)
                 ->update(['kit_unity_id' => null]);
 
-                // 2. Coloca na mala as peças que o técnico manteve ou adicionou
+            // 2. Coloca na mala as peças que o técnico manteve ou adicionou
             \App\Models\ItemUnity::whereIn('id', $itemsKept)
                 ->update(['kit_unity_id' => $unidade->id]);
             
-           
-            // 3. AUTO-CURA: Verifica se, de todas as peças que FICARAM na mala, existe alguma estragada/emprestada
+            // 3. AUTO-CURA: Verifica se existe alguma peça estragada/oculta na mala
             $temPecaAvariada = \App\Models\ItemUnity::where('kit_unity_id', $unidade->id)
                 ->where('item_unity_state_id', '!=', 1)
                 ->exists();
     
-            $estadoKit = $temPecaAvariada ? 2 : $request->input('kit_unity_state_id');
+            $estadoDesejado = $request->input('kit_unity_state_id');
           
+            // 4. Lógica de decisão do Estado do Kit
+            if ($temPecaAvariada) {
+                $estadoKit = 2; // Força sempre para Oculto se houver problemas
+                if ($estadoDesejado == 1) {
+                    $forcadoParaOculto = true; // O utilizador tentou meter a 1, mas nós forçámos a 2
+                }
+            } else {
+                $estadoKit = $estadoDesejado; // Se estiver tudo bem, aceita o que veio do formulário
+            }
+
             $unidade->update([
                 'lia_code' => $request->input('lia_code'),
                 'kit_unity_state_id' => $estadoKit
             ]);
         });
 
-        return redirect()->back()->with('toast_success', 'Unidade de kit atualizada! O estado da mala foi sincronizado automaticamente.');
+        // Feedback inteligente ao utilizador
+        if ($forcadoParaOculto) {
+            return redirect()->back()->with('toast_warning', 'Kit atualizado! A mala foi forçada para Oculto porque inseriu itens que estão em Manutenção/Ocultos.');
+        }
+
+        return redirect()->back()->with('toast_success', 'Unidade de kit atualizada com sucesso!');
     }
     
     return redirect('/');
 }
 
 
-    public function destroy($id)
-    {
+public function destroy($id)
+{
         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
             return redirect('/');
         }
