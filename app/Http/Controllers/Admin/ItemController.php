@@ -78,7 +78,7 @@ class ItemController extends Controller
 
     
 
-        public function show($id)
+    public function show($id)
     {
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
            
@@ -88,9 +88,7 @@ class ItemController extends Controller
                 return redirect()->route('itens.index')->with('toast_error', 'Unidade não encontrada.');
             }
 
-            $unidadesDoItem = ItemUnity::where('item_id', $unidade->item_id)
-                                        ->whereIn('item_unity_state_id', [1, 2])
-                                        ->get();
+            $unidadesDoItem = ItemUnity::where('item_id', $unidade->item_id)->get();
 
             return view('admin.itemUnities.show', [
                 'unidade'   => $unidade,
@@ -106,7 +104,6 @@ class ItemController extends Controller
     {
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
             
-            
             $request->validate([
                 'lia_code' => 'required|string|unique:item_unity,lia_code,' . $id,
                 'item_unity_state_id' => 'required|exists:item_unity_states,id',
@@ -121,21 +118,45 @@ class ItemController extends Controller
             $unidade = ItemUnity::with('kitUnity.kit')->find($id);
             
             if ($unidade) {
-                
+                // 1. Atualiza a peça individual
                 $unidade->update($request->only(['lia_code', 'item_unity_state_id', 'data_aquisicao']));
 
-              
-          if ($unidade->item_unity_state_id == 2 && 
-                $unidade->kitUnity && 
-                $unidade->kitUnity->kit_unity_state_id != 2) {
-                
-               
-                $unidade->kitUnity->kit_unity_state_id = 2;
-                $unidade->kitUnity->save();
-            }
+                // 2. NOVA LÓGICA DE SINCRONIZAÇÃO COM A MALA (KIT)
+                if ($unidade->kit_unity_id) {
+                    
+                    // CENÁRIO A: A peça avariou ou ficou indisponível (!= 1)
+                    if ($unidade->item_unity_state_id != 1) {
+                        
+                        // Passamos a mala para 2 (Oculta/Indisponível) para não dar erro de Foreign Key
+                        \App\Models\KitUnity::where('id', $unidade->kit_unity_id)->update([
+                            'kit_unity_state_id' => 2
+                        ]);
+                        
+                        return redirect()->route('itens.show', $id)->with('toast_warning', 'Unidade atualizada! A mala associada passou a Indisponível/Oculta.');
 
-            
-                return redirect()->route('itens.show', $id)->with('toast_success', 'Unidade atualizada com sucesso!');
+                    } 
+                    // CENÁRIO B e C: A peça foi arranjada (== 1)
+                    else {
+                        $outrasPecasAvariadas = \App\Models\ItemUnity::where('kit_unity_id', $unidade->kit_unity_id)
+                                                    ->where('item_unity_state_id', '!=', 1)
+                                                    ->exists();
+                        
+                        // CENÁRIO B: Não há mais avarias. A mala fica curada!
+                        if (!$outrasPecasAvariadas) {
+                            \App\Models\KitUnity::where('id', $unidade->kit_unity_id)->update([
+                                'kit_unity_state_id' => 1
+                            ]);
+                            return redirect()->route('itens.show', $id)->with('toast_success', 'Unidade atualizada! A mala associada voltou a ficar Disponível.');
+                        } 
+                        // CENÁRIO C: Esta peça ficou boa, mas a mala tem mais peças avariadas.
+                        else {
+                            return redirect()->route('itens.show', $id)->with('toast_info', 'Unidade atualizada, mas a mala continua Indisponível (tem outras peças em manutenção).');
+                        }
+                    }
+                }
+
+                // CENÁRIO D: A peça não pertence a nenhuma mala (Item solto)
+                return redirect()->route('itens.show', $id)->with('toast_success', 'Unidade individual atualizada com sucesso!');
             }
 
             return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
@@ -144,10 +165,7 @@ class ItemController extends Controller
     }
 
 
-
-
-
-        public function anularUnity($id)
+    public function anularUnity($id)
     {
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
             
@@ -288,7 +306,7 @@ class ItemController extends Controller
     }
 
 
-        public function createUnities()
+    public function createUnities()
     {
         if(Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2){
 
@@ -681,13 +699,8 @@ public function showUnitiesEtapa($id)
         ->with('item')
         ->get();
 
-    return view('admin.ItemUnities.manutencao', ['unidades' => $unidades]);
+        return view('admin.ItemUnities.manutencao', ['unidades' => $unidades]);
     }
-
-
-
-
-  
 
 
 

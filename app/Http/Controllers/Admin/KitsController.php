@@ -77,7 +77,7 @@ public function index(Request $request)
     }
 
 
-      public function ocultos(Request $request)
+public function ocultos(Request $request)
 {
     if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
         return redirect('/');
@@ -128,7 +128,7 @@ public function index(Request $request)
 
 
 public function show($id)
-    {
+{
         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
             return redirect('/');
         }
@@ -152,7 +152,7 @@ public function show($id)
             'unidadesDoKit' => $unidadesDoKit,
             'itensLivres' => $itensLivres
         ]);
-    }
+}
 
 
 public function updateUnity(Request $request, $id)
@@ -211,32 +211,31 @@ public function updateUnity(Request $request, $id)
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($unidade, $request, $itemsKept) {
+
+        // 1. Tira da mala as peças que o técnico removeu no formulário
+            \App\Models\ItemUnity::where('kit_unity_id', $unidade->id)
+                ->whereNotIn('id', $itemsKept)
+                ->update(['kit_unity_id' => null]);
+
+                // 2. Coloca na mala as peças que o técnico manteve ou adicionou
+            \App\Models\ItemUnity::whereIn('id', $itemsKept)
+                ->update(['kit_unity_id' => $unidade->id]);
             
            
-            $hasHiddenItem = \App\Models\ItemUnity::whereIn('id', $itemsKept)
-                ->where('item_unity_state_id', 2)
+            // 3. AUTO-CURA: Verifica se, de todas as peças que FICARAM na mala, existe alguma estragada/emprestada
+            $temPecaAvariada = \App\Models\ItemUnity::where('kit_unity_id', $unidade->id)
+                ->where('item_unity_state_id', '!=', 1)
                 ->exists();
-
-            
-            $estadoKit = $hasHiddenItem ? 2 : $request->input('kit_unity_state_id');
-
+    
+            $estadoKit = $temPecaAvariada ? 2 : $request->input('kit_unity_state_id');
           
             $unidade->update([
                 'lia_code' => $request->input('lia_code'),
                 'kit_unity_state_id' => $estadoKit
             ]);
-
-            
-            \App\Models\ItemUnity::where('kit_unity_id', $unidade->id)
-                ->whereNotIn('id', $itemsKept)
-                ->update(['kit_unity_id' => null]);
-
-            
-            \App\Models\ItemUnity::whereIn('id', $itemsKept)
-                ->update(['kit_unity_id' => $unidade->id]);
         });
 
-        return redirect()->back()->with('toast_success', 'Unidade de kit atualizada com sucesso!');
+        return redirect()->back()->with('toast_success', 'Unidade de kit atualizada! O estado da mala foi sincronizado automaticamente.');
     }
     
     return redirect('/');
@@ -369,11 +368,6 @@ public function store(Request $request)
 
 
 
-
-
-
-
-
 public function createUnities(Request $request)
 {
     if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
@@ -429,7 +423,6 @@ public function storeUnities(Request $request)
         'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
     ];
 
-    
     for ($i = 0; $i < $quantity; $i++) {
         $regras["lia_codes.$i"] = 'required|string|distinct|unique:kit_unity,lia_code';
         $regras["items_for_unity.$i"] = 'required|array|min:1';
@@ -438,15 +431,13 @@ public function storeUnities(Request $request)
         $mensagens["items_for_unity.$i.min"] = 'É obrigatório associar pelo menos 1 item a esta unidade.';
     }
 
-    
     $request->validate($regras, $mensagens);
 
     $dadosKit = $request->session()->get('dados_do_kit');
 
-    
-    DB::transaction(function () use ($request, $dadosKit) {
+    // 1. Guardamos o ID do Kit criado para podermos verificar os avisos a seguir
+    $novoKitId = DB::transaction(function () use ($request, $dadosKit) {
         
-       
         $kit = new Kit();
         $kit->name = $dadosKit['name'];
         $kit->description = $dadosKit['description'];
@@ -462,10 +453,8 @@ public function storeUnities(Request $request)
             $kitUnity->lia_code = $liaCode;
             $kitUnity->kit_id = $kit->id;
             
-           
             $definirEstadoKitUnity = 1; 
 
-            
             if (isset($request->items_for_unity[$index]) && is_array($request->items_for_unity[$index])) {
                 foreach ($request->items_for_unity[$index] as $itemId) {
                     $itemUnityTemp = ItemUnity::find($itemId);
@@ -476,11 +465,9 @@ public function storeUnities(Request $request)
                 }
             }
 
-            
             $kitUnity->kit_unity_state_id = $definirEstadoKitUnity; 
             $kitUnity->save();
 
-            
             if (isset($request->items_for_unity[$index]) && is_array($request->items_for_unity[$index])) {
                 foreach ($request->items_for_unity[$index] as $itemId) {
                     $itemUnity = ItemUnity::find($itemId);
@@ -492,12 +479,25 @@ public function storeUnities(Request $request)
             }
         } 
         
+        // Retornamos o ID para fora da transação
+        return $kit->id;
     }); 
 
-    
+    // 2. Limpar a sessão
     $request->session()->forget('dados_do_kit');
 
-    return redirect()->route('kits.index')->with('toast_success', 'Kit e respetivas unidades gravados com sucesso!');
+    // 3. Verificar se ALGUMA das malas criadas ficou com o estado de avaria/oculto (diferente de 1)
+    $temMalaOculta = \App\Models\KitUnity::where('kit_id', $novoKitId)
+                    ->where('kit_unity_state_id', '!=', 1)
+                    ->exists();
+
+    // 4. Disparar o Toast apropriado
+    if ($temMalaOculta) {
+        return redirect()->route('kits.index')
+            ->with('toast_warning', 'Kit guardado, mas ficará oculto pois contêm peças em manutenção/uso.');
+    }
+
+    return redirect()->route('kits.index')->with('toast_success', 'Kit e respetivas unidades gravados e disponíveis com sucesso!');
 }
 
   
@@ -601,276 +601,3 @@ public function update(Request $request, $id)
 
 }
 
-/*
-public function update(Request $request, $id)
-{
-   
-    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
-        return redirect('/');
-    }
-
-   
-    $kit = Kit::find($id);
-
-    if (!$kit) {
-        return redirect()->route('kits.index')->with('toast_error', 'Kit não encontrado.');
-    }
-
-   l
-    $request->validate([
-        'name'        => 'required|string|max:190',
-        'description' => 'nullable|string',
-        'ipvc_ref'    => 'string|max:255',
-        'price'       => 'required|numeric|min:0',     
-        'price_day'   => 'required|numeric|min:0',      
-        'quantity'    => 'required|integer|min:' . $kit->quantity, 
-        'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-
-    ], [
-       
-        'name.required'        => 'O nome do kit é obrigatório.',
-        'name.string'          => 'O nome do kit deve ser um texto válido.',
-        'name.max'             => 'O nome do kit não pode ter mais de 190 caracteres.',
-        
-        'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
-        'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 255 caracteres.',
-        
-        'price.required'       => 'O preço base é obrigatório.',
-        'price.numeric'        => 'O preço base deve ser um valor numérico.',
-        'price.min'            => 'O preço base não pode ser um valor negativo.',
-        
-        'price_day.required'   => 'O preço por dia é obrigatório.',
-        'price_day.numeric'    => 'O preço por dia deve ser um valor numérico.',
-        'price_day.min'        => 'O preço por dia não pode ser um valor negativo.',
-        
-        'quantity.required'    => 'A quantidade total é obrigatória.',
-        'quantity.integer'     => 'A quantidade deve ser um número inteiro.',
-        'quantity.min'         => 'Não é permitido diminuir a quantidade total de unidades já existentes do Kit (' . $kit->quantity . ').',
-        
-        'image.image'          => 'O ficheiro selecionado deve ser uma imagem válida.',
-        'image.mimes'          => 'A imagem deve ser do formato: jpeg, png, jpg ou webp.',
-        'image.max'            => 'A imagem não pode ter um tamanho superior a 2MB.',
-        
-
-
-    ]);
-
-    
-    $imagePath = $kit->image; 
-    if ($request->hasFile('image')) {
-        
-        $imagePath = $request->file('image')->store('kits', 'public');
-    }
-
-   
-   
-    $dadosGerais = $request->except(['image']);
-    $dadosGerais['image'] = $imagePath;
-
-    session(['dados_kit_edicao' => $dadosGerais]);
-
-    return redirect()->route('kits.unitiesEtapa', $kit->id);
-   
-}
-
-
-  public function showKitUnitiesEtapa($id)
-{
-    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-        $kit = Kit::find($id);
-        $dadosKit = session('dados_kit_edicao');
-
-        
-        if (!$kit || !$dadosKit) {
-            return redirect()->route('kits.edit', $id)->with('toast_error', 'Sessão expirada ou kit inválido.');
-        }
-
-        
-        $unidadesAtuais = KitUnity::where('kit_id', $kit->id)->get();
-        
-        
-        $novasUnidadesQtd = $dadosKit['quantity'] - $unidadesAtuais->count();
-
-    
-        $itensLivres = ItemUnity::with('item')
-            ->whereNull('kit_unity_id')
-            ->whereIn('item_unity_state_id', [1, 2]) 
-            ->get();
-
-        
-        return view('admin.kitUnities.edit', [
-            'kit' => $kit,
-            'unidadesAtuais' => $unidadesAtuais,
-            'novasUnidadesQtd' => $novasUnidadesQtd,
-            'itensLivres' => $itensLivres // <-- IMPORTANTE
-        ]);
-    }
-    return redirect('/');
-}
-
-
-public function updateKitUnitiesEtapa(Request $request, $id)
-{
-    if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-        $kit = Kit::find($id);
-
-        if (!$kit) {
-            return redirect()->route('kits.index')->with('toast_error', 'Kit não encontrado.');
-        }
-
-        
-        $request->validate([
-            'lias_atuais'              => 'required|array',
-            'lias_atuais.*'            => 'required|string|distinct',
-            'data_aquisicao_atuais'    => 'array',
-            'data_aquisicao_atuais.*'  => 'nullable|date|before_or_equal:today',
-            
-            'novos_lias'               => 'sometimes|array',
-            'novos_lias.*'             => 'required|string|distinct|unique:kit_unities,lia_code',
-            'data_aquisicao_novas'     => 'sometimes|array',
-            'data_aquisicao_novas.*'   => 'nullable|date|before_or_equal:today',
-        ], [
-            'lias_atuais.*.required'             => 'O código LIA não pode ficar vazio.',
-            'lias_atuais.*.distinct'             => 'Inseriu códigos LIA duplicados entre as unidades atuais.',
-            'data_aquisicao_atuais.*.date'       => 'Insira uma data de aquisição válida.',
-            'data_aquisicao_atuais.*.before_or_equal' => 'A data de aquisição não pode ser no futuro.',
-            
-            'novos_lias.*.required'              => 'Deve preencher o código LIA para as novas unidades do kit.',
-            'novos_lias.*.unique'                => 'Este código LIA já existe noutra unidade no sistema.',
-            'novos_lias.*.distinct'              => 'Inseriu códigos LIA duplicados entre as novas unidades.',
-            'data_aquisicao_novas.*.date'        => 'Insira uma data de aquisição válida.',
-            'data_aquisicao_novas.*.before_or_equal' => 'A data de aquisição não pode ser no futuro.',
-        ]);
-
-       
-        if ($request->has('novos_lias')) {
-            foreach ($request->novos_lias as $novoLia) {
-                if (in_array($novoLia, $request->lias_atuais)) {
-                    return redirect()->back()
-                        ->withInput()
-                        ->withErrors(['novos_lias' => 'Inseriu códigos LIA duplicados entre os existentes e os novos.']);
-                }
-            }
-        }
-
-       
-        foreach ($request->lias_atuais as $unityId => $liaCode) {
-            $existeNoutro = KitUnity::where('lia_code', $liaCode)
-                                    ->where('id', '!=', $unityId) // ignora a própria linha
-                                    ->exists();
-            if ($existeNoutro) {
-                return redirect()->back()
-                    ->withInput()
-                    ->withErrors(['lias_atuais.'.$unityId => 'Este código LIA já está registado noutra unidade de kit no sistema.']);
-            }
-        }
-
-        $dadosKit = session('dados_kit_edicao');
-
-        if (!$dadosKit) {
-            return redirect()->route('kits.edit', $id)->with('toast_error', 'Sessão expirada. Por favor tente novamente.');
-        }
-
-       
-        $kit->update([
-            'name'         => $dadosKit['name'],
-            'description'  => $dadosKit['description'] ?? null,
-            'ipvc_ref'     => $dadosKit['ipvc_ref'] ?? null,
-            'lia_code'     => $dadosKit['lia_code'] ?? null, 
-            'price'        => $dadosKit['price'],
-            'price_day'    => $dadosKit['price_day'] ?? null,
-            'quantity'     => $dadosKit['quantity'],
-            'image'        => $dadosKit['image'] ?? $kit->image, 
-        ]);
-
-      
-        if ($request->has('lias_atuais')) {
-            foreach ($request->lias_atuais as $unityId => $liaCode) {
-                $unity = KitUnity::find($unityId);
-                if ($unity) {
-                    $unity->update([
-                        'lia_code'       => $liaCode,
-                        'data_aquisicao' => $request->data_aquisicao_atuais[$unityId] ?? null
-                    ]);
-                }
-            }
-        }
-
-        
-        if ($request->has('novos_lias')) {
-            foreach ($request->novos_lias as $index => $novoLia) {
-                KitUnity::create([
-                    'kit_id'             => $kit->id,
-                    'lia_code'           => $novoLia,
-                    'data_aquisicao'     => $request->data_aquisicao_novas[$index] ?? null,
-                    'kit_unity_state_id' => 1 
-                ]);
-            }
-        }
-
-        
-        session()->forget('dados_kit_edicao');
-
-        return redirect()->route('kits.index')->with('toast_success', 'Kit e as suas respetivas unidades gravados com sucesso!');
-    }
-    return redirect('/');
-}
-*/
-  
-
-
-
-
-
-
-
-/*
-    public function update(Request $request, $id)
-    {
-        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
-            return redirect('/');
-        }
-
-        $unidade = KitUnity::find($id);
-
-        if (!$unidade) {
-            return redirect()->back()->with('toast_error', 'Unidade não encontrada.');
-        }
-
-       
-        $request->validate([
-            'lia_code'           => 'required|string|unique:kit_unity,lia_code,' . $id,
-            'kit_unity_state_id' => 'required|in:1,2',
-            'items_kept'         => 'nullable|array',  
-        ], [
-            'lia_code.required' => 'O código LIA é obrigatório.',
-            'lia_code.unique'   => 'Este código LIA já está a ser utilizado por outra unidade.',
-        ]);
-
-       
-        $unidade->lia_code = $request->lia_code;
-        $unidade->kit_unity_state_id = $request->kit_unity_state_id;
-        $unidade->save();
-
-       
-       
-        $itemsSelected = $request->input('items_kept', []);
-
-       
-        ItemUnity::where('kit_unity_id', $unidade->id)
-            ->whereNotIn('id', $itemsSelected)
-            ->update(['kit_unity_id' => null]);
-
-        
-        if (!empty($itemsSelected)) {
-            ItemUnity::whereIn('id', $itemsSelected)
-                ->update(['kit_unity_id' => $unidade->id]);
-        }
-
-        Alert::success('Sucesso', 'Unidade de kit atualizada com sucesso!');
-        return redirect()->route('kits.show', $unidade->id);
-    }
-*/
-
-
-   

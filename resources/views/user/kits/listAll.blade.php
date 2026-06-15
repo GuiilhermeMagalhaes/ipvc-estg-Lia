@@ -29,7 +29,8 @@
 <br>
 <div>
     <div class="row mycard gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center">
-        @foreach ($kits as $kit)
+        
+        @forelse ($kits as $kit)
         <div class="col mb-5">
             <div class="card h-100" id="kit">
                 <img class="card-img-top rounded-top" src="../{{ $kit->image }}" alt="..." />
@@ -45,7 +46,19 @@
                 </div>
             </div>
         </div>
-        @endforeach
+        
+        @empty
+        {{-- MENSAGEM DE ECRÃ VAZIO --}}
+        <div class="col-12 text-center" style="margin-top: 80px; margin-bottom: 80px;">
+            <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+            <h3 class="text-muted font-weight-bold">Sem Kits Disponíveis</h3>
+            <p class="text-muted" style="font-size: 1.1rem;">
+                Neste momento, não existem Kits disponíveis para requisição nestas datas. <br>
+                Tente alterar o período da sua reserva ou contacte o técnico do LIA.
+            </p>
+        </div>
+        @endforelse
+
     </div>
 </div>
 

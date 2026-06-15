@@ -45,7 +45,7 @@
                                         <td>{{ $kitData['name'] }}</td>
                                         
                                         <td>
-                                            {{ number_format($kitData['price'], 2, ',', '.') }} € / dia 
+                                            {{ number_format($kitData['price_day'], 2, ',', '.') }} € / dia 
                                             <small class="text-muted">(Qtd: {{ $kitData['quantity'] }})</small>
                                         </td>
                                         <td>
