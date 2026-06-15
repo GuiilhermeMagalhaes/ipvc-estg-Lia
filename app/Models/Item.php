@@ -45,6 +45,11 @@ protected $casts = [
         return $this->belongsTo(ItemCategorie::class, 'categoria_id');
     }
 
+    public function itemUnityState() 
+    {
+        return $this->belongsTo(ItemUnityState::class, 'item_unity_state_id');
+    }
+
     
  /*    public function getTempoDeVidaAttribute()
 {

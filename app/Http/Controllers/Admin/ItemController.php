@@ -87,9 +87,7 @@ class ItemController extends Controller
                 return redirect()->route('itens.index')->with('toast_error', 'Unidade não encontrada.');
             }
 
-            $unidadesDoItem = ItemUnity::where('item_id', $unidade->item_id)
-                                        ->whereIn('item_unity_state_id', [1, 2])
-                                        ->get();
+            $unidadesDoItem = ItemUnity::where('item_id', $unidade->item_id)->get();
 
             return view('admin.itemUnities.show', [
                 'unidade'   => $unidade,
@@ -609,17 +607,12 @@ public function showUnitiesEtapa($id)
 
     public function manutencao()
     {
-    $unidades = \App\Models\ItemUnity::where('item_unity_state_id', 4)
+        $unidades = \App\Models\ItemUnity::where('item_unity_state_id', 4)
         ->with('item')
         ->get();
 
-    return view('admin.ItemUnities.manutencao', ['unidades' => $unidades]);
+        return view('admin.ItemUnities.manutencao', ['unidades' => $unidades]);
     }
-
-
-
-
-  
 
 
 

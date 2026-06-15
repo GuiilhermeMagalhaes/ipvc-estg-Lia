@@ -92,13 +92,35 @@
                     </li>
 
                     @if(isset($unidadesDoItem) && $unidadesDoItem->count() > 0)
-                        <li class="list-group-item bg-light text-break">
-                            Códigos LIA:
-                            @foreach($unidadesDoItem as $u)
-                                {{ $u->lia_code }}{{ !$loop->last ? ' ' : '' }}
-                            @endforeach
-                        </li>
-                    @endif
+    <li class="list-group-item bg-light">
+        <table class="table table-sm m-0">
+            <thead>
+                <tr>
+                    <th>Código LIA</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($unidadesDoItem as $u)
+                <tr>
+                    <td><a href="{{ route('itens.show', $u->id) }}" style="color: black">{{ $u->lia_code }}</a></td>
+                    <td>
+                        @if($u->item_unity_state_id == 1)
+                            <span class="badge badge-success">Ativo</span>
+                        @elseif($u->item_unity_state_id == 2)
+                            <span class="badge badge-secondary">Oculto</span>
+                        @elseif($u->item_unity_state_id == 3)
+                            <span class="badge badge-danger">Anulado</span>
+                        @elseif($u->item_unity_state_id == 4)
+                            <span class="badge badge-warning">Manutenção</span>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </li>
+@endif
         
                     
                    
