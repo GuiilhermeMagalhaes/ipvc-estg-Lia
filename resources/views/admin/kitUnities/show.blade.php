@@ -298,16 +298,13 @@
 @section('js')
 <script>
     $(document).ready(function() {
-        // ==========================================
+
         // 1. VARIÁVEIS INICIAIS
-        // ==========================================
         let liaOriginalValue = $('#lia_code').val();
         let obsOriginalValue = $('#observacoes').val();
 
-        // ==========================================
-        // 2. AUTO-SAVE (OBSERVAÇÕES, ESTADO E LIA)
-        // ==========================================
         
+        // 2. AUTO-SAVE (OBSERVAÇÕES, ESTADO E LIA)
         // Auto-save das observações ao clicar fora
         $('#observacoes').on('blur', function() {
             if ($(this).val().trim() !== (obsOriginalValue || '').trim()) {
