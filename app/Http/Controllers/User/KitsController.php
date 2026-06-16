@@ -200,6 +200,8 @@ class KitsController extends Controller
         $kit = Kit::findOrFail($id);
         $kitCount = KitUnity::where('kit_id', $kit->id)->where('kit_unity_state_id', 1)->count();
 
+        $kitUnityExemplo = KitUnity::with('itemUnities.item')->where('kit_id', $id)->first();
+
         $quantidadeDisponivel = $kitCount; 
 
         if (session()->has('reserve')) {
@@ -247,7 +249,8 @@ class KitsController extends Controller
             'kit' => $kit,
             'kitCount' => $kitCount,
             'quantidadeDisponivel' => $quantidadeDisponivel,
-            'reservas' => $reservasFormatted
+            'reservas' => $reservasFormatted,
+            'kitUnityExemplo' => $kitUnityExemplo
         ]);
     }
 }

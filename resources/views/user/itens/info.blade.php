@@ -85,22 +85,34 @@
                                 @if(session()->has('reserve'))
                                     {{ $quantidadeDisponivel }} Unid. (Nestas datas)
                                 @else
-                                    {{ $item->quantidade_total }} Unid. Total  @endif
+                                    {{ $quantidadeDisponivel }} Unid. Total
+                                @endif
                             </h6>
                         </div>
 
-                        <div class="col-4" style="flex: 1; text-align: right;">
-                            <form id="form-reservar" action="{{ route('item.add', ['id' => $item->id]) }}" method="post" style="display: flex;">
-                                @csrf
-                                @method('POST')
-                                <div class="form-group" style="margin-right: 10px; margin-top: 15px;">
-                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ session()->has('reserve') ? $quantidadeDisponivel : $item->quantidade_total }}" value="{{ $quantidadeDisponivel > 0 ? 1 : 0 }}" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }} style="width: 50px;">
+                       <div class="col-4" style="flex: 1; text-align: right;">
+                            @if(session()->has('reserve'))
+                                {{-- Tem reserva: Mostra o formulário normal --}}
+                                <form id="form-reservar" action="{{ route('item.add', ['id' => $item->id]) }}" method="post" style="display: flex; justify-content: flex-end;">
+                                    @csrf
+                                    @method('POST')
+                                    <div class="form-group" style="margin-right: 10px; margin-top: 15px;">
+                                        <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ $quantidadeDisponivel }}" value="{{ $quantidadeDisponivel > 0 ? 1 : 0 }}" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }} style="width: 50px;">
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-dark" id="item" style="margin-top: 15px;" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }}>
+                                        <i class="fas fa-cart-plus fa-lg mr-2"></i>
+                                        Reservar
+                                    </button>
+                                </form>
+                            @else
+                                {{-- NÃO tem reserva: Mostra um botão de aviso --}}
+                                <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="alert('Por favor, inicie uma reserva primeiro (no menu lateral Reservas) para poder adicionar equipamentos ao carrinho.')">
+                                        <i class="fas fa-cart-arrow-down fa-lg mr-2"></i>
+                                        Reservar
+                                    </button>
                                 </div>
-                                    <button type="submit" class="btn btn-outline-dark" id="item" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }}>
-                                    <i class="fas fa-cart-plus fa-lg mr-2"></i>
-                                    Reservar
-                                </button>
-                            </form>
+                            @endif
                         </div>
 
                     </div>
@@ -153,23 +165,18 @@
         weekdaysShort : ['Dom','2ª','3ª','4ª','5ª','6ª','Sab']
     };
 
-    var reservas = @json($reservasJS);
+    // Recebemos o array já processado e limpo pelo Controlador!
+    var reservas = @json($reservas);
 
     function parseDate(dateStr) {
-        if (dateStr.includes('-')) {
-            var parts = dateStr.split('-');
-            return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0);
-        } else {
-            var parts = dateStr.split('/');
-            return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0);
-        }
+        var parts = dateStr.split('/');
+        return new Date(parts[2], parts[1] - 1, parts[0], 0, 0, 0);
     }
 
     var parsedReservas = reservas.map(function (reserva) {
         return {
-            start      : parseDate(reserva.start),
-            end        : parseDate(reserva.end),
-            ciclica_id : reserva.ciclica_id
+            start: parseDate(reserva.start_date),
+            end: parseDate(reserva.end_date)
         };
     });
 
@@ -189,27 +196,16 @@
 
                 var isHighlighted = false;
 
+                // Verifica se este dia bate certo com algum dia esgotado
                 parsedReservas.forEach(function (reserva) {
-                    var start      = reserva.start;
-                    var end        = reserva.end;
-                    var ciclica_id = reserva.ciclica_id;
-
-                    if (dayDate >= start && dayDate <= end) {
-                        if (ciclica_id == 1 || ciclica_id == null) {
-                            isHighlighted = true;
-                        } else {
-                            var dayOfWeekCalendario = dayDate.getDay();
-                            var dayOfWeekCiclica    = ciclica_id - 2;
-
-                            if (dayOfWeekCalendario === dayOfWeekCiclica) {
-                                isHighlighted = true;
-                            }
-                        }
+                    if (dayDate >= reserva.start && dayDate <= reserva.end) {
+                        isHighlighted = true;
                     }
                 });
 
                 if (isHighlighted) {
                     day.classList.add('has-event');
+                    day.title = "Stock esgotado neste dia"; // Adiciona um pequeno tooltip
                 } else {
                     day.classList.remove('has-event');
                 }
