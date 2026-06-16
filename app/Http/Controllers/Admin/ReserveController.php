@@ -195,10 +195,6 @@ class ReserveController extends Controller
                             'item_reserve_id' => $reserve_item_id,
                             'item_unity_id'   => $unity_id
                         ]);
-
-                        ItemUnity::find($unity_id)->update([
-                            'item_unity_state_id' => 2 
-                        ]);
                     }
                 }
             }
@@ -211,15 +207,6 @@ class ReserveController extends Controller
                         DB::table('kit_unity_reserve')->insert([
                             'kit_reserve_id' => $reserve_kit_id,
                             'kit_unity_id'   => $unity_id
-                        ]);
-
-                        KitUnity::find($unity_id)->update([
-                            'kit_unity_state_id' => 2 
-                        ]);
-
-                        //Trancar todas as peças que foram dentro desta mala!
-                        ItemUnity::where('kit_unity_id', $unity_id)->update([
-                            'item_unity_state_id' => 2
                         ]);
                     }
                 }
@@ -244,11 +231,13 @@ class ReserveController extends Controller
         $reserve->return_date = Carbon::now();
         $temProblema = $request->filled('return_notes');
         
-        //buscar os arrays com os IDs que o admin selecionou na Modal (se não houver, fica array vazio)
+        // Texto que o técnico escreveu na devolução (se não escreveu nada, gera um texto automático)
+        $textoAvaria = $temProblema ? $request->return_notes : 'Avaria registada na devolução da Reserva #' . $id;
+        
         $brokenItems = $request->input('broken_items', []); 
         $brokenKits = $request->input('broken_kits', []); 
 
-        $kitsIncompletos = []; // Para guardar que kits ficam incompletos devido a uma peça avariada
+        $kitsIncompletos = []; 
 
         // 1. RECEBER ITENS SOLTOS
         $itemReserves = ItemReserve::where('reserve_id', $id)->pluck('id');
@@ -257,13 +246,19 @@ class ReserveController extends Controller
         foreach ($unidades_fisicas as $uf) {
             $unidade = ItemUnity::find($uf->item_unity_id);
             if ($unidade) {
-                // VERIFICAÇÃO PRECISA: Este LIA específico foi selecionado na modal?
                 $isBroken = in_array($unidade->id, $brokenItems);
                 
                 $unidade->item_unity_state_id = $isBroken ? 4 : 1; 
+                
+                // NOVA LÓGICA: Atualiza as observações automaticamente
+                if ($isBroken) {
+                    $unidade->observacoes = $textoAvaria;
+                } else {
+                    $unidade->observacoes = null; // Se devolveu em bom estado, limpa observações antigas
+                }
+
                 $unidade->save();
 
-                // Lógica de Segurança: Se este item partiu e faz parte de uma mala/kit, a mala tem de ser bloqueada
                 if ($isBroken && $unidade->kit_unity_id) {
                     $kitsIncompletos[] = $unidade->kit_unity_id;
                 }
@@ -277,16 +272,28 @@ class ReserveController extends Controller
         foreach ($kits_fisicos as $kf) {
             $kit_unidade = KitUnity::find($kf->kit_unity_id);
             if ($kit_unidade) {
-                // VERIFICAÇÃO PRECISA: A mala avariou? OU falta-lhe alguma peça que avariou no passo acima?
                 $isKitBroken = in_array($kit_unidade->id, $brokenKits) || in_array($kit_unidade->id, $kitsIncompletos);
                 
                 $kit_unidade->kit_unity_state_id = $isKitBroken ? 4 : 1; 
+                
+                // NOVA LÓGICA: Atualiza as observações da Mala
+                if ($isKitBroken) {
+                    // Se o kit avariou todo, leva a nota do técnico. Se ficou incompleto devido a uma peça, gera um aviso.
+                    $motivoKit = in_array($kit_unidade->id, $brokenKits) ? $textoAvaria : 'Mala incompleta/bloqueada devido a avaria de um item interno (Reserva #' . $id . ')';
+                    $kit_unidade->observacoes = $motivoKit;
+                } else {
+                    $kit_unidade->observacoes = null;
+                }
+
                 $kit_unidade->save();
 
-                // LÓGICA: Se a mala voltou bem (1), as peças ficam bem (1). Se a mala avariou (4), as peças bloqueiam (4).
+                // NOVA LÓGICA: Atualiza os itens lá dentro
                 $estadoDasPecas = $isKitBroken ? 4 : 1;
+                $obsDasPecas = $isKitBroken ? 'Bloqueado devido a avaria/falha no Kit (Reserva #' . $id . ')' : null;
+                
                 ItemUnity::where('kit_unity_id', $kit_unidade->id)->update([
-                    'item_unity_state_id' => $estadoDasPecas
+                    'item_unity_state_id' => $estadoDasPecas,
+                    'observacoes' => $obsDasPecas
                 ]);
             }
         }
@@ -303,7 +310,7 @@ class ReserveController extends Controller
         $reserve->reserve_state_id = $todaydate->lte($endDate) ? 8 : 9;
         $reserve->save();
         
-        return back()->with('toast_success', 'Material recebido! Avarias isoladas com precisão cirúrgica.');
+        return back()->with('toast_success', 'Material recebido e estados sincronizados com sucesso!');
     }
 
     public function finalize($id)

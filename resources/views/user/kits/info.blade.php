@@ -34,10 +34,27 @@
                     <img src="../{{ $kit->image }}" width="100%" style="border-radius:10px;">
                 </div>
                 <div class="col-12 col-sm-6">
-                    <h3 class="my-3">
-                        {{ $kit->name }}
-                    </h3>
-                    <p>{{ $kit->description }}</p>
+                    <hr>
+                    <h5 class="mb-3 font-weight-bold">O que vem neste Kit?</h5>
+                    
+                    @if($kitUnityExemplo && $kitUnityExemplo->itemUnities->count() > 0)
+                        <ul class="list-group list-group-flush mb-4">
+                            @foreach($kitUnityExemplo->itemUnities as $itemUnity)
+                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 border-bottom-0 pb-1 pt-1">
+                                    <span>
+                                        
+                                        {{ $itemUnity->item->nome }}
+                                    </span>
+                                    <small class="text-muted">{{ $itemUnity->item->model ?? '' }}</small>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <div class="alert alert-light border text-muted small shadow-sm mb-4">
+                            <i class="fas fa-info-circle mr-2"></i> O conteúdo detalhado deste kit não está especificado no momento.
+                        </div>
+                    @endif
+                    <hr>
                     
                     <hr>
                     <div class="container d-flex justify-content-center align-items-center text-center flex-column" id="calendar">
@@ -73,17 +90,28 @@
                             </h6>
                         </div>
                         <div class="col-4" style="flex: 1; text-align: right;">
-                            <form id="form-reservar" action="{{ route('kit.add', ['id' => $kit->id]) }}" method="post" style="display: flex;">
-                                @csrf
-                                @method('POST')
-                                <div class="form-group" style="margin-right: 10px; margin-top:15px;">
-                                    <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ session()->has('reserve') ? $quantidadeDisponivel : $kitCount }}" value="{{ (session()->has('reserve') ? $quantidadeDisponivel : $kitCount) > 0 ? 1 : 0 }}" {{ (session()->has('reserve') ? $quantidadeDisponivel : $kitCount) <= 0 ? 'disabled' : '' }} style="width: 50px;">
+                            @if(session()->has('reserve'))
+                                {{-- Tem reserva: Mostra o formulário normal --}}
+                                <form id="form-reservar" action="{{ route('item.add', ['id' => $item->id]) }}" method="post" style="display: flex; justify-content: flex-end;">
+                                    @csrf
+                                    @method('POST')
+                                    <div class="form-group" style="margin-right: 10px; margin-top: 15px;">
+                                        <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ $quantidadeDisponivel }}" value="{{ $quantidadeDisponivel > 0 ? 1 : 0 }}" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }} style="width: 50px;">
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-dark" id="item" style="margin-top: 15px;" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }}>
+                                        <i class="fas fa-cart-plus fa-lg mr-2"></i>
+                                        Reservar
+                                    </button>
+                                </form>
+                            @else
+                                {{-- NÃO tem reserva: Mostra um botão de aviso --}}
+                                <div style="margin-top: 15px; display: flex; justify-content: flex-end;">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="alert('Por favor, inicie uma reserva primeiro (no menu lateral Reservas) para poder adicionar equipamentos ao carrinho.')">
+                                        <i class="fas fa-cart-arrow-down fa-lg mr-2"></i>
+                                        Reservar
+                                    </button>
                                 </div>
-                                <button type="submit" class="btn btn-outline-dark" id="kit" {{ (session()->has('reserve') ? $quantidadeDisponivel : $kitCount) <= 0 ? 'disabled' : '' }}>
-                                    <i class="fas fa-cart-plus fa-lg mr-2"></i>
-                                    Reservar
-                                </button>
-                            </form>
+                            @endif
                         </div>
                     </div>
                 </div>
