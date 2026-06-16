@@ -47,7 +47,14 @@
                                 <option value="2" {{ $unidade->kit_unity_state_id == 2 ? 'selected' : '' }}>Oculto</option>
                             </select>
                         </li>
-                    </ul>
+
+                       {{-- O bloco só fica visível se o estado for 2 (Oculto) --}}
+                        <li class="list-group-item" id="bloco-observacoes" style="display: {{ $unidade->kit_unity_state_id == 2 ? 'block' : 'none' }};">
+                            <span class="mr-2 d-block mb-2">Motivo / Observações: </span>
+                            <textarea id="observacoes" name="observacoes" class="form-control form-control-sm" rows="2" placeholder="Ex: Fecho da mala partido, a aguardar reparação.">{{ $unidade->observacoes }}</textarea>
+                        </li>
+                        {{-- FIM DO BLOCO --}}
+                    </ul>   
 
                     
                     @foreach($unidade->itemUnities as $itemUnity)
@@ -92,6 +99,13 @@
                 @else badge-danger @endif">
                 {{ $itemUnity->itemUnityState->description ?? 'Estado ' . $itemUnity->item_unity_state_id }}
             </span>
+
+            {{-- AQUI ESTÁ A PARTE QUE MOSTRA O PORQUÊ PARA OS ITENS DENTRO DA MALA --}}
+            @if(!empty($itemUnity->observacoes) && in_array($itemUnity->item_unity_state_id, [2, 4]))
+                <span class="d-block text-muted mt-1 small" style="line-height: 1.2;">
+                    <i class="fas fa-exclamation-triangle text-warning"></i> {{ $itemUnity->observacoes }}
+                </span>
+            @endif
         </td>
     </tr>
     @endforeach
@@ -149,6 +163,22 @@
                                         @elseif($u->kit_unity_state_id == 3)
                                             <span class="badge badge-danger">Anulado</span>
                                         @endif
+
+                                        @php $reservaAtual = $u->reservaAtiva(); @endphp
+                                        @if($reservaAtual)
+                                            <span class="badge badge-info ml-1">
+                                                <i class="fas fa-user-check"></i> Em Uso (Reserva #{{ $reservaAtual }})
+                                            </span>
+                                        @endif
+
+                                        {{-- AQUI ESTÁ A PARTE QUE MOSTRA O PORQUÊ DA MALA ESTAR OCULTA --}}
+                                        @if(!empty($u->observacoes) && $u->kit_unity_state_id == 2)
+                                            <span class="d-block text-muted mt-1 small" style="line-height: 1.2;">
+                                                <i class="fas fa-info-circle"></i> {{ $u->observacoes }}
+                                            </span>
+                                        @endif
+
+                                       
                                     </td>
                                 </tr>
                                 @endforeach
@@ -268,28 +298,37 @@
 @section('js')
 <script>
     $(document).ready(function() {
+        // ==========================================
+        // 1. VARIÁVEIS INICIAIS
+        // ==========================================
         let liaOriginalValue = $('#lia_code').val();
+        let obsOriginalValue = $('#observacoes').val();
 
-        // [Sincronização] Copia o Código LIA principal para o input hidden do modal
-        $('#lia_code').on('input change blur', function() {
-            $('#modal_lia_code').val($(this).val().trim());
+        // ==========================================
+        // 2. AUTO-SAVE (OBSERVAÇÕES, ESTADO E LIA)
+        // ==========================================
+        
+        // Auto-save das observações ao clicar fora
+        $('#observacoes').on('blur', function() {
+            if ($(this).val().trim() !== (obsOriginalValue || '').trim()) {
+                $('#form-unidade').submit();
+            }
         });
 
-        // Evento de mudança no Estado Principal
+        // Sincroniza e faz auto-save do Estado
         $('#kit_unity_state_id').on('change', function() {
-            // [Sincronização] Copia o estado principal para o input hidden do modal antes de submeter
             $('#modal_kit_state_id').val($(this).val());
             $('#form-unidade').submit();
         });
 
-        // Evento de Blur para submissão imediata ao mudar o código LIA
+        // Auto-save do LIA Code ao clicar fora
         $('#lia_code').on('blur', function() {
             if ($(this).val().trim() !== liaOriginalValue) {
                 $('#form-unidade').submit();
             }
         });
 
-        // Previne submissão ao carregar no Enter dentro do campo LIA
+        // Previne submissão ao carregar no Enter no campo LIA (faz blur em vez disso)
         $('#lia_code').on('keypress', function(e) {
             if (e.which == 13) {
                 e.preventDefault();
@@ -297,7 +336,15 @@
             }
         });
 
-        // Função que avalia e altera a visibilidade do aviso de itens ocultos
+        // Sincroniza o LIA com o input escondido do Modal
+        $('#lia_code').on('input change blur', function() {
+            $('#modal_lia_code').val($(this).val().trim());
+        });
+
+        // ==========================================
+        // 3. LÓGICA DO MODAL (GERIR ITENS)
+        // ==========================================
+        
         function verificarItensOcultosSelecionados() {
             let itemOcultoMarcado = false;
             
@@ -315,47 +362,40 @@
             }
         }
 
-        // Monitoriza cliques nas caixas de seleção para atualizar o aviso instantaneamente
         $(document).on('change', '.check-item', function() {
             verificarItensOcultosSelecionados();
         });
 
-        // Executa ao abrir o modal para garantir o estado inicial do aviso
         $('#modalGerarItens').on('shown.bs.modal', function () {
             verificarItensOcultosSelecionados();
         });
 
-       // Filtro de pesquisa por texto em tempo real no Modal
+        // Pesquisa no Modal
         $('#search-items-modal').on('keyup', function() {
             let valor = $(this).val().toLowerCase().trim();
             
             $('#modalGerarItens .item-row').each(function() {
-                // Proteção extra: garantir que não dá erro se o data-nome vier vazio
                 let nome = $(this).data('nome') ? $(this).data('nome').toString().toLowerCase() : '';
                 let code = $(this).data('code') ? $(this).data('code').toString().toLowerCase() : '';
                 
                 if (nome.includes(valor) || code.includes(valor)) {
-                    // Se encontrou: tira o d-none e RESTAURA o d-flex para não estragar o design
                     $(this).removeClass('d-none').addClass('d-flex');
                 } else {
-                    // Se não encontrou: tira o d-flex (para ele deixar de forçar a visibilidade) e aplica o d-none
                     $(this).removeClass('d-flex').addClass('d-none');
                 }
             });
         });
 
-        // Validação no envio do formulário do Modal (Submit)
+        // Validação ao submeter o Modal
         $('#form-gerar-itens').on('submit', function(e) {
             let totalMarcados = $('.check-item:checked').length;
 
-            // 1. Regra Crítica: Proibido ficar com 0 itens
             if (totalMarcados === 0) {
                 e.preventDefault();
                 alert('Ação bloqueada! O kit não pode ficar sem nenhum item associado. Selecione pelo menos um componente.');
                 return false;
             }
 
-            // 2. Confirmação se houver itens ocultos selecionados
             let temOculto = !$('#aviso-item-oculto').hasClass('d-none');
             if (temOculto) {
                 let confirmacao = confirm('Os itens ocultos/em manutenção selecionados vão forçar esta unidade de Kit a ficar no estado Oculto.');
@@ -366,6 +406,9 @@
             }
         });
 
+        // ==========================================
+        // 4. MENSAGENS DE ERRO (TOASTS)
+        // ==========================================
         @if($errors->any())
             let mensagemErro = "{{ $errors->first() }}";
             alert(mensagemErro);

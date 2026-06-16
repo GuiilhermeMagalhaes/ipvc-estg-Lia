@@ -195,10 +195,6 @@ class ReserveController extends Controller
                             'item_reserve_id' => $reserve_item_id,
                             'item_unity_id'   => $unity_id
                         ]);
-
-                        ItemUnity::find($unity_id)->update([
-                            'item_unity_state_id' => 2 
-                        ]);
                     }
                 }
             }
@@ -211,15 +207,6 @@ class ReserveController extends Controller
                         DB::table('kit_unity_reserve')->insert([
                             'kit_reserve_id' => $reserve_kit_id,
                             'kit_unity_id'   => $unity_id
-                        ]);
-
-                        KitUnity::find($unity_id)->update([
-                            'kit_unity_state_id' => 2 
-                        ]);
-
-                        //Trancar todas as peças que foram dentro desta mala!
-                        ItemUnity::where('kit_unity_id', $unity_id)->update([
-                            'item_unity_state_id' => 2
                         ]);
                     }
                 }

@@ -119,7 +119,7 @@ class ItemController extends Controller
             
             if ($unidade) {
                 // 1. Atualiza a peça individual
-                $unidade->update($request->only(['lia_code', 'item_unity_state_id', 'data_aquisicao']));
+                $unidade->update($request->only(['lia_code', 'item_unity_state_id', 'data_aquisicao','observacoes']));
 
                 // 2. NOVA LÓGICA DE SINCRONIZAÇÃO COM A MALA (KIT)
                 if ($unidade->kit_unity_id) {

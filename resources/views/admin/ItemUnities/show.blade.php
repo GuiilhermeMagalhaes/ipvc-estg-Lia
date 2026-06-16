@@ -50,6 +50,12 @@
                             </select>
                         </li>
                         
+                        {{-- O bloco fica visível se o estado for 2 (Oculto) ou 4 (Manutenção) --}}
+                        <li class="list-group-item" id="bloco-observacoes" style="display: {{ in_array($unidade->item_unity_state_id, [2, 4]) ? 'block' : 'none' }};">
+                            <span class="mr-2 d-block mb-2">Motivo / Observações: </span>
+                            <textarea id="observacoes" name="observacoes" class="form-control form-control-sm" rows="2" placeholder="Ex: Lente riscada, a aguardar orçamento.">{{ $unidade->observacoes }}</textarea>
+                        </li>
+                        
                         <li class="list-group-item d-flex align-items-center">
                             <span style="width: 150px; display: inline-block;">Data de Aquisição: </span>
                             <input type="date" id="data_aquisicao" name="data_aquisicao" class="form-control form-control-sm" value="{{ $unidade->data_aquisicao ? $unidade->data_aquisicao->format('Y-m-d') : '' }}" max="{{ date('Y-m-d') }}" style="width: 180px; display: inline-block;">
@@ -117,6 +123,20 @@
                         @elseif($u->item_unity_state_id == 4)
                             <span class="badge badge-warning">Manutenção</span>
                         @endif
+
+                        @php $reservaAtual = $u->reservaAtiva(); @endphp
+                        @if($reservaAtual)
+                            <span class="badge badge-info ml-1">
+                                <i class="fas fa-user-check"></i> Em Uso (Reserva #{{ $reservaAtual }})
+                            </span>
+                        @endif
+
+                        {{-- AQUI ESTÁ A PARTE QUE MOSTRA O PORQUÊ --}}
+                        @if(!empty($u->observacoes) && in_array($u->item_unity_state_id, [2, 4]))
+                            <span class="d-block text-muted mt-1 small" style="line-height: 1.2;">
+                                <i class="fas fa-info-circle"></i> {{ $u->observacoes }}
+                            </span>
+                        @endif
                     </td>
                 </tr>
                 @endforeach
@@ -157,8 +177,15 @@
     $(document).ready(function() {
         let liaOriginalValue = $('#lia_code').val();
         let dataOriginalValue = $('#data_aquisicao').val();
-
         let estadoAnterior = $('#item_unity_state_id').val();
+
+        let obsOriginalValue = $('#observacoes').val();
+
+        $('#observacoes').on('blur', function() {
+            if ($(this).val().trim() !== (obsOriginalValue || '').trim()) {
+                $('#form-unidade').submit();
+            }
+        });
 
        
        $('#item_unity_state_id').on('change', function() {
@@ -245,5 +272,10 @@
         @endif
     });
 
+
+  
+
 </script>
+
+
 @endsection

@@ -16,7 +16,8 @@ class ItemUnity extends Model
         'item_id',
         'kit_unity_id',
         'item_unity_state_id', 
-        'data_aquisicao'
+        'data_aquisicao',
+        'observacoes'
     ];
 
     protected $casts = [
@@ -51,6 +52,19 @@ class ItemUnity extends Model
         return $this->data_aquisicao->locale('pt')->diffForHumans([
         'parts' => 2, // Ex: "há 3 anos e 2 meses"
         'syntax' => Carbon::DIFF_RELATIVE_TO_NOW
-    ]);
+        ]);
+    }
+
+    public function reservaAtiva() 
+    {
+        $reserva = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
+            ->join('item_reserve', 'item_unity_reserve.item_reserve_id', '=', 'item_reserve.id')
+            ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
+            ->where('item_unity_reserve.item_unity_id', $this->id)
+            ->whereIn('reserves.reserve_state_id', [4, 7]) // 4 = Em curso, 7 = Atrasada
+            ->select('reserves.id')
+            ->first();
+        
+        return $reserva ? $reserva->id : null;
     }
 }

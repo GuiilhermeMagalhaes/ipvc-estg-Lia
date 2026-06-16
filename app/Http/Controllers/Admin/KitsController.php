@@ -218,7 +218,8 @@ public function updateUnity(Request $request, $id)
 
             $unidade->update([
                 'lia_code' => $request->input('lia_code'),
-                'kit_unity_state_id' => $estadoKit
+                'kit_unity_state_id' => $estadoKit,
+                'observacoes' => $request->input('observacoes', null)
             ]);
         });
 
