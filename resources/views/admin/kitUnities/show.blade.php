@@ -331,7 +331,7 @@
             // 2. Confirmação se houver itens ocultos selecionados
             let temOculto = !$('#aviso-item-oculto').hasClass('d-none');
             if (temOculto) {
-                let confirmacao = confirm('Os itens ocultos selecionados vão forçar esta unidade de Kit a ficar no estado Oculto.');
+                let confirmacao = confirm('A seleção de itens ocultos alterará automaticamente o estado da unidade do kit para oculto.');
                 if (!confirmacao) {
                     e.preventDefault();
                     return false;
