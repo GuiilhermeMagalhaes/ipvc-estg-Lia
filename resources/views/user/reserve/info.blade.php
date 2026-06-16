@@ -30,24 +30,25 @@
                     <h5>Data de Fim</h5>
                     <p>{{ \Carbon\Carbon::createFromFormat('Y-m-d', session()->get('reserve.end_date'))->format('d-m-Y') }}</p>
                 </div>
+                @if (session()->has('reserve.kits') && count(session()->get('reserve.kits')) > 0)
                 <div class="callout callout-info" id="kits">
                     <h5>Kits para Reserva</h5>
                     <table class="table">
                         <thead>
+                             <tr>
                             <th>Nome</th>
-                            <th>Preço</th>
+                            <th>Preço / dia</th>
+                            <th>Quantidade</th>
                             <th></th>
+                            </tr>
                         </thead>
-                       @if (session()->has('reserve.kits'))
                             <tbody>
                                 @foreach (session()->get('reserve.kits') as $kitId => $kitData)
                                     <tr>
                                         <td>{{ $kitData['name'] }}</td>
                                         
-                                        <td>
-                                            {{ number_format($kitData['price_day'], 2, ',', '.') }} € / dia 
-                                            <small class="text-muted">(Qtd: {{ $kitData['quantity'] }})</small>
-                                        </td>
+                                        <td>{{ number_format($kitData['price_day'], 2, ',', '.') }} € / dia </td>
+                                        <td>{{ $kitData['quantity'] }}</td>
                                         <td>
                                             <form action="{{ route('kit.remove', ['id' => $kitId]) }}" method="post">
                                                 @csrf
@@ -58,21 +59,21 @@
                                     </tr>
                                 @endforeach
                             </tbody>
-                        @endif
-                    </table>
+                    </table>  
                 </div>
+                 @endif
+                @if (session()->has('reserve.items') && count(session()->get('reserve.items')) > 0)
                <div class="callout callout-info" id="itens">
     <h5>Itens para Reserva</h5>
     <table class="table">
         <thead>
             <tr>
                 <th>Nome</th>
-                <th>Preço</th>
+                <th>Preço / dia</th>
                 <th>Quantidade</th>
                 <th></th>
             </tr>
         </thead>
-        @if (session()->has('reserve.items'))
             <tbody>
                 @foreach (session()->get('reserve.items') as $itemId => $item)
                     <tr>
@@ -89,9 +90,9 @@
                     </tr>
                 @endforeach
             </tbody>
-        @endif
     </table>
 </div>
+@endif
             </div>
         </div>
 

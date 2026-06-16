@@ -34,6 +34,7 @@
                     <img src="../{{ $kit->image }}" width="100%" style="border-radius:10px;">
                 </div>
                 <div class="col-12 col-sm-6">
+                    <h3 class="my-3">{{ $kit->name }}</h3>
                     <hr>
                     <h5 class="mb-3 font-weight-bold">O que vem neste Kit?</h5>
                     
@@ -56,9 +57,19 @@
                     @endif
                     <hr>
                     
-                    <hr>
+            
                     <div class="container d-flex justify-content-center align-items-center text-center flex-column" id="calendar">
+
+                        <p class="align-self-start mb-2">Disponibilidade:</p>
                         <div id="datepicker"></div>
+                         @if (count($reservas) > 0)
+                        <small class="mt-2">
+                            <strong class="text-danger">Importante:</strong> Não existe stock nos dias assinalados a cinzento.
+                        </small>
+                        @else
+                        <small class="mt-2"> Não existem reservas registadas deste item, todos os dias estão disponíveis.</small>
+                            
+                        @endif
                         @php
                         $reservasJS = [];
                         foreach ($reservas as $reserva) {
@@ -68,9 +79,7 @@
                         ];
                         }
                         @endphp
-                        @if(count($reservas) == 0)
-                        <p>Nenhuma reserva encontrada para este kit.</p>
-                        @endif
+                       
                     </div>
                     <hr>
                     <div class="row" style="display: flex; justify-content: space-between; align-items: center; text-align: center; padding: 10px; margin: 10px 0;">
@@ -92,15 +101,15 @@
                         <div class="col-4" style="flex: 1; text-align: right;">
                             @if(session()->has('reserve'))
                                 {{-- Tem reserva: Mostra o formulário normal --}}
-                                <form id="form-reservar" action="{{ route('item.add', ['id' => $item->id]) }}" method="post" style="display: flex; justify-content: flex-end;">
+                                    <form id="form-reservar" action="{{ route('kit.add', ['id' => $kit->id]) }}" method="post" style="display: flex; justify-content: flex-end;">
                                     @csrf
                                     @method('POST')
                                     <div class="form-group" style="margin-right: 10px; margin-top: 15px;">
                                         <input type="number" name="quantity" id="quantity" class="form-control" min="1" max="{{ $quantidadeDisponivel }}" value="{{ $quantidadeDisponivel > 0 ? 1 : 0 }}" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }} style="width: 50px;">
                                     </div>
-                                    <button type="submit" class="btn btn-outline-dark" id="item" style="margin-top: 15px;" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }}>
+                                    <button type="submit" class="btn btn-outline-dark" id="kit" style="margin-top: 15px;" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }}>
                                         <i class="fas fa-cart-plus fa-lg mr-2"></i>
-                                        Reservar
+                                        Adicionar
                                     </button>
                                 </form>
                             @else

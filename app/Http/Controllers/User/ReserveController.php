@@ -253,7 +253,7 @@ class ReserveController extends Controller
     $existingKits[$kit->id] = [
         'id' => $kit->id,
         'name' => $kit->name,
-        'price' => $kit->price,
+        'price_day' => $kit->price_day,
         'quantity' => $totalAAdicionar
     ];
 

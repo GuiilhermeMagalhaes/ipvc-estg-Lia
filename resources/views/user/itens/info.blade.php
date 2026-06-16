@@ -43,19 +43,35 @@
                 
                 <div class="col-12 col-sm-6">
                     <h3 class="my-3">{{ $item->nome }}</h3>
+                     <hr>
                     <p>Modelo: {{ $item->model }}</p>
 
                     <p>Categoria: {{ $item->itemCategorie->description ?? 'Sem Categoria' }}</p>
 
-                    <p>Observação: {{ $item->observation }}</p>
-                    <p>Acessórios: {{ $item->acessorio }}</p>
-                
+                    <p>Observação: {{ $item->observation ?? 'Nenhuma observação'}}</p>
+                    <p>Acessórios: {{ $item->acessorio ?? 'Nenhum acessório registado'}}</p>
+                  
+                    
 
                     <hr>
 
                   
                     <div class="container d-flex justify-content-center align-items-center text-center flex-column" id="calendar">
+                        <p class="align-self-start mb-2">Disponibilidade:</p>
                         <div id="datepicker"></div>
+                       
+
+
+                        @if (count($reservas) > 0)
+                    <small class="mt-2">
+                        <strong class="text-danger">Importante:</strong> Não existe stock nos dias assinalados a cinzento.
+                    </small>
+                    @else
+                    <small class="mt-2"> Não existem reservas registadas deste item, todos os dias estão disponíveis.</small>
+                        
+                    @endif
+
+
                         @php
                             $reservasJS = [];
                             foreach ($reservas as $reserva) {
@@ -66,9 +82,7 @@
                                 ];
                             }
                         @endphp
-                        @if (count($reservas) == 0)
-                            <p>Nenhuma reserva encontrada para este item.</p>
-                        @endif
+                       
                     </div>
 
                     <hr>
@@ -101,7 +115,7 @@
                                     </div>
                                     <button type="submit" class="btn btn-outline-dark" id="item" style="margin-top: 15px;" {{ $quantidadeDisponivel <= 0 ? 'disabled' : '' }}>
                                         <i class="fas fa-cart-plus fa-lg mr-2"></i>
-                                        Reservar
+                                        Adicionar
                                     </button>
                                 </form>
                             @else
