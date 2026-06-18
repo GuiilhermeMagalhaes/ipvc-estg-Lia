@@ -61,9 +61,9 @@
                 <label for="cost_center_id">Centro de Custos</label>
                 <select class="form-control" name="cost_center_id" id="cost_center">
                     @foreach ($costCenters as $costCenter)
-                    {{-- @if ($costCenter->id != 1) --}}
-                    <option value="{{ $costCenter->id }}">{{ $costCenter->name }}</option>
-                    {{-- @endif --}}
+                        <option value="{{ $costCenter->id }}" {{ $costCenter->id == 1 ? 'selected' : '' }}>
+                            {{ $costCenter->name }}
+                        </option>
                     @endforeach
                 </select>
                 @error('cost_center')
