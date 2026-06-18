@@ -13,6 +13,7 @@ use RealRashid\SweetAlert\Facades\Alert;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ItemUnity;
+use Illuminate\Support\Facades\Storage;
 
 
 
@@ -377,7 +378,7 @@ public function createUnities(Request $request)
 
     $itensLivres = ItemUnity::with('item')
         ->whereNull('kit_unity_id')
-        ->whereIn('item_unity_state_id', [1, 2]) 
+        ->whereIn('item_unity_state_id', [1, 2, 4]) 
         ->get();
 
     if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
@@ -451,7 +452,7 @@ public function storeUnities(Request $request)
             if (isset($request->items_for_unity[$index]) && is_array($request->items_for_unity[$index])) {
                 foreach ($request->items_for_unity[$index] as $itemId) {
                     $itemUnityTemp = ItemUnity::find($itemId);
-                    if ($itemUnityTemp && $itemUnityTemp->item_unity_state_id == 2) {
+                    if ($itemUnityTemp && ($itemUnityTemp->item_unity_state_id == 2 || $itemUnityTemp->item_unity_state_id == 4)) {
                         $definirEstadoKitUnity = 2; 
                         break; 
                     }

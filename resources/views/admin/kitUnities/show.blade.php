@@ -131,13 +131,13 @@
                     <li class="list-group-item">Referência IPVC: {{ $kit->ipvc_ref ?? 'Não definida' }}</li>
                     <li class="list-group-item">Preço: {{ number_format($kit->price, 2, ',', '.') }} €</li>
                     <li class="list-group-item">Preço / dia : {{ number_format($kit->price_day, 2, ',', '.') }} € / dia</li>
-                    <li class="list-group-item bg-light">Quantidade Total: {{ $kit->quantity }}</li>
+                    
 
                     <li class="list-group-item text-muted italic small">
                         Mais unidades do mesmo kit registadas: 
                     </li>
 
-
+                    <li class="list-group-item bg-light">Quantidade Total: {{ $kit->quantity }}</li>
                     @if(isset($unidadesDoKit) && $unidadesDoKit->count() > 0)
                     <li class="list-group-item bg-light p-0">
                         <table class="table table-sm m-0">
@@ -223,7 +223,7 @@
                 <div class="modal-body">
                     {{-- Espaço de Alerta Dinâmico para Itens Ocultos --}}
                     <div id="aviso-item-oculto" class="alert alert-danger">
-                        Existem itens com o estado Oculto selecionados. Ao gravar, esta unidade de Kit passará automaticamente para o estado Oculto.
+                        Existem itens com o estados Oculto/Manutenção selecionados. Ao gravar, esta unidade de Kit passará automaticamente para o estado Oculto.
                     </div>
 
                     <p class="text-muted mb-3">Selecione os itens que farão parte desta unidade de kit. Desmarque para remover.</p>

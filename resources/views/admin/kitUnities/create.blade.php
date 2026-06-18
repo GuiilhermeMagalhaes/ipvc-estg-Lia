@@ -62,7 +62,7 @@
 
                     
                     <div class="alert alert-danger py-2 px-3 mb-2 d-none hidden-item-warning" id="warning-unity-{{ $i }}">
-                         Selecionou um item oculto! Esta unidade vai ficar com estado oculto automaticamente.
+                         Selecionou um item oculto ou em manutenção! Esta unidade vai ficar com estado oculto automaticamente.
                     </div>
 
                    <div class="selected-items-list" id="selected-container-{{ $i }}">
@@ -80,8 +80,11 @@
                                         <span>
                                             <strong>{{ $itemRecuperado->item->nome ?? 'Sem Nome' }}</strong> 
                                             <span class="ml-3 text-secondary" style="font-size: 0.95rem; font-weight: 500;">({{ $itemRecuperado->lia_code }})</span>
+                                            
                                             @if($itemRecuperado->item_unity_state_id == 2)
                                                 <span class="badge badge-danger ml-2">Oculto</span>
+                                            @elseif($itemRecuperado->item_unity_state_id == 4)
+                                                <span class="badge badge-warning ml-2 text-dark">Manutenção</span>
                                             @endif
                                         </span>
                                         <button type="button" class="btn btn-danger btn-sm remove-item-btn" data-id="{{ $itemRecuperado->id }}" data-unit="{{ $i }}">X</button>
@@ -144,6 +147,8 @@
                                    
                                     @if($item->item_unity_state_id == 2)
                                         <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>
+                                    @elseif($item->item_unity_state_id == 4)
+                                        <span class="ml-2" style="color: orange; font-size: 0.8rem; font-weight: bold;">Manutenção</span>
                                     @endif
                                 </span>
                                 <button type="button" class="btn btn-primary btn-sm modal-add-btn" 
@@ -212,21 +217,22 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Pesquisa simplificada e funcional por atributos limpos
-    $(document).on('keyup', '#search-items-modal', function() {
-        var valor = $(this).val().toLowerCase().trim();
+$(document).on('keyup', '#search-items-modal', function() {
+    var valor = $(this).val().toLowerCase().trim();
+    
+    $('.available-items-container .item-row, .available-items-container .available-item').each(function() {
+        var nome = ($(this).data('nome') || '').toString().toLowerCase();
+        var codigo = ($(this).data('code') || '').toString().toLowerCase();
         
-        $('.available-items-container .available-item').each(function() {
-            var nome = ($(this).attr('data-nome') || '').toLowerCase();
-            var codigo = ($(this).attr('data-code') || '').toLowerCase();
-            
-            if (nome.indexOf(valor) > -1 || codigo.indexOf(valor) > -1) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
+        if (nome.indexOf(valor) > -1 || codigo.indexOf(valor) > -1) {
+            // Se encontrar, garante que exibe como flex e remove o d-none
+            $(this).addClass('d-flex').removeClass('d-none');
+        } else {
+            // Se não encontrar, esconde com d-none e remove o d-flex
+            $(this).addClass('d-none').removeClass('d-flex');
+        }
     });
-
+});
     // Evento de adicionar item
     $(document).on('click', '.modal-add-btn', function(e) {
         e.preventDefault();
@@ -244,14 +250,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
         $(`#selected-container-${activeUnitId} .visual-placeholder`).remove();
 
+        let badgeHTML = '';
+        if (state == 2) {
+            badgeHTML = ' <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>';
+        } else if (state == 4) {
+            badgeHTML = ' <span class="ml-2" style="color: orange; font-size: 0.8rem; font-weight: bold;">Manutenção</span>';
+        }
+
         const itemRow = `
             <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded bg-light style-row" 
                  id="selected-item-${itemId}" data-state="${state}">
                 <input type="hidden" name="items_for_unity[${activeUnitId}][]" value="${itemId}">
                 <span>
-                    <strong>${nome}</strong> 
-                    <span class="ml-3 text-secondary" style="font-size: 0.95rem; font-weight: 500;">(${code})</span>
-                    ${state == 2 ? ' <span class="ml-2" style="color: red; font-size: 0.8rem; font-weight: bold;">Oculto</span>' : ''}
+                <strong>${nome}</strong> 
+                <span class="ml-3 text-secondary" style="font-size: 0.95rem; font-weight: 500;">(${code})</span>
+                ${badgeHTML} 
                 </span>
                 <button type="button" class="btn btn-danger btn-sm remove-item-btn" data-id="${itemId}" data-unit="${activeUnitId}">X</button>
             </div>
@@ -284,7 +297,8 @@ document.addEventListener("DOMContentLoaded", function () {
         let temOculto = false;
         
         $(`#selected-container-${unitId} .style-row`).each(function() {
-            if ($(this).attr('data-state') == '2') {
+            let estado = $(this).attr('data-state');
+            if (estado == '2' || estado == '4') {
                 temOculto = true;
             }
         });
