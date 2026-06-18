@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
     return $request->user();
 });*/
 
+/* isto já estava  , nao mexi aqui */
+
 Route::get('item', 'ItemsControllerAPI@index')->middleware('loginCheck');
 
 Route::post('login', 'Auth\LoginControllerAPI@login');
