@@ -688,11 +688,52 @@ public function showUnitiesEtapa($id)
         return redirect('/');
     }
 
-    public function manutencao()
+    public function manutencao(Request $request)
     {
 
     if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
         return redirect('/');
+    }
+    if ($request->ajax()) {
+        $output = '';
+        $search = $request->search;
+
+        // Estado 4 = Em Manutenção
+        $query = \App\Models\ItemUnity::with('item')->where('item_unity_state_id', 4);
+
+        // Aplica o filtro se houver texto na pesquisa
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('lia_code', 'LIKE', '%' . $search . '%')
+                  ->orWhereHas('item', function($subQuery) use ($search) {
+                      $subQuery->where('nome', 'LIKE', '%' . $search . '%')
+                               ->orWhere('model', 'LIKE', '%' . $search . '%');
+                  });
+            });
+        }
+
+        $unidades = $query->get();
+
+        // Gera o HTML do output
+        if ($unidades->count() > 0) {
+            foreach ($unidades as $unidade) {
+                $output .= '<div class="col-sm-3 mb-4">
+                                <div class="card h-100"> 
+                                    <div class="card-body d-flex flex-column justify-content-center text-center">
+                                        <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
+                                        <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                        <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
+                                        <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
+                                        <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+                                    </div>
+                                </div>
+                            </div>';
+            }
+        } else {
+            $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade em manutenção encontrada.</p></div>';
+        }
+
+        return response()->json($output);
     }
     
     $unidades = \App\Models\ItemUnity::where('item_unity_state_id', 4)
