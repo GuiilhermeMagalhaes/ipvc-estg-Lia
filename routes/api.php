@@ -3,24 +3,19 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
+// Rotas públicas (Não precisam de Token)
+Route::post('/register', 'API\Auth\AuthControllerAPI@register');
+Route::post('/login', 'API\Auth\AuthControllerAPI@login');
 
-/*Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});*/
+// ROTAS PROTEGIDAS (Só entra quem enviar um Token válido)
+Route::middleware('auth:sanctum')->group(function () {
+    
+    // Fazer Logout
+    Route::post('/logout', 'API\Auth\AuthControllerAPI@logout');
 
-/* isto já estava  , nao mexi aqui */
+    // Rota simples para testar se o Token está a funcionar e obter os dados do utilizador
+    Route::get('/me', function (Request $request) {
+        return response()->json($request->user());
+    });
 
-Route::get('item', 'ItemsControllerAPI@index')->middleware('loginCheck');
-
-Route::post('login', 'Auth\LoginControllerAPI@login');
-Route::post('logout', 'Auth\LoginControllerAPI@logout');
+});
