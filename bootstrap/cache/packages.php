@@ -64,6 +64,13 @@
       0 => 'KitLoong\\MigrationsGenerator\\MigrationsGeneratorServiceProvider',
     ),
   ),
+  'laravel/sanctum' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Laravel\\Sanctum\\SanctumServiceProvider',
+    ),
+  ),
   'laravel/scout' => 
   array (
     'providers' => 
