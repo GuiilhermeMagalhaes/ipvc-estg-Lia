@@ -16,6 +16,8 @@ class AuthControllerAPI extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
+            'phone' => 'required|digits:9', 
+            'student_number' => 'nullable|string|max:20', 
         ]);
 
         if(User::where('email', $request->email)->exists()) {
@@ -29,8 +31,10 @@ class AuthControllerAPI extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'user_type_id' => 4, // 4 = Tipo de utilizador "Cliente" (pode ser alterado conforme a necessidade)
-            'user_status_id' => 1, // 1 = Ativo (pode ser alterado conforme a necessidade)
+            'phone' => $request->phone, 
+            'n_aluno' => $request->student_number,
+            'user_type_id' => 4, 
+            'user_status_id' => 1, 
             'image' => 'images/empty.png'
         ]);
 
@@ -51,6 +55,7 @@ class AuthControllerAPI extends Controller
             'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
+        
 
         // 2. Tenta autenticar (O equivalente ao bcrypt.compare no Node.js)
         if (Auth::attempt($request->only('email', 'password'))) {
