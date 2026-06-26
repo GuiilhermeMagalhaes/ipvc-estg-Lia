@@ -100,4 +100,81 @@ class ItemControllerAPI extends Controller
             ], 500);
         }
     }
+
+
+//  RETORNAR DETALHES DE UM ITEM OU KIT
+
+    public function show($id)
+    {
+        try {
+            $estadoDisponivelId = 1; // Disponível
+
+            // 1. Procurar no Item (Usando o nome correto da função de relação: itemCategorie)
+            $item = Item::with(['itemCategorie' => function ($query) {
+                $query->select('id', 'description');
+            }])
+                ->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
+                    $query->where('item_unity_state_id', $estadoDisponivelId);
+                }])
+                ->find($id);
+
+            if ($item) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'id'           => $item->id,
+                        'nome'         => $item->nome,
+                        'model'        => $item->model,
+                        // Chamar o relacionamento correto: itemCategorie
+                        'categoria'    => $item->itemCategorie ? $item->itemCategorie->description : 'Geral',
+                        // Colunas com o nome exato da base de dados (observation e acessorio)
+                        'observacao'   => $item->observation ?? 'Nenhuma observação',
+                        'acessorios'   => $item->acessorio ?? 'Nenhum acessório listado',
+                        'quantidade'   => $item->item_unities_count,
+                        // Verifica se existe price_day, senão usa preco
+                        'preco'        => $item->price_day ?? $item->preco ?? '20,00', 
+                        'image'        => $item->image,
+                        'is_kit'       => false
+                    ]
+                ], 200);
+            }
+
+            // 2. Se não encontrou no Item, vamos procurar na tabela de Kits
+            $kit = Kit::withCount(['kitUnities' => function ($query) use ($estadoDisponivelId) {
+                    $query->where('kit_unity_state_id', $estadoDisponivelId);
+                }])
+                ->find($id);
+
+            if ($kit) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [
+                        'id'           => $kit->id,
+                        'nome'         => $kit->name, 
+                        'model'        => $kit->description, 
+                        'categoria'    => 'Kit Completo',
+                        'observacao'   => 'Conjunto de Equipamentos',
+                        'acessorios'   => 'Acessórios integrados no kit',
+                        'quantidade'   => $kit->kit_unities_count,
+                        // A coluna no Model Kit é price_day ou price
+                        'preco'        => $kit->price_day ?? $kit->price ?? '35,00',
+                        'image'        => $kit->image,
+                        'is_kit'       => true
+                    ]
+                ], 200);
+            }
+
+            // 3. Se não encontrou em nenhum dos lados
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Equipamento ou Kit não encontrado.'
+            ], 404);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erro ao carregar detalhes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

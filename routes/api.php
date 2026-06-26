@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rota para obter o catálogo de Kits e Itens (com contagem de unidades disponíveis)
     Route::get('/catalogo', 'API\User\ItemControllerAPI@index');
 
+    Route::get('/item/{id}', 'API\User\ItemControllerAPI@show');
 
 
     // Rota para atualizar o perfil do utilizador

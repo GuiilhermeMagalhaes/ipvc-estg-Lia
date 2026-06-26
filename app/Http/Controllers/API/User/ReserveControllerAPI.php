@@ -73,7 +73,7 @@ class ReserveControllerAPI extends Controller
             $item = Item::find($itemData['id']);
             if (!$item) {
                 return response()->json(['status' => 'error', 'message' => "Item ID {$itemData['id']} não encontrado."], 44
-);
+        );
             }
 
             $totalFisico = DB::table('item_unity')->where('item_id', $item->id)->where('item_unity_state_id', 1)->count();
@@ -212,4 +212,6 @@ class ReserveControllerAPI extends Controller
             ], 500);
         }
     }
+
+
 }
