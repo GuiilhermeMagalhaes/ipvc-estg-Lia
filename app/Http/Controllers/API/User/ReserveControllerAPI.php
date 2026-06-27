@@ -240,5 +240,28 @@ class ReserveControllerAPI extends Controller
         }
     }
 
+    public function show($id)
+{
+    try {
+        // Buscamos a reserva com os itens, kits e o estado associados
+        $reserva = \App\Models\Reserve::with([
+            'itemReserves.item', 
+            'kitReserves.kit', 
+            'reserveState'
+        ])->findOrFail($id);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $reserva
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Reserva não encontrada ou erro ao carregar dados.'
+        ], 404);
+    }
+}
+
 
 }
