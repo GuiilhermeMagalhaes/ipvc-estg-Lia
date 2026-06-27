@@ -29,4 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/reservas/historico', 'API\User\ReserveControllerAPI@index');
 
+
+    Route::get('/centros-custo', 'API\User\CostCenterControllerAPI@index');
+
 });
