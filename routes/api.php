@@ -18,11 +18,12 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json($request->user());
     });
 
+    Route::post('/reservas/criar', 'API\User\ReserveControllerAPI@store');
+
     // Rota para obter o catálogo de Kits e Itens (com contagem de unidades disponíveis)
     Route::get('/catalogo', 'API\User\ItemControllerAPI@index');
 
     Route::get('/item/{id}', 'API\User\ItemControllerAPI@show');
-
 
     // Rota para atualizar o perfil do utilizador
     Route::post('/perfil/edit', 'API\User\ProfileControllerAPI@update');
