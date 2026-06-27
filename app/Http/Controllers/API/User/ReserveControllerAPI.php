@@ -19,6 +19,33 @@ use Illuminate\Support\Facades\Notification;
 
 class ReserveControllerAPI extends Controller
 {
+
+    public function index(Request $request)
+    {
+        try {
+            
+            $user = $request->user();
+
+            
+            $reservas = $user->reserves()->
+                with(['reserveState', 'itemReserves.item', 'kitReserves.kit'])
+                ->orderBy('created_at', 'desc') // Mais recentes primeiro
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $reservas
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erro ao carregar o histórico: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function store(Request $request)
     {
         // 1. Validação dos dados recebidos do telemóvel
