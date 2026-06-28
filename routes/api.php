@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/reservas/{id}', 'API\User\ReserveControllerAPI@show');
 
+    Route::post('/reservas/{id}/cancelar', 'API\User\ReserveControllerAPI@cancel');
+
 
     Route::get('/centros-custo', 'API\User\CostCenterControllerAPI@index');
 

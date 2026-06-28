@@ -263,5 +263,42 @@ class ReserveControllerAPI extends Controller
     }
 }
 
+public function cancel(Request $request, $id)
+    {
+        try {
+            $reserva = \App\Models\Reserve::findOrFail($id);
+
+            // 1. Segurança: Garantir que o utilizador só cancela as SUAS próprias reservas
+            if ($reserva->user_id !== $request->user()->id) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => 'Não tens permissão para cancelar esta reserva.'
+                ], 403);
+            }
+
+            // 2. Regra de Negócio: Só se pode cancelar se ainda estiver "Pendente" (Estado 1)
+            if ($reserva->reserve_state_id !== 1) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => 'Apenas reservas pendentes podem ser canceladas.'
+                ], 400);
+            }
+
+            $reserva->reserve_state_id = 10;
+            $reserva->save();
+
+            return response()->json([
+                'status' => 'success', 
+                'message' => 'A reserva foi cancelada com sucesso.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erro ao tentar cancelar a reserva: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 }
