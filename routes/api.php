@@ -25,6 +25,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/item/{id}', 'API\User\ItemControllerAPI@show');
 
+    Route::get('/item/{id}/datas-esgotadas', 'API\User\ItemControllerAPI@getDatasEsgotadas');
+
     // Rota para atualizar o perfil do utilizador
     Route::post('/perfil/edit', 'API\User\ProfileControllerAPI@update');
 

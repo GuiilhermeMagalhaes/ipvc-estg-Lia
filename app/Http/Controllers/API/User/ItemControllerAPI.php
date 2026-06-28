@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Item;
 use App\Models\Kit;
 use App\Models\ItemCategorie;
+use App\Models\KitUnity;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 
@@ -263,6 +265,87 @@ class ItemControllerAPI extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'Erro ao carregar detalhes: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getDatasEsgotadas($id)
+    {
+        try {
+            $estadoDisponivelId = 1;
+            $estadosBloqueantes = [1, 2, 4, 7]; // Pendente, Autorizada, Em atraso, Entregue
+            $datasEsgotadas = [];
+
+            // 1. Tentar encontrar como Item
+            $item = Item::withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
+                $query->where('item_unity_state_id', $estadoDisponivelId);
+            }])->find($id);
+
+            $totalFisico = 0;
+            $reservas = collect();
+
+            if ($item) {
+                $totalFisico = $item->item_unities_count;
+                $reservas = \DB::table('item_reserve')
+                    ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
+                    ->where('item_reserve.item_id', $id)
+                    ->whereIn('reserves.reserve_state_id', $estadosBloqueantes)
+                    ->where('reserves.end_date', '>=', now()->format('Y-m-d'))
+                    ->select('reserves.start_date', 'reserves.end_date', 'item_reserve.quantity')
+                    ->get();
+            } else {
+                // 2. Se não é Item, tenta encontrar como Kit
+                $kit = Kit::withCount(['kitUnities' => function ($query) use ($estadoDisponivelId) {
+                    $query->where('kit_unity_state_id', $estadoDisponivelId);
+                }])->find($id);
+
+                if ($kit) {
+                    $totalFisico = $kit->kit_unities_count;
+                    $reservas = \DB::table('kit_reserve')
+                        ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
+                        ->where('kit_reserve.kit_id', $id)
+                        ->whereIn('reserves.reserve_state_id', $estadosBloqueantes)
+                        ->where('reserves.end_date', '>=', now()->format('Y-m-d'))
+                        ->select('reserves.start_date', 'reserves.end_date', 'kit_reserve.quantity')
+                        ->get();
+                } else {
+                    return response()->json(['status' => 'error', 'message' => 'Equipamento não encontrado.'], 404);
+                }
+            }
+
+            //3. Somar as quantidades reservadas de cada dia
+            $diasOcupacao = []; 
+
+            foreach ($reservas as $reserva) {
+                $startDate = Carbon::parse($reserva->start_date);
+                $endDate = Carbon::parse($reserva->end_date);
+
+                for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                    $dateString = $date->format('Y-m-d');
+                    
+                    if (!isset($diasOcupacao[$dateString])) {
+                        $diasOcupacao[$dateString] = 0;
+                    }
+                    $diasOcupacao[$dateString] += $reserva->quantity;
+                }
+            }
+
+            // 4. Descobrir quais os dias em que a soma ultrapassou o limite físico
+            foreach ($diasOcupacao as $data => $quantidadeOcupada) {
+                if ($quantidadeOcupada >= $totalFisico) {
+                    $datasEsgotadas[] = $data;
+                }
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $datasEsgotadas,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erro ao calcular datas: ' . $e->getMessage()
             ], 500);
         }
     }
