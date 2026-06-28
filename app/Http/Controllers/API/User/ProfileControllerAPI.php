@@ -5,6 +5,8 @@ namespace App\Http\Controllers\API\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
+
+
 class ProfileControllerAPI extends Controller
 {
     public function update(Request $request)
@@ -52,4 +54,39 @@ class ProfileControllerAPI extends Controller
             ], 500);
         }
     }
+
+    public function estatisticas(Request $request)
+{
+    try {
+        $userId = $request->user()->id;
+
+        // Total de reservas do utilizador
+        $totalReservas = \DB::table('reserves')->where('user_id', $userId)->count();
+
+        // Reservas ativas (em curso): Pendente, Autorizada, Em Atraso, Entregue
+        $estadosAtivos = [1, 2, 4, 7];
+        $reservasAtivas = \DB::table('reserves')
+            ->where('user_id', $userId)
+            ->whereIn('reserve_state_id', $estadosAtivos)
+            ->count();
+
+        // Itens usados: soma das quantidades de itens + kits em todas as reservas
+        $reserveIds = \DB::table('reserves')->where('user_id', $userId)->pluck('id');
+
+        $itensUsados = \DB::table('item_reserve')->whereIn('reserve_id', $reserveIds)->sum('quantity')
+                     + \DB::table('kit_reserve')->whereIn('reserve_id', $reserveIds)->sum('quantity');
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'reservas'     => (int) $totalReservas,
+                'ativas'       => (int) $reservasAtivas,
+                'itens_usados' => (int) $itensUsados,
+            ]
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
 }

@@ -30,6 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Rota para atualizar o perfil do utilizador
     Route::post('/perfil/edit', 'API\User\ProfileControllerAPI@update');
 
+    Route::get('/perfil/estatisticas', 'API\User\ProfileControllerAPI@estatisticas');
+
     Route::get('/reservas/historico', 'API\User\ReserveControllerAPI@index');
 
     Route::get('/reservas/{id}', 'API\User\ReserveControllerAPI@show');
