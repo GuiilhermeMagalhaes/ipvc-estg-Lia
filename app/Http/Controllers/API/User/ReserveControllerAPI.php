@@ -99,8 +99,7 @@ class ReserveControllerAPI extends Controller
         foreach ($items as $itemData) {
             $item = Item::find($itemData['id']);
             if (!$item) {
-                return response()->json(['status' => 'error', 'message' => "Item ID {$itemData['id']} não encontrado."], 44
-        );
+                return response()->json(['status' => 'error', 'message' => "Item ID {$itemData['id']} não encontrado."], 404);
             }
 
             $totalFisico = DB::table('item_unity')->where('item_id', $item->id)->where('item_unity_state_id', 1)->count();
@@ -108,7 +107,7 @@ class ReserveControllerAPI extends Controller
             $reservasOcupantes = DB::table('item_reserve')
                 ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
                 ->where('item_reserve.item_id', $item->id)
-                ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('reserves.start_date', [$startDate, $endDate])
                       ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
@@ -145,7 +144,7 @@ class ReserveControllerAPI extends Controller
         foreach ($kits as $kitData) {
             $kit = Kit::find($kitData['id']);
             if (!$kit) {
-                return response()->json(['status' => 'error', 'message' => "Kit ID {$kitData['id']} não encontrado."], 44);
+                return response()->json(['status' => 'error', 'message' => "Kit ID {$kitData['id']} não encontrado."], 404);
             }
 
             $totalFisico = KitUnity::where('kit_id', $kit->id)->where('kit_unity_state_id', 1)->count();
@@ -153,7 +152,7 @@ class ReserveControllerAPI extends Controller
             $reservasOcupantes = DB::table('kit_reserve')
                 ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
                 ->where('kit_reserve.kit_id', $kit->id)
-                ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('reserves.start_date', [$startDate, $endDate])
                       ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
