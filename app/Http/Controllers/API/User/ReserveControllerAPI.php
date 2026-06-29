@@ -286,6 +286,7 @@ class ReserveControllerAPI extends Controller
                 'end_date' => $reserva->end_date,
                 'cost' => $reserva->cost,
                 'is_paid' => $reserva->is_paid,
+                'ciclica_id' => $reserva->ciclica_id,
                 'estado' => $reserva->reserveState->name ?? 'Pendente',
                 'itens' => $itensFormatados,
                 'kits' => $kitsFormatados

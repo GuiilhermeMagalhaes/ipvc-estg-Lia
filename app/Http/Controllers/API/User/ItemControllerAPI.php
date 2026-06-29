@@ -84,10 +84,8 @@ class ItemControllerAPI extends Controller
                     });
                 }
 
-                $queryItens = Item::has('itemUnities')
-                    ->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
-                        $query->where('item_unity_state_id', $estadoDisponivelId);
-                    }]);
+       // Equipamentos Individuais
+                $queryItens = Item::has('itemUnities');
 
                 // 1. Aplica o filtro de pesquisa se existir
                 if (!empty($search)) {
