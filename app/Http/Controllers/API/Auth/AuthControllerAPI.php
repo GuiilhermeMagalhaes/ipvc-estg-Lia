@@ -73,12 +73,7 @@ class AuthControllerAPI extends Controller
                 'status' => 'success',
                 'message' => 'Login efetuado com sucesso.',
                 'token' => $token,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'user_type_id' => $user->user_type_id
-                ]
+                'user' => $user,
             ], 200); // 200 = OK
         }
 

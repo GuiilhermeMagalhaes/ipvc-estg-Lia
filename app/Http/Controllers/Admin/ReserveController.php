@@ -213,7 +213,7 @@ class ReserveController extends Controller
             }
 
             Reserve::find($id)->update([
-                'reserve_state_id' => 4, 
+                'reserve_state_id' => 7,
                 'delivery_date' => Carbon::now()
             ]);
         });

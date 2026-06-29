@@ -99,8 +99,7 @@ class ReserveControllerAPI extends Controller
         foreach ($items as $itemData) {
             $item = Item::find($itemData['id']);
             if (!$item) {
-                return response()->json(['status' => 'error', 'message' => "Item ID {$itemData['id']} não encontrado."], 44
-        );
+                return response()->json(['status' => 'error', 'message' => "Item ID {$itemData['id']} não encontrado."], 404);
             }
 
             $totalFisico = DB::table('item_unity')->where('item_id', $item->id)->where('item_unity_state_id', 1)->count();
@@ -108,7 +107,7 @@ class ReserveControllerAPI extends Controller
             $reservasOcupantes = DB::table('item_reserve')
                 ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
                 ->where('item_reserve.item_id', $item->id)
-                ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('reserves.start_date', [$startDate, $endDate])
                       ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
@@ -145,7 +144,7 @@ class ReserveControllerAPI extends Controller
         foreach ($kits as $kitData) {
             $kit = Kit::find($kitData['id']);
             if (!$kit) {
-                return response()->json(['status' => 'error', 'message' => "Kit ID {$kitData['id']} não encontrado."], 44);
+                return response()->json(['status' => 'error', 'message' => "Kit ID {$kitData['id']} não encontrado."], 404);
             }
 
             $totalFisico = KitUnity::where('kit_id', $kit->id)->where('kit_unity_state_id', 1)->count();
@@ -153,7 +152,7 @@ class ReserveControllerAPI extends Controller
             $reservasOcupantes = DB::table('kit_reserve')
                 ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
                 ->where('kit_reserve.kit_id', $kit->id)
-                ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('reserves.start_date', [$startDate, $endDate])
                       ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
@@ -300,6 +299,43 @@ class ReserveControllerAPI extends Controller
         ], 404);
     }
 }
+
+public function cancel(Request $request, $id)
+    {
+        try {
+            $reserva = \App\Models\Reserve::findOrFail($id);
+
+            // 1. Segurança: Garantir que o utilizador só cancela as SUAS próprias reservas
+            if ($reserva->user_id !== $request->user()->id) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => 'Não tens permissão para cancelar esta reserva.'
+                ], 403);
+            }
+
+            // 2. Regra de Negócio: Só se pode cancelar se ainda estiver "Pendente" (Estado 1)
+            if ($reserva->reserve_state_id !== 1) {
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => 'Apenas reservas pendentes podem ser canceladas.'
+                ], 400);
+            }
+
+            $reserva->reserve_state_id = 10;
+            $reserva->save();
+
+            return response()->json([
+                'status' => 'success', 
+                'message' => 'A reserva foi cancelada com sucesso.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Erro ao tentar cancelar a reserva: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
 
 }

@@ -25,12 +25,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/item/{id}', 'API\User\ItemControllerAPI@show');
 
+    Route::get('/item/{id}/datas-esgotadas', 'API\User\ItemControllerAPI@getDatasEsgotadas');
+
     // Rota para atualizar o perfil do utilizador
     Route::post('/perfil/edit', 'API\User\ProfileControllerAPI@update');
+
+    Route::get('/perfil/estatisticas', 'API\User\ProfileControllerAPI@estatisticas');
 
     Route::get('/reservas/historico', 'API\User\ReserveControllerAPI@index');
 
     Route::get('/reservas/{id}', 'API\User\ReserveControllerAPI@show');
+
+    Route::post('/reservas/{id}/cancelar', 'API\User\ReserveControllerAPI@cancel');
 
 
     Route::get('/centros-custo', 'API\User\CostCenterControllerAPI@index');
