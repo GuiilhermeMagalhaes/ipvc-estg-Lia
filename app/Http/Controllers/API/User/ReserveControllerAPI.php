@@ -240,19 +240,57 @@ class ReserveControllerAPI extends Controller
         }
     }
 
-    public function show($id)
+   public function show($id)
 {
     try {
-        // Buscamos a reserva com os itens, kits e o estado associados
+        // 1. Procuramos a reserva com os relacionamentos corretos
         $reserva = \App\Models\Reserve::with([
             'itemReserves.item', 
             'kitReserves.kit', 
             'reserveState'
         ])->findOrFail($id);
 
+        // 2. Mapeamos os Itens usando a coluna 'quantity' da tua pivot e 'price_day' do Item
+        $itensFormatados = $reserva->itemReserves->map(function ($pivot) {
+            $item = $pivot->item;
+            return [
+                'id' => $item->id ?? null,
+                'nome' => $item->nome ?? 'Equipamento Desconhecido',
+                'model' => $item->model ?? 'N/A',
+                'image' => $item->image ?? null,
+                'quantidade' => $pivot->quantity ?? 1, // Usa a coluna quantity da tua pivot
+                'price_day' => $item->price_day ?? 0,   // Vai buscar ao model Item
+            ];
+        })->filter(fn($item) => !is_null($item['id']))->values();
+
+        // 3. Mapeamos os Kits usando a coluna 'quantity' da tua pivot e 'price_day' do Kit
+        $kitsFormatados = $reserva->kitReserves->map(function ($pivot) {
+            $kit = $pivot->kit;
+            return [
+                'id' => $kit->id ?? null,
+                'nome' => $kit->name ?? 'Kit Desconhecido',
+                'description' => $kit->description ?? '',
+                'image' => $kit->image ?? null,
+                'quantidade' => $pivot->quantity ?? 1, // Usa a coluna quantity da tua pivot
+                'price_day' => $kit->price_day ?? 0,   // Vai buscar ao model Kit
+            ];
+        })->filter(fn($kit) => !is_null($kit['id']))->values();
+
+        // 4. Resposta estruturada e limpa para o React Native
         return response()->json([
             'status' => 'success',
-            'data' => $reserva
+            'data' => [
+                'id' => $reserva->id,
+                'reserve_state_id' => $reserva->reserve_state_id,
+                'description' => $reserva->description,
+                'start_date' => $reserva->start_date,
+                'end_date' => $reserva->end_date,
+                'cost' => $reserva->cost,
+                'is_paid' => $reserva->is_paid,
+                'estado' => $reserva->reserveState->name ?? 'Pendente',
+                'itens' => $itensFormatados,
+                'kits' => $kitsFormatados
+            ]
         ], 200);
 
     } catch (\Exception $e) {

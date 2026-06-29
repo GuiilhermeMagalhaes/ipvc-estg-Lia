@@ -14,6 +14,8 @@ class ItemControllerAPI extends Controller
 {
     public function index(Request $request)
     {
+
+    $search = $request->query('search');
         try {
             $estadoDisponivelId = 1; // ID do estado "Disponível" na tabela item_unity_states
             $categoriaId = $request->query('categoria_id', 'Todos');
@@ -34,10 +36,16 @@ class ItemControllerAPI extends Controller
             // CENÁRIO 1: UTILIZADOR CLICOU NA TAB "KITS"
             // ==========================================
             if ($categoriaId === 'Kits') {
-                $kitsPaginated = Kit::has('kitUnities')
-                    ->withCount(['kitUnities' => function ($query) use ($estadoDisponivelId) {
-                        $query->where('kit_unity_state_id', $estadoDisponivelId);
-                    }])->paginate(10);
+                $queryKits = Kit::has('kitUnities');
+
+
+                if (!empty($search)) {
+                    $queryKits->where('name', 'like', "%{$search}%");
+                }
+
+                $kitsPaginated = $queryKits->withCount(['kitUnities' => function ($query) use ($estadoDisponivelId) {
+                    $query->where('kit_unity_state_id', $estadoDisponivelId);
+                }])->paginate(10);
 
                 // Mapeamos os Kits calculando a disponibilidade real por data
                 $itensTratados = collect($kitsPaginated->items())->map(function ($kit) use ($startDate, $endDate, $estadosBloqueantes) {
@@ -75,7 +83,7 @@ class ItemControllerAPI extends Controller
             // ==========================================
             else {
                 // Destaques Horizontais (Kits)
-                if ($request->query('page', 1) == 1 && $categoriaId === 'Todos') {
+                if ($request->query('page', 1) == 1 && $categoriaId === 'Todos' && empty($search)) {
                     $kitsDestaqueRaw = Kit::has('kitUnities')
                         ->withCount(['kitUnities' => function ($query) use ($estadoDisponivelId) {
                             $query->where('kit_unity_state_id', $estadoDisponivelId);
@@ -101,16 +109,28 @@ class ItemControllerAPI extends Controller
                     });
                 }
 
-                // Equipamentos Individuais
-                $queryItens = Item::has('itemUnities')
-                    ->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
-                        $query->where('item_unity_state_id', $estadoDisponivelId);
-                    }]);
+       // Equipamentos Individuais
+                $queryItens = Item::has('itemUnities');
 
+                // 1. Aplica o filtro de pesquisa se existir
+                if (!empty($search)) {
+                    $queryItens->where(function ($q) use ($search) {
+                        $q->where('nome', 'like', "%{$search}%")
+                        ->orWhere('model', 'like', "%{$search}%");
+                    });
+                }
+
+                // 2. Aplica o comCount logo a seguir na instância da query
+                $queryItens->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
+                    $query->where('item_unity_state_id', $estadoDisponivelId);
+                }]);
+
+                // 3. Aplica a categoria se não for "Todos"
                 if ($categoriaId !== 'Todos') {
                     $queryItens->where('categoria_id', $categoriaId);
                 }
 
+                // 4. Faz a paginação final
                 $itensPaginated = $queryItens->paginate(10);
                 
                 // Mapeamos os equipamentos individuais para subtrair reservas concorrentes
