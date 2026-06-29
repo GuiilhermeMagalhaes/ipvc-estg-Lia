@@ -67,12 +67,8 @@ class ItemControllerAPI extends Controller
             }
             // CENÁRIO 2: TODOS / OUTRA CATEGORIA
             else {
-<<<<<<< HEAD
                 // Destaques Horizontais (Kits)
                 if ($request->query('page', 1) == 1 && $categoriaId === 'Todos' && empty($search)) {
-=======
-                if ($request->query('page', 1) == 1 && $categoriaId === 'Todos') {
->>>>>>> f07e2a1ec17ae8634b5606cf27f29c2d1e2fd474
                     $kitsDestaqueRaw = Kit::has('kitUnities')
                         ->withCount(['kitUnities' => function ($query) use ($estadoDisponivelId) {
                             $query->where('kit_unity_state_id', $estadoDisponivelId);
@@ -88,15 +84,10 @@ class ItemControllerAPI extends Controller
                     });
                 }
 
-<<<<<<< HEAD
-       // Equipamentos Individuais
-                $queryItens = Item::has('itemUnities');
-=======
                 $queryItens = Item::has('itemUnities')
                     ->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
                         $query->where('item_unity_state_id', $estadoDisponivelId);
                     }]);
->>>>>>> f07e2a1ec17ae8634b5606cf27f29c2d1e2fd474
 
                 // 1. Aplica o filtro de pesquisa se existir
                 if (!empty($search)) {
@@ -106,11 +97,11 @@ class ItemControllerAPI extends Controller
                     });
                 }
 
-                // 2. Aplica o comCount logo a seguir na instância da query
+                 {/*
                 $queryItens->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
                     $query->where('item_unity_state_id', $estadoDisponivelId);
                 }]);
-
+*/}
                 // 3. Aplica a categoria se não for "Todos"
                 if ($categoriaId !== 'Todos') {
                     $queryItens->where('categoria_id', $categoriaId);

@@ -14,6 +14,19 @@ class ProfileControllerAPI extends Controller
         try {
             $user = $request->user();
 
+
+        if ($request->has('phone')) {
+    $phone = trim($request->input('phone'));
+    
+    // Verifica se não tem exatamente 9 caracteres OU se não contém apenas números
+    if (strlen($phone) !== 9 || !ctype_digit($phone)) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'O número de telemóvel deve conter exatamente 9 dígitos.'
+        ], 422); 
+    }
+}
+
             $dataToUpdate = [
                 'name'    => $request->input('name', $user->name),
                 'phone'   => $request->input('phone', $user->phone),
@@ -34,10 +47,7 @@ class ProfileControllerAPI extends Controller
             }
 
             // Segurança do Admin para mudar o tipo
-            $adminIds = [1, 2]; 
-            if (in_array($user->user_type_id, $adminIds) && $request->has('user_type_id')) {
-                $dataToUpdate['user_type_id'] = $request->input('user_type_id');
-            }
+           
 
             $user->update($dataToUpdate);
 
