@@ -41,4 +41,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/centros-custo', 'API\User\CostCenterControllerAPI@index');
 
+    Route::get('/disponibilidade', 'API\User\DisponibilidadeControllerAPI@index');
+
 });
