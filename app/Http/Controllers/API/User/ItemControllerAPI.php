@@ -84,28 +84,26 @@ class ItemControllerAPI extends Controller
                     });
                 }
 
-       // Equipamentos Individuais
-                $queryItens = Item::has('itemUnities');
+                // Equipamentos Individuais
+                $queryItens = Item::has('itemUnities')
+                    ->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
+                        $query->where('item_unity_state_id', $estadoDisponivelId);
+                    }]);
 
-                // 1. Aplica o filtro de pesquisa se existir
+                // 1. Filtro de pesquisa
                 if (!empty($search)) {
                     $queryItens->where(function ($q) use ($search) {
                         $q->where('nome', 'like', "%{$search}%")
-                        ->orWhere('model', 'like', "%{$search}%");
+                          ->orWhere('model', 'like', "%{$search}%");
                     });
                 }
 
-                 {/*
-                $queryItens->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
-                    $query->where('item_unity_state_id', $estadoDisponivelId);
-                }]);
-*/}
-                // 3. Aplica a categoria se não for "Todos"
+                // 2. Categoria
                 if ($categoriaId !== 'Todos') {
                     $queryItens->where('categoria_id', $categoriaId);
                 }
 
-                // 4. Faz a paginação final
+                // 3. Paginação
                 $itensPaginated = $queryItens->paginate(10);
 
                 $itensLista = collect($itensPaginated->items())->map(function ($item) use ($startCarbon, $endCarbon, $estadosBloqueantes) {
@@ -310,16 +308,22 @@ class ItemControllerAPI extends Controller
                 }
             }
 
-            // Dias esgotados
-            foreach ($diasOcupacao as $data => $quantidadeOcupada) {
-                if ($quantidadeOcupada >= $totalFisico) {
-                    $datasEsgotadas[] = $data;
-                }
+             // Monta o mapa por dia: ocupado + se está esgotado
+            $dias = [];
+            foreach ($diasOcupacao as $data => $ocupado) {
+                $dias[$data] = [
+                    'ocupado'  => (int) $ocupado,
+                    'esgotado' => $ocupado >= $totalFisico,
+                ];
             }
 
-            return response()->json([
+
+             return response()->json([
                 'status' => 'success',
-                'data' => $datasEsgotadas,
+                'data' => [
+                    'total' => (int) $totalFisico,
+                    'dias'  => $dias,
+                ],
             ], 200);
 
         } catch (\Exception $e) {
