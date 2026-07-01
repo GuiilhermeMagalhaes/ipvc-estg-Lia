@@ -12,20 +12,23 @@ class AuthControllerAPI extends Controller
 {
     public function register(Request $request)
     {
-        $request->validate([
+       $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-            'phone' => 'required|digits:9', 
-            'student_number' => 'nullable|string|max:20', 
+            'phone' => 'required|digits:9',
+            'student_number' => 'nullable|string|max:20',
+        ], [
+            'name.required'     => 'O nome é obrigatório.',
+            'email.required'    => 'O email é obrigatório.',
+            'email.email'       => 'Introduz um email válido.',
+            'email.unique'      => 'Este email já se encontra registado.',
+            'password.required' => 'A password é obrigatória.',
+            'password.min'      => 'A password deve ter pelo menos 6 caracteres.',
+            'phone.required'    => 'O telemóvel é obrigatório.',
+            'phone.digits'      => 'O telemóvel deve ter 9 dígitos.',
         ]);
 
-        if(User::where('email', $request->email)->exists()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Email já está em uso.'
-            ], 409); // 409 = Conflict
-        }
 
         $user = User::create([
             'name' => $request->name,
