@@ -19,6 +19,7 @@ class Reserve extends Model
         'end_date',
         'cost',
         'reserve_state_id',
+        'estimated_cost',
         'delivery_date',
         'return_date',
         'is_paid'

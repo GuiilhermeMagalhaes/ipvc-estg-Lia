@@ -184,6 +184,41 @@ class ReserveControllerAPI extends Controller
         }
 
         // ==========================================
+        // CÁLCULO DO CUSTO ESTIMADO
+        // ==========================================
+        $numero_dias = 0;
+        if ($ciclicaId === 1) {
+            $numero_dias = $startDate->diffInDays($endDate);
+            if ($numero_dias == 0) $numero_dias = 1;
+        } else {
+            $diaSemanaAlvo = $ciclicaId - 2;
+            $numero_dias = $startDate->diffInDaysFiltered(function (Carbon $date) use ($diaSemanaAlvo) {
+                return $date->dayOfWeek === $diaSemanaAlvo;
+            }, $endDate);
+
+            if ($endDate->dayOfWeek === $diaSemanaAlvo) {
+                $numero_dias++;
+            }
+            if ($numero_dias == 0) $numero_dias = 1;
+        }
+
+        $custo_estimado = 0;
+
+        foreach ($items as $itemData) {
+            $itemModel = Item::find($itemData['id']);
+            if ($itemModel) {
+                $custo_estimado += ($itemModel->price_day * $numero_dias * $itemData['quantity']);
+            }
+        }
+
+        foreach ($kits as $kitData) {
+            $kitModel = Kit::find($kitData['id']);
+            if ($kitModel) {
+                $custo_estimado += ($kitModel->price_day * $numero_dias * $kitData['quantity']);
+            }
+        }
+
+        // ==========================================
         // SALVAR RESERVA (TRANSAÇÃO DB)
         // ==========================================
         DB::beginTransaction();
@@ -196,6 +231,7 @@ class ReserveControllerAPI extends Controller
                 'start_date'       => $request->start_date,
                 'end_date'         => $request->end_date,
                 'cost'             => 0,
+                'estimated_cost'   => $custo_estimado,
                 'reserve_state_id' => 1,
                 'delivery_date'    => null,
                 'return_date'      => null  
@@ -284,7 +320,7 @@ class ReserveControllerAPI extends Controller
                 'description' => $reserva->description,
                 'start_date' => $reserva->start_date,
                 'end_date' => $reserva->end_date,
-                'cost' => $reserva->cost,
+                'estimated_cost' => $reserva->estimated_cost, 
                 'is_paid' => $reserva->is_paid,
                 'ciclica_id' => $reserva->ciclica_id,
                 'estado' => $reserva->reserveState->name ?? 'Pendente',

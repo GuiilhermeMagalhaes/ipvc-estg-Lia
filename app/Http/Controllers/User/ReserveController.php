@@ -351,6 +351,42 @@ public function removeItem($id)
         return back()->with('warning', 'Adicione pelo menos um kit ou um item à reserva para poder concluir!');
     }
 
+
+    $startDate = Carbon::parse(session()->get('reserve.start_date'));
+    $endDate = Carbon::parse(session()->get('reserve.end_date'));
+    $ciclicaId = session()->get('reserve.ciclica_id', 1);
+    $numero_dias = 0;
+
+    // Lógica de contagem de dias (igual à que tens no admin)
+    if ($ciclicaId == 1 || $ciclicaId == null) {
+        $numero_dias = $startDate->diffInDays($endDate);
+        if ($numero_dias == 0) $numero_dias = 1;
+    } else {
+        $diaSemanaAlvo = $ciclicaId - 2;
+        $numero_dias = $startDate->diffInDaysFiltered(function (Carbon $date) use ($diaSemanaAlvo) {
+            return $date->dayOfWeek === $diaSemanaAlvo;
+        }, $endDate);
+
+        if ($endDate->dayOfWeek === $diaSemanaAlvo) {
+            $numero_dias++;
+        }
+        if ($numero_dias == 0) $numero_dias = 1;
+    }
+
+    $custo_estimado = 0;
+
+    // Somar preço dos itens do carrinho
+    foreach ($items as $itemData) {
+        // Usamos o preço por dia guardado na sessão multiplicando pelos dias e quantidade
+        $custo_estimado += ($itemData['price'] * $numero_dias * $itemData['quantity']);
+    }
+
+    // Somar preço dos kits do carrinho
+    foreach ($kits as $kitData) {
+        $custo_estimado += ($kitData['price_day'] * $numero_dias * $kitData['quantity']);
+    }
+
+    
     // PASSO 2: Início da Transação de Segurança
     DB::beginTransaction();
 
@@ -364,6 +400,7 @@ public function removeItem($id)
             'start_date'       => session()->get('reserve.start_date'),
             'end_date'         => session()->get('reserve.end_date'),
             'cost'             => 0,
+            'estimated_cost'   => $custo_estimado,
             'reserve_state_id' => 1, 
             'delivery_date'    => null,
             'return_date'      => null  

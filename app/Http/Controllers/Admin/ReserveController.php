@@ -365,50 +365,11 @@ class ReserveController extends Controller
 
     private function aplicarCustoReserva($reserve)
     {
-         
-
-        $start = Carbon::parse($reserve->start_date);
-        $end   = Carbon::parse($reserve->end_date);
-        $numero_dias = 0;
-
-        if ($reserve->ciclica_id == 1 || $reserve->ciclica_id == null) {
-            $numero_dias = $start->diffInDays($end);
-            if ($numero_dias == 0) $numero_dias = 1;
-        } else {
-            $diaSemanaAlvo = $reserve->ciclica_id - 2;
-
-            $numero_dias = $start->diffInDaysFiltered(function (Carbon $date) use ($diaSemanaAlvo) {
-                return $date->dayOfWeek === $diaSemanaAlvo;
-            }, $end);
-
-            if ($end->dayOfWeek === $diaSemanaAlvo) {
-                $numero_dias++;
-            }
-            if ($numero_dias == 0) $numero_dias = 1;
-        }
-
-        // GUARDAMOS O CUSTO ANTIGO ANTES DE FAZER NOVAS CONTAS
+        // GUARDAMOS O CUSTO ANTIGO ANTES DE ATUALIZAR
         $custo_antigo_reserva = $reserve->cost ?? 0;
         
-        $custo_total_reserva = 0;
-
-        $itemReserves = ItemReserve::where('reserve_id', $reserve->id)->get();
-        foreach ($itemReserves as $ir) {
-            $item = Item::find($ir->item_id);
-            if ($item) {
-                $qtd = $ir->quantity ?? 1;
-                $custo_total_reserva += ($item->price_day * $numero_dias * $qtd);
-            }
-        }
-
-        $kitReserves = KitReserve::where('reserve_id', $reserve->id)->get();
-        foreach ($kitReserves as $kr) {
-            $kit = Kit::find($kr->kit_id);
-            if ($kit) {
-                $qtd = $kr->quantity ?? 1;
-                $custo_total_reserva += ($kit->price_day * $numero_dias * $qtd);
-            }
-        }
+        // ATRIBUÍMOS O VALOR DIRETO DO CUSTO ESTIMADO QUE JÁ ESTAVA GRAVADO
+        $custo_total_reserva = $reserve->estimated_cost ?? 0; // <--- ALTERADO AQUI
 
         // ATUALIZAMOS A RESERVA COM O NOVO CUSTO
         $reserve->cost = $custo_total_reserva;
@@ -429,4 +390,7 @@ class ReserveController extends Controller
             }
         }
     }
+
+
+    
 }

@@ -99,7 +99,7 @@
                         </li>
                         <li class="list-group-item">
                             <b>Custo Total ({{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }}): </b>
-                            <span class="text-success font-weight-bold">{{ number_format($custo_calculado, 2, ',', '.') }} €</span>
+                            <span class="text-info font-weight-bold">{{ number_format($reserve->estimated_cost, 2, ',', '.') }} €</span>
                         </li>
 
                         @if (in_array($reserve->reserveState->id, [2, 4, 5, 6, 7, 8, 9]))
