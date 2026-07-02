@@ -186,10 +186,13 @@ class ReserveControllerAPI extends Controller
         // ==========================================
         // CÁLCULO DO CUSTO ESTIMADO
         // ==========================================
-        $numero_dias = 0;
-        if ($ciclicaId === 1) {
-            $numero_dias = $startDate->diffInDays($endDate);
-            if ($numero_dias == 0) $numero_dias = 1;
+       $numero_dias = 0;
+        
+        if ($request->start_date === $request->end_date) {
+            $numero_dias = 1;
+        } elseif ($ciclicaId === 1) {
+            // Cálculo inclusivo para bater com o React Native (ex: 10 a 12 -> 2 dias de diferença + 1 = 3 dias)
+            $numero_dias = $startDate->diffInDays($endDate) + 1;
         } else {
             $diaSemanaAlvo = $ciclicaId - 2;
             $numero_dias = $startDate->diffInDaysFiltered(function (Carbon $date) use ($diaSemanaAlvo) {
@@ -207,6 +210,14 @@ class ReserveControllerAPI extends Controller
         foreach ($items as $itemData) {
             $itemModel = Item::find($itemData['id']);
             if ($itemModel) {
+                // Validação estrita: verifica se o price_day é nulo
+                if (is_null($itemModel->price_day)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "O item '{$itemModel->nome}' não tem um preço diário definido no sistema. Contacte o administrador."
+                    ], 422);
+                }
+                
                 $custo_estimado += ($itemModel->price_day * $numero_dias * $itemData['quantity']);
             }
         }
@@ -214,10 +225,19 @@ class ReserveControllerAPI extends Controller
         foreach ($kits as $kitData) {
             $kitModel = Kit::find($kitData['id']);
             if ($kitModel) {
+                // Validação estrita: verifica se o price_day é nulo
+                if (is_null($kitModel->price_day)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "O kit '{$kitModel->name}' não tem um preço diário definido no sistema. Contacte o administrador."
+                    ], 422);
+                }
+
                 $custo_estimado += ($kitModel->price_day * $numero_dias * $kitData['quantity']);
             }
         }
 
+        
         // ==========================================
         // SALVAR RESERVA (TRANSAÇÃO DB)
         // ==========================================

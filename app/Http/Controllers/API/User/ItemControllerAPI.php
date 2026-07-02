@@ -182,7 +182,7 @@ class ItemControllerAPI extends Controller
                             'observacao' => $item->observation ?? 'Nenhuma observação',
                             'acessorios' => $item->acessorio ?? 'Nenhum acessório listado',
                             'quantidade' => $totalFisico,
-                            'preco'      => $item->price_day ?? $item->preco ?? '20,00',
+                            'price_day'  => $item->price_day ?? $item->preco ?? 'Não definido',
                             'image'      => $item->image,
                             'is_kit'     => false
                         ]
@@ -207,12 +207,12 @@ class ItemControllerAPI extends Controller
                         'data' => [
                             'id'         => $kit->id,
                             'nome'       => $kit->name,
-                            'model'      => $kit->description,
+                            'model'      => null,
                             'categoria'  => 'Kit Completo',
                             'observacao' => 'Conjunto de Equipamentos',
-                            'acessorios' => 'Acessórios integrados no kit',
+                            'acessorios' => $kit->description ?? 'Sem descrição disponível',
                             'quantidade' => $totalFisicoKit,
-                            'preco'      => $kit->price_day ?? $kit->price ?? '35,00',
+                            'price_day'  => $kit->price_day ?? $kit->price ?? 'Não definido',
                             'image'      => $kit->image,
                             'is_kit'     => true
                         ]
