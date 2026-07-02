@@ -93,6 +93,13 @@ class ReserveControllerAPI extends Controller
             }
         }
 
+        if ($ciclicaId !== 1 && empty($periodoDatas)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'O dia de semana selecionado não existe dentro do período de datas fornecido.'
+            ], 422);
+        }
+
         // ==========================================
         // VALIDAÇÃO DE STOCK DE ITENS
         // ==========================================
