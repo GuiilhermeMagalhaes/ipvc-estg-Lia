@@ -52,7 +52,7 @@ class PedidoRequisicao extends Notification
                     // Atenção: Verifica se o teu Model Reserve tem 'description' ou 'descricao'. 
                     // No teu Controller usavas 'description', por isso mudei aqui:
                     ->line('Detalhes do Pedido: ' . $this->reserve->description)
-                    ->action('Analisar Requisição', url('/requisicoes/' . $this->reserve->id))
+                    ->action('Analisar Requisição', config('app.url') . '/admin/reserves/' . $this->reserve->id)
                     ->line('Por favor, aceda à plataforma para aprovar ou rejeitar o pedido.');
     }
 
