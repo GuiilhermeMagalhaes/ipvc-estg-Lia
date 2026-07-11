@@ -225,13 +225,12 @@ class ItemController extends Controller
                 [
                     'nome' => 'required|string|max:190',
                     'model' => 'required|string|max:190',
-                    'ipvc_ref'    => 'nullable|string|max:190',
                     'preco' => 'required|numeric|min:0',
                     'price_day'     => 'required|numeric|min:0',
                     'quantity'      => 'required|integer|min:1',
                     'categoria_id'  => 'required|exists:item_categories,id',
                     'image'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-                    'serial_number'=> 'nullable|string|max:190',
+                
                 
                 ],
                 [
@@ -245,12 +244,9 @@ class ItemController extends Controller
                     'model.string'         => 'O modelo deve ser um texto válido.',
                     'model.max'            => 'O modelo não pode ter mais de 190 caracteres.',
 
-                    // IPVC REF
-                    'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
-                    'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 190 caracteres.',
+                    
 
-                    'serial_number.string'      => 'O número de série deve ser um texto válido.',
-                    'serial_number.max'         => 'O número de série não pode ter mais de 190 caracteres.',
+                   
 
                     // PREÇO
                     'preco.required'       => 'O item deve ter um preço associado.',
@@ -289,7 +285,7 @@ class ItemController extends Controller
             }
 
                
-            $itemData = $request->only(['ipvc_ref', 'serial_number', 'nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity']);
+            $itemData = $request->only(['nome', 'model', 'observation', 'acessorio', 'preco', 'categoria_id', 'price_day', 'quantity']);
             $itemData['image'] = $path; 
 
             
@@ -345,14 +341,30 @@ class ItemController extends Controller
             $request->validate([
                 'lia_codes'  => 'required|array',
                 'lia_codes.*'=> 'required|string|distinct|unique:item_unity,lia_code',
+                'ipvc_ref'           => 'nullable|array',
+                'ipvc_ref.*'         => 'nullable|string|distinct|unique:item_unity,ipvc_ref|max:190',
+                'serial_number'      => 'nullable|array',
+                'serial_number.*'    => 'nullable|string|distinct|unique:item_unity,serial_number|max:190',
                 'data_aquisicao' => 'array',
                 'data_aquisicao.*'   => 'nullable|date|before_or_equal:today',
+                
             ], [
                 'lia_codes.*.required' => 'O código LIA é obrigatório.',
                 'lia_codes.*.unique'   => 'Este código LIA já existe no sistema.',
                 'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
                 'data_aquisicao.*.date'       => 'Insira uma data válida.',
                 'data_aquisicao.*.before_or_equal' => 'A data de aquisição não pode ser no futuro.',
+               
+                'serial_number.*.string'       => 'O número de série deve ser um texto válido.',
+                'serial_number.*.max'          => 'O número de série não pode ter mais de 190 caracteres.',
+                'serial_number.*.unique'       => 'Este número de série já está registado.',
+                'serial_number.*.distinct'     => 'Inseriu números de série duplicados no formulário.',
+                
+                
+                'ipvc_ref.*.string'            => 'A referência IPVC deve ser um texto válido.',
+                'ipvc_ref.*.max'               => 'A referência IPVC não pode ter mais de 190 caracteres.',
+                'ipvc_ref.*.unique'            => 'Esta referência IPVC já está registada.',
+                'ipvc_ref.*.distinct'          => 'Inseriu referências IPVC duplicadas no formulário.',
 
             ]);
 
@@ -370,7 +382,9 @@ class ItemController extends Controller
                         //'data_aquisicao'      => $request->data_aquisicao,
                         'item_id'             => $item->id,
                         'kit_unity_id'        => null,
-                        'item_unity_state_id' => 1 
+                        'item_unity_state_id' => 1,
+                        'serial_number'       => $request->serial_number[$index] ?? null,
+                        'ipvc_ref'            => $request->ipvc_ref[$index] ?? null,
                     ]);
                 }
             });

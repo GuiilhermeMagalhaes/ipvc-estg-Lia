@@ -14,7 +14,8 @@ class KitUnity extends Model
         'lia_code',
         'kit_unity_state_id',
         'kit_id',
-        'observacoes'
+        'observacoes',
+        'ipvc_ref'
     ];
 
 

@@ -17,6 +17,15 @@
                             <b>Nome:</b>
                             <div class="float-right">{{ $reserve->user->name }}</div>
                         </li>
+                        
+                        <li class="list-group-item">
+                            <b>ID Utilizador:</b>
+                            <div class="float-right text-muted font-weight-bold">#{{ $reserve->user->id }}</div>
+                        </li>
+                        <li class="list-group-item">
+                            <b>Nº Aluno:</b>
+                            <div class="float-right">{{ $reserve->user->n_aluno ?? 'N/A' }}</div>
+                        </li>
                         <li class="list-group-item">
                             <b>Email:</b>
                             <div class="float-right">{{ $reserve->user->email }}</div>

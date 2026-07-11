@@ -134,7 +134,7 @@
                                         <div class="card-body">
                                             <h6 class="card-text"><strong>Nome:</strong> ${kit.name}</h6>
                                             <h6 class="card-text"><strong>Descrição:</strong> ${kit.description}</h6>
-                                            <h6 class="card-text"><strong>Preço / dia:</strong> ${Number(kit.price).toFixed(2).replace('.', ',')} €</h6>
+                                            <h6 class="card-text"><strong>Preço / dia:</strong> ${Number(kit.price_day).toFixed(2).replace('.', ',')} €</h6>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -151,7 +151,7 @@
                                         <div class="card-body">
                                             <h6 class="card-text"><strong>Nome:</strong> ${item.nome}</h6>
                                             <h6 class="card-text"><strong>Modelo:</strong> ${item.model}</h6>
-                                            <h6 class="card-text"><strong>Preço / dia:</strong> ${Number(item.preco).toFixed(2).replace('.', ',')} €</h6>
+                                            <h6 class="card-text"><strong>Preço / dia:</strong> ${Number(item.price_day).toFixed(2).replace('.', ',')} €</h6>
                                         </div>
                                     </div>
                                 `).join('')}

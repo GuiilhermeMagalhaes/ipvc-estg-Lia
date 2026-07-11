@@ -17,7 +17,9 @@ class ItemUnity extends Model
         'kit_unity_id',
         'item_unity_state_id', 
         'data_aquisicao',
-        'observacoes'
+        'observacoes',
+        'serial_number', 
+        'ipvc_ref'
     ];
 
     protected $casts = [
