@@ -18,11 +18,7 @@
                 <input type="text" name="description" class="form-control" value="{{ old('description') }}">
                 <span style="color:red">{{$errors->first('description')}}</span>
             </div>
-            <div class="form-group">
-                <label for="ref_ipvc">Referência IPVC</label>
-                <input type="text" name="ipvc_ref" class="form-control" value="{{ old('ipvc_ref') }}">
-                <span style="color:red">{{$errors->first('ipvc_ref')}}</span>
-            </div>
+            
             <div class="form-group">
                 <label for="preco">Preço</label>
                 <input type="number" name="price" step="0.01" id="preco" class="form-control" value="{{ old('price') }}">

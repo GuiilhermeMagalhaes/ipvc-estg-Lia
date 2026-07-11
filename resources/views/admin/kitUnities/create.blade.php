@@ -50,6 +50,13 @@
                     @endif
                 </div>
 
+                <div class="form-group">
+                    <label for="ipvc_ref_{{ $i }}">Referência IPVC</label>
+                    <input type="text" id="ipvc_ref_{{ $i }}" name="ipvc_ref[{{ $i }}]" class="form-control" value="{{ old('ipvc_ref.'.$i) }}">
+                    @if($errors->has("ipvc_ref.$i"))
+                        <span class="text-danger">{{ $errors->first("ipvc_ref.$i") }}</span>
+                    @endif
+                </div>
                 
                 <div class="form-group">
                     <div class="d-flex justify-content-between align-items-center mb-2">

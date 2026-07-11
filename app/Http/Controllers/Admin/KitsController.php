@@ -305,7 +305,6 @@ public function store(Request $request)
             'price' => 'required|numeric|min:0',
             'price_day' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:1',
-            'ipvc_ref'    => 'nullable|string|max:190',
             'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
 
         ],
@@ -332,8 +331,7 @@ public function store(Request $request)
             'quantity.integer'     => 'A quantidade total deve ser um número inteiro.',
             'quantity.min'         => 'A quantidade total deve ser pelo menos 1.',
 
-            'ipvc_ref.string'      => 'O número de série deve ser um texto válido.',
-            'ipvc_ref.max'         => 'O número de série não pode ter mais de 190 caracteres.',
+            
 
 
             'image.image'          => 'O ficheiro selecionado deve ser uma imagem.',
@@ -410,23 +408,34 @@ public function storeUnities(Request $request)
 
     $dadosKit = $request->session()->get('dados_do_kit');
     $quantity = $dadosKit['quantity'];
+    
 
+   // 1. Regras globais de array usando o wildcard (*) para que o 'distinct' funcione
     $regras = [
-        'lia_codes' => 'required|array',
+        'lia_codes'   => 'required|array',
+        'lia_codes.*' => 'distinct|unique:kit_unity,lia_code',
+        
+        'ipvc_ref'    => 'nullable|array',
+        'ipvc_ref.*'  => 'nullable|string|distinct|unique:kit_unity,ipvc_ref|max:190',
     ];
 
     $mensagens = [
         'lia_codes.*.required' => 'O código LIA é obrigatório.',
         'lia_codes.*.unique'   => 'Este código LIA já existe no sistema.',
-        'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados.',
+        'lia_codes.*.distinct' => 'Inseriu códigos LIA duplicados neste formulário.',
+
+        'ipvc_ref.*.unique'    => 'Esta referência IPVC já existe no sistema.',
+        'ipvc_ref.*.distinct'  => 'Inseriu referências IPVC duplicadas neste formulário.',
+        'ipvc_ref.*.max'       => 'A referência IPVC não pode ter mais de 190 caracteres.',
     ];
 
+    // 2. Ciclo 'for' APENAS para garantir que os campos de cada unidade estão presentes/preenchidos
     for ($i = 0; $i < $quantity; $i++) {
-        $regras["lia_codes.$i"] = 'required|string|distinct|unique:kit_unity,lia_code';
+        $regras["lia_codes.$i"]       = 'required|string';
         $regras["items_for_unity.$i"] = 'required|array|min:1';
         
         $mensagens["items_for_unity.$i.required"] = 'É obrigatório associar pelo menos 1 item a esta unidade.';
-        $mensagens["items_for_unity.$i.min"] = 'É obrigatório associar pelo menos 1 item a esta unidade.';
+        $mensagens["items_for_unity.$i.min"]      = 'É obrigatório associar pelo menos 1 item a esta unidade.';
     }
 
     $request->validate($regras, $mensagens);
@@ -439,7 +448,6 @@ public function storeUnities(Request $request)
         $kit = new Kit();
         $kit->name = $dadosKit['name'];
         $kit->description = $dadosKit['description'];
-        $kit->ipvc_ref = $dadosKit['ipvc_ref'];
         $kit->price = $dadosKit['price'];
         $kit->price_day = $dadosKit['price_day'];
         $kit->quantity = $dadosKit['quantity'];
@@ -450,6 +458,8 @@ public function storeUnities(Request $request)
             $kitUnity = new KitUnity();
             $kitUnity->lia_code = $liaCode;
             $kitUnity->kit_id = $kit->id;
+            $kitUnity->ipvc_ref = $request->ipvc_ref[$index] ?? null;
+           
             
             $definirEstadoKitUnity = 1; 
 
