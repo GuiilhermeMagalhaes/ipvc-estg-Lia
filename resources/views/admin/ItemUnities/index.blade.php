@@ -5,8 +5,13 @@
 @section('content')
 <br>
 <div>
-    <div class="search-form mb-4">
+      <div class="search-form mb-4" style="display:flex; gap:10px; align-items:center;">
         <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar itens..." style="width: 24%;" />
+
+        <select id="sort" class="form-control" style="width: 220px;">
+            <option value="nome">Ordenar por: Nome (A-Z)</option>
+            <option value="lia">Ordenar por: Código LIA</option>
+        </select>
     </div>
     <br>
     <div class="row mycard">
@@ -41,22 +46,25 @@
             'csrftoken': '{{ csrf_token() }}'
         }
     });
-    // AJAX LIVE SEARCH
-    $('#search').on('keyup', function() {
-        var value = $(this).val().trim(); // Captura o valor e remove espaços em branco extras
+
+    function carregarItens() {
         $.ajax({
             type: "get",
             url: "{{ route('itens.index') }}",
             data: {
-                'search': value
+                'search': $('#search').val().trim(),
+                'sort':   $('#sort').val()
             },
             success: function(data) {
-                $('.mycard').html(data); // Substitui o conteúdo atual com os novos resultados
+                $('.mycard').html(data);
             },
             error: function(xhr, status, error) {
                 console.error('Erro na requisição Ajax:', status, error);
             }
         });
-    });
+    }
+
+    $('#search').on('keyup', carregarItens);
+    $('#sort').on('change', carregarItens);
 </script>
 @endsection

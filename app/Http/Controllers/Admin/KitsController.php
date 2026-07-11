@@ -23,28 +23,35 @@ class KitsController extends Controller
 
 public function index(Request $request)
     {
-        if ($request->ajax()) {
-            $output = '';
-            $search = $request->search;
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
 
-           
-            $query = KitUnity::with('kit')->where('kit_unity_state_id', 1);
+        $search = $request->get('search');
+        $sort   = $request->get('sort', 'nome'); // 'nome' | 'lia'
 
-            
+        $query = KitUnity::with('kit')->where('kit_unity_state_id', 1)->whereHas('kit');
 
-          if (!empty($search)) {
-            $query->where(function($q) use ($search) {
-                
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
                 $q->where('lia_code', 'LIKE', '%' . $search . '%')
-                  
-                  ->orWhereHas('kit', function($subQuery) use ($search) {
+                  ->orWhereHas('kit', function ($subQuery) use ($search) {
                       $subQuery->where('name', 'LIKE', '%' . $search . '%');
                   });
             });
         }
 
-            $unidades = $query->get();
+        $unidades = $query->get();
 
+        // Ordenação sobre a coleção
+        if ($sort === 'lia') {
+            $unidades = $unidades->sortBy('lia_code')->values();
+        } else {
+            $unidades = $unidades->sortBy(fn($u) => mb_strtolower($u->kit->name ?? ''))->values();
+        }
+
+        if ($request->ajax()) {
+            $output = '';
             if ($unidades->count() > 0) {
                 foreach ($unidades as $unidade) {
                     $output .= '<div class="col-sm-3 mb-4">
@@ -54,77 +61,74 @@ public function index(Request $request)
                                         <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->kit->ipvc_ref ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</small>
                                         <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                         <p class="card-text card-text-preco">' . number_format($unidade->kit->price_day, 2, ',', '.') . '€ / dia</p>
-                                        
                                         <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('kits.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                                     </div>
                                 </div>
                             </div>';
-                } 
+                }
             } else {
                 $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade encontrada.</p></div>';
             }
-
             return response()->json($output);
-        } else {
-            
-            $unidades = KitUnity::with('kit')->where('kit_unity_state_id', 1)->get();
         }
 
-        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            
-            return view('admin.kitUnities.index', ['unidades' => $unidades]);
-        }
-        return redirect('/');
+        return view('admin.kitUnities.index', ['unidades' => $unidades]);
     }
 
 
 public function ocultos(Request $request)
-{
-    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
-        return redirect('/');
-    }
+    {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
 
-    $query = KitUnity::with('kit')->where('kit_unity_state_id', 2)->whereHas('kit');
-    
+        $search = $request->get('search');
+        $sort   = $request->get('sort', 'nome');
 
-   if ($request->has('search') && !empty($request->input('search'))) {
-        $search = $request->input('search');
+        $query = KitUnity::with('kit')->where('kit_unity_state_id', 2)->whereHas('kit');
 
-        $query->where(function($q) use ($search) {
-            $q->where('lia_code', 'LIKE', '%' . $search . '%')
-              ->orWhereHas('kit', function($kitQuery) use ($search) {
-                  $kitQuery->where('name', 'LIKE', '%' . $search . '%')
-                           ->orWhere('model', 'LIKE', '%' . $search . '%');
-              });
-        });
-    }
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('lia_code', 'LIKE', '%' . $search . '%')
+                  ->orWhereHas('kit', function ($kitQuery) use ($search) {
+                      $kitQuery->where('name', 'LIKE', '%' . $search . '%')
+                               ->orWhere('model', 'LIKE', '%' . $search . '%');
+                  });
+            });
+        }
 
-    $unidades = $query->get();
+        $unidades = $query->get();
 
-    if ($request->ajax()) {
-        $html = '';
-        foreach ($unidades as $unidade) {
-            $html .= '<div class="col-sm-3 mb-4">
+        if ($sort === 'lia') {
+            $unidades = $unidades->sortBy('lia_code')->values();
+        } else {
+            $unidades = $unidades->sortBy(fn($u) => mb_strtolower($u->kit->name ?? ''))->values();
+        }
+
+        if ($request->ajax()) {
+            $html = '';
+            if ($unidades->count() > 0) {
+                foreach ($unidades as $unidade) {
+                    $html .= '<div class="col-sm-3 mb-4">
                                 <div class="card h-100">
                                     <div class="card-body d-flex flex-column justify-content-center text-center">
                                         <h5 class="card-title">' . htmlspecialchars($unidade->kit->name, ENT_QUOTES, 'UTF-8') . '</h5>
                                         <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->kit->ipvc_ref ?? 'N/A', ENT_QUOTES, 'UTF-8') . '</small>
                                         <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                         <p class="card-text card-text-preco">' . number_format($unidade->kit->price_day, 2, ',', '.') . '€ / dia</p>
-                                        
                                         <a class="btn btn-primary mx-auto" href="' . route('kits.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
                                     </div>
                                 </div>
                             </div>';
-        }
-        return response()->json($html);
-    }
-    else {
-                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade oculta encontrada.</p></div>';
+                }
+            } else {
+                $html = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade oculta encontrada.</p></div>';
             }
+            return response()->json($html);
+        }
 
-    return view('admin.kitunities.ocultos', compact('unidades'));
-}
+        return view('admin.kitunities.ocultos', compact('unidades'));
+    }
 
 
 

@@ -5,9 +5,13 @@
 @section('content')
 <div>
     <br>
-    <form action="#" class="search-form">
+    <div class="search-form mb-4" style="display:flex; gap:10px; align-items:center;">
         <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar kits..." style="width: 24%;" />
-    </form>
+        <select id="sort" class="form-control" style="width: 220px;">
+            <option value="nome">Ordenar por: Nome (A-Z)</option>
+            <option value="lia">Ordenar por: Código LIA</option>
+        </select>
+    </div>
     <br>
    <div class="row mycard">
 
@@ -41,27 +45,19 @@
 </div>
 
 <script type="text/javascript">
-    $.ajaxSetup({
-        headers: {
-            'csrftoken': '{{ csrf_token() }}'
-        }
-    });
-    // AJAX LIVE SEARCH
-    $('#search').on('keyup', function() {
-        var value = $(this).val().trim(); // Captura o valor e remove espaços em branco extras
+    $.ajaxSetup({ headers: { 'csrftoken': '{{ csrf_token() }}' } });
+
+    function carregarKits() {
         $.ajax({
             type: "get",
             url: "{{ route('kits.index') }}",
-            data: {
-                'search': value
-            },
-            success: function(data) {
-                $('.mycard').html(data); // Substitui o conteúdo atual com os novos resultados
-            },
-            error: function(xhr, status, error) {
-                console.error('Erro na requisição Ajax:', status, error);
-            }
+            data: { 'search': $('#search').val().trim(), 'sort': $('#sort').val() },
+            success: function(data) { $('.mycard').html(data); },
+            error: function(xhr, status, error) { console.error('Erro na requisição Ajax:', status, error); }
         });
-    });
+    }
+
+    $('#search').on('keyup', carregarKits);
+    $('#sort').on('change', carregarKits);
 </script>
 @endsection

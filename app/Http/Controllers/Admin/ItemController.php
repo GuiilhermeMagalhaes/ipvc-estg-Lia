@@ -17,63 +17,60 @@ class ItemController extends Controller
     
     public function index(Request $request)
     {
-        if ($request->ajax()) {
-            $output = '';
-            $search = $request->search;
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
 
+        $search = $request->get('search');
+        $sort   = $request->get('sort', 'nome'); // 'nome' | 'lia'
 
-        $query = ItemUnity::with('item')->where('item_unity_state_id', 1)->whereHas('item');
-
+        // Junta a tabela 'item' para poder ordenar/pesquisar pelo nome do item
+        $query = ItemUnity::with('item')
+            ->where('item_unity.item_unity_state_id', 1)
+            ->join('item', 'item_unity.item_id', '=', 'item.id')
+            ->select('item_unity.*');
 
         if (!empty($search)) {
-            $query->where(function($mainQuery) use ($search) {
-
-                $mainQuery->where('lia_code', 'LIKE', '%' . $search . '%')
-                
-                ->orWhereHas('item', function($q) use ($search) {
-                    $q->where('nome', 'LIKE', '%' . $search . '%')
-                    ->orWhere('model', 'LIKE', '%' . $search . '%');
-                });
+            $query->where(function ($q) use ($search) {
+                $q->where('item_unity.lia_code', 'LIKE', '%' . $search . '%')
+                  ->orWhere('item.nome', 'LIKE', '%' . $search . '%')
+                  ->orWhere('item.model', 'LIKE', '%' . $search . '%');
             });
+        }
+
+        // Ordenação
+        if ($sort === 'lia') {
+            $query->orderBy('item_unity.lia_code');
+        } else {
+            $query->orderBy('item.nome')->orderBy('item_unity.lia_code');
         }
 
         $unidades = $query->get();
 
-        if ($unidades->count() > 0) {
-            foreach ($unidades as $unidade) {
-                if (!$unidade->item) {
-                    continue; 
-                }
-                $output .= '<div class="col-sm-3 mb-4">
-                                <div class="card h-100">
-                                    <div class="card-body d-flex flex-column justify-content-center text-center">
-                                        <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                        <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
-                                         <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
-                                        <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
-                                        <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+        if ($request->ajax()) {
+            $output = '';
+            if ($unidades->count() > 0) {
+                foreach ($unidades as $unidade) {
+                    if (!$unidade->item) continue;
+                    $output .= '<div class="col-sm-3 mb-4">
+                                    <div class="card h-100">
+                                        <div class="card-body d-flex flex-column justify-content-center text-center">
+                                            <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
+                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                            <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
+                                            <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
+                                            <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>';
+                                </div>';
+                }
+            } else {
+                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade encontrada.</p></div>';
             }
-        } else {
-            $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade encontrada.</p></div>';
-            
+            return response()->json($output);
         }
 
-
-        return response()->json($output);
-        }
-
-        else {
-            $unidades = ItemUnity::with('item')->where('item_unity_state_id', 1)->whereHas('item')->get();
-        }
-
-        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            
-            return view('admin.itemUnities.index', ['unidades' => $unidades]);
-        }
-        return redirect('/');
+        return view('admin.itemUnities.index', ['unidades' => $unidades]);
     }
 
     
@@ -386,35 +383,42 @@ class ItemController extends Controller
 
 
     public function ocultos(Request $request)
-    {
-       
-        if ($request->ajax()) {
-            $output = '';
-            $search = $request->search;
+{
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
 
-           
-            $query = ItemUnity::with('item')->where('item_unity_state_id', 2);
+        $search = $request->get('search');
+        $sort   = $request->get('sort', 'nome');
 
-            if (!empty($search)) {
-            $query->where(function($q) use ($search) {
-               
-                $q->where('lia_code', 'LIKE', '%' . $search . '%')
-                
-               
-                ->orWhereHas('item', function($subQuery) use ($search) {
-                    $subQuery->where('nome', 'LIKE', '%' . $search . '%')
-                             ->orWhere('model', 'LIKE', '%' . $search . '%');
-                });
+        $query = ItemUnity::with('item')
+            ->where('item_unity.item_unity_state_id', 2)
+            ->join('item', 'item_unity.item_id', '=', 'item.id')
+            ->select('item_unity.*');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('item_unity.lia_code', 'LIKE', '%' . $search . '%')
+                  ->orWhere('item.nome', 'LIKE', '%' . $search . '%')
+                  ->orWhere('item.model', 'LIKE', '%' . $search . '%');
             });
         }
 
-            $unidades = $query->get();
+        if ($sort === 'lia') {
+            $query->orderBy('item_unity.lia_code');
+        } else {
+            $query->orderBy('item.nome')->orderBy('item_unity.lia_code');
+        }
 
+        $unidades = $query->get();
+
+        if ($request->ajax()) {
+            $output = '';
             if ($unidades->count() > 0) {
                 foreach ($unidades as $unidade) {
-                    
+                    if (!$unidade->item) continue;
                     $output .= '<div class="col-sm-3 mb-4">
-                                    <div class="card h-100"> 
+                                    <div class="card h-100">
                                         <div class="card-body d-flex flex-column justify-content-center text-center">
                                             <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
                                             <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
@@ -428,23 +432,11 @@ class ItemController extends Controller
             } else {
                 $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade oculta encontrada.</p></div>';
             }
-
             return response()->json($output);
-        } 
-        
-       
-        else {
-            
-            $unidades = ItemUnity::with('item')->where('item_unity_state_id', 2)->whereHas('item')->get();
         }
 
-        
-        if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
-            return view('admin.itemUnities.ocultos', ['unidades' => $unidades]);
-        }
-        
-        return redirect('/');
-    }
+        return view('admin.itemUnities.ocultos', ['unidades' => $unidades]);
+}
 
 
     public function edit($id)
@@ -576,8 +568,8 @@ public function showUnitiesEtapa($id)
     return redirect('/');
 }
 
-    public function updateUnitiesEtapa(Request $request, $id)
-    {
+public function updateUnitiesEtapa(Request $request, $id)
+{
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
             $item = Item::find($id);
 
@@ -686,62 +678,63 @@ public function showUnitiesEtapa($id)
             return redirect()->route('itens.index')->with('toast_success', 'Item e unidades gravados com sucesso!');
         }
         return redirect('/');
-    }
+}
 
-    public function manutencao(Request $request)
-    {
+public function manutencao(Request $request)
+{
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
 
-    if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
-        return redirect('/');
-    }
-    if ($request->ajax()) {
-        $output = '';
-        $search = $request->search;
+        $search = $request->get('search');
+        $sort   = $request->get('sort', 'nome');
 
-        // Estado 4 = Em Manutenção
-        $query = \App\Models\ItemUnity::with('item')->where('item_unity_state_id', 4);
+        $query = ItemUnity::with('item')
+            ->where('item_unity.item_unity_state_id', 4)
+            ->join('item', 'item_unity.item_id', '=', 'item.id')
+            ->select('item_unity.*');
 
-        // Aplica o filtro se houver texto na pesquisa
         if (!empty($search)) {
-            $query->where(function($q) use ($search) {
-                $q->where('lia_code', 'LIKE', '%' . $search . '%')
-                  ->orWhereHas('item', function($subQuery) use ($search) {
-                      $subQuery->where('nome', 'LIKE', '%' . $search . '%')
-                               ->orWhere('model', 'LIKE', '%' . $search . '%');
-                  });
+            $query->where(function ($q) use ($search) {
+                $q->where('item_unity.lia_code', 'LIKE', '%' . $search . '%')
+                  ->orWhere('item.nome', 'LIKE', '%' . $search . '%')
+                  ->orWhere('item.model', 'LIKE', '%' . $search . '%');
             });
+        }
+
+        if ($sort === 'lia') {
+            $query->orderBy('item_unity.lia_code');
+        } else {
+            $query->orderBy('item.nome')->orderBy('item_unity.lia_code');
         }
 
         $unidades = $query->get();
 
-        // Gera o HTML do output
-        if ($unidades->count() > 0) {
-            foreach ($unidades as $unidade) {
-                $output .= '<div class="col-sm-3 mb-4">
-                                <div class="card h-100"> 
-                                    <div class="card-body d-flex flex-column justify-content-center text-center">
-                                        <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                        <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
-                                        <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
-                                        <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
-                                        <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+        if ($request->ajax()) {
+            $output = '';
+            if ($unidades->count() > 0) {
+                foreach ($unidades as $unidade) {
+                    if (!$unidade->item) continue;
+                    $output .= '<div class="col-sm-3 mb-4">
+                                    <div class="card h-100">
+                                        <div class="card-body d-flex flex-column justify-content-center text-center">
+                                            <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
+                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                            <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
+                                            <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
+                                            <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>';
+                                </div>';
+                }
+            } else {
+                $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade em manutenção encontrada.</p></div>';
             }
-        } else {
-            $output = '<div class="col-12"><p class="text-muted text-center">Nenhuma unidade em manutenção encontrada.</p></div>';
+            return response()->json($output);
         }
 
-        return response()->json($output);
-    }
-    
-    $unidades = \App\Models\ItemUnity::where('item_unity_state_id', 4)
-        ->with('item')
-        ->get();
-
-        return view('admin.ItemUnities.manutencao', ['unidades' => $unidades]);
-    }
+        return view('admin.itemUnities.manutencao', ['unidades' => $unidades]);
+}
 
 
 

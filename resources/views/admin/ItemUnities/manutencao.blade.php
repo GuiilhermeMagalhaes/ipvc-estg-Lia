@@ -5,9 +5,13 @@
 @section('content')
 <br>
 <div>
-    <form action="#" class="search-form">
+    <div class="search-form mb-4" style="display:flex; gap:10px; align-items:center;">
         <input id="search" class="form-control search-input" name="search" type="text" placeholder="Procurar Itens em Manutenção..." style="width: 24%;" />
-    </form>
+        <select id="sort" class="form-control" style="width: 220px;">
+            <option value="nome">Ordenar por: Nome (A-Z)</option>
+            <option value="lia">Ordenar por: Código LIA</option>
+        </select>
+    </div>
     <br>
     <div class="row mycard">
         @foreach($unidades as $unidade)
@@ -27,26 +31,19 @@
 </div>
 
 <script type="text/javascript">
-    $.ajaxSetup({
-        headers: {
-            'csrftoken': '{{ csrf_token() }}'
-        }
-    });
-    $('#search').on('keyup', function() {
-        var value = $(this).val().trim();
+    $.ajaxSetup({ headers: { 'csrftoken': '{{ csrf_token() }}' } });
+
+    function carregarItens() {
         $.ajax({
             type: "get",
-            url: "{{ route('itens.manutencao') }}", {{-- ← alterado --}}
-            data: {
-                'search': value
-            },
-            success: function(data) {
-                $('.mycard').html(data);
-            },
-            error: function(xhr, status, error) {
-                console.error('Erro na requisição Ajax:', error);
-            }
+            url: "{{ route('itens.manutencao') }}",
+            data: { 'search': $('#search').val().trim(), 'sort': $('#sort').val() },
+            success: function(data) { $('.mycard').html(data); },
+            error: function(xhr, status, error) { console.error('Erro na requisição Ajax:', error); }
         });
-    });
+    }
+
+    $('#search').on('keyup', carregarItens);
+    $('#sort').on('change', carregarItens);
 </script>
 @endsection

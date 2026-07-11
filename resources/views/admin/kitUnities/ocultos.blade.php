@@ -6,8 +6,12 @@
 <div>
     <br>
     
-    <form action="#" class="search-form" onsubmit="return false;">
+   <form action="#" class="search-form" onsubmit="return false;" style="display:flex; gap:10px; align-items:center;">
         <input id="search-ocultos" class="form-control search-input" name="search" type="text" placeholder="Procurar kits ocultos..." style="width: 30%;" autocomplete="off" />
+        <select id="sort-ocultos" class="form-control" style="width: 220px;">
+            <option value="nome">Ordenar por: Nome (A-Z)</option>
+            <option value="lia">Ordenar por: Código LIA</option>
+        </select>
     </form>
     <br>
     
@@ -40,35 +44,25 @@
 </div>
 
 <script type="text/javascript">
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
+    $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
 
-    // AJAX LIVE SEARCH adaptado para a rota de ocultos
-    $('#search-ocultos').on('keyup', function() {
-        var value = $(this).val().trim(); 
-        
+    function carregarKitsOcultos() {
         $.ajax({
             type: "get",
-            // IMPORTANTE: Altera 'kitUnity.ocultos' para o nome correto que deres à tua rota no web.php
-            url: "{{ route('kits.indexocultos') }}", 
-            data: {
-                'search': value
-            },
+            url: "{{ route('kits.indexocultos') }}",
+            data: { 'search': $('#search-ocultos').val().trim(), 'sort': $('#sort-ocultos').val() },
             success: function(data) {
-                // Caso a pesquisa retorne vazia no AJAX, exibe uma mensagem amigável
-                if(data.trim() === "") {
+                if (data.trim() === "") {
                     $('.mycard').html('<div class="col-12 text-center my-5"><p class="text-muted">Nenhum resultado corresponde à sua pesquisa.</p></div>');
                 } else {
-                    $('.mycard').html(data); 
+                    $('.mycard').html(data);
                 }
             },
-            error: function(xhr, status, error) {
-                console.error('Erro na requisição Ajax:', status, error);
-            }
+            error: function(xhr, status, error) { console.error('Erro na requisição Ajax:', status, error); }
         });
-    });
+    }
+
+    $('#search-ocultos').on('keyup', carregarKitsOcultos);
+    $('#sort-ocultos').on('change', carregarKitsOcultos);
 </script>
 @endsection
