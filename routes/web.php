@@ -121,7 +121,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/decline', [AdminReserveController::class, 'decline'])->name('reserve.decline');
             Route::post('/{id}/finalize', [AdminReserveController::class, 'finalize'])->name('reserve.finalize');
             Route::post('/{id}/deliver', [AdminReserveController::class, 'deliver'])->name('reserve.deliver');
-            Route::post('/{id}/receive', [AdminReserveController::class, 'receive'])->name('reserve.receive');                    
+            Route::post('/{id}/receive', [AdminReserveController::class, 'receive'])->name('reserve.receive');
+            Route::post('/admin/reserve/{id}/cancel', [App\Http\Controllers\Admin\ReserveController::class, 'cancel'])->name('reserve.admincancel');
             Route::post('/{id}/pay', [AdminReserveController::class, 'pay'])->name('reserve.pay');
         });
 

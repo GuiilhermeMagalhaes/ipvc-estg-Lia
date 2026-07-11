@@ -83,12 +83,64 @@ class ReserveController extends Controller
     public function show($id)
     {
         if (Auth::user()->user_type_id == 1 || Auth::user()->user_type_id == 2) {
+
+            $reserve       = Reserve::findOrFail($id);
+            $reserve_kits  = KitReserve::where('reserve_id', $id)->get();
+            $reserve_itens = ItemReserve::where('reserve_id', $id)->get();
+
+            // Reservas em curso (estados 4 e 7), excluindo a atual
+            $reservasAtivasIds = Reserve::whereIn('reserve_state_id', [4, 7])
+                ->where('id', '!=', $id)
+                ->pluck('id');
+
+            // (A) Kit unities entregues noutra reserva ativa
+            $kitReservesAtivas = KitReserve::whereIn('reserve_id', $reservasAtivasIds)->pluck('id');
+            $kitUnitiesOcupadas = DB::table('kit_unity_reserve')
+                ->whereIn('kit_reserve_id', $kitReservesAtivas)
+                ->pluck('kit_unity_id')->toArray();
+
+            // (B) Item unities entregues individualmente noutra reserva ativa
+            $itemReservesAtivas = ItemReserve::whereIn('reserve_id', $reservasAtivasIds)->pluck('id');
+            $itemUnitiesSoltasOcupadas = DB::table('item_unity_reserve')
+                ->whereIn('item_reserve_id', $itemReservesAtivas)
+                ->pluck('item_unity_id')->toArray();
+
+            // (C) Item unities que estão DENTRO de kits entregues noutra reserva ativa
+            $itemUnitiesEmKitsOcupados = ItemUnity::whereIn('kit_unity_id', $kitUnitiesOcupadas)
+                ->pluck('id')->toArray();
+
+            // (D) Item unities que estão dentro dos kits pedidos NESTA reserva
+            $kitIdsDestaReserva   = $reserve_kits->pluck('kit_id')->toArray();
+            $kitUnitiesDestesKits = KitUnity::whereIn('kit_id', $kitIdsDestaReserva)->pluck('id')->toArray();
+            $itemUnitiesDestaReservaKits = ItemUnity::whereIn('kit_unity_id', $kitUnitiesDestesKits)
+                ->pluck('id')->toArray();
+
+            // (E) PASSO 3: Kit units cujas peças internas já saíram individualmente noutra reserva ativa
+            $kitUnitiesComPecaForaIndividual = ItemUnity::whereIn('id', $itemUnitiesSoltasOcupadas)
+                ->whereNotNull('kit_unity_id')
+                ->pluck('kit_unity_id')->toArray();
+
+            // Kit units a esconder = entregues como kit + as que têm peça fora individualmente
+            $kitUnitiesOcupadas = array_values(array_unique(array_merge(
+                $kitUnitiesOcupadas,
+                $kitUnitiesComPecaForaIndividual
+            )));
+
+            // Peças que NÃO podem aparecer no select individual
+            $itemUnitiesIndisponiveis = array_values(array_unique(array_merge(
+                $itemUnitiesSoltasOcupadas,
+                $itemUnitiesEmKitsOcupados,
+                $itemUnitiesDestaReservaKits
+            )));
+
             return view('admin.reserves.show', [
-                'reserve'       => Reserve::findOrFail($id),
-                'reserve_kits'  => KitReserve::where('reserve_id', $id)->get(),
-                'kits'          => Kit::all(),
-                'reserve_itens' => ItemReserve::where('reserve_id', $id)->get(),
-                'itens'         => Item::all(),
+                'reserve'                  => $reserve,
+                'reserve_kits'             => $reserve_kits,
+                'kits'                     => Kit::all(),
+                'reserve_itens'            => $reserve_itens,
+                'itens'                    => Item::all(),
+                'itemUnitiesIndisponiveis' => $itemUnitiesIndisponiveis,
+                'kitUnitiesOcupadas'       => $kitUnitiesOcupadas,
             ]);
         }
         return redirect('/');
@@ -141,51 +193,88 @@ class ReserveController extends Controller
         return back()->with('toast_success', 'Reserva recusada.');
     }
 
-    public function deliver(Request $request, $id) 
+ public function deliver(Request $request, $id) 
     {
-
-         if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
             return redirect('/');
         }
-        
 
-        // 1. VALIDAÇÃO DE SEGURANÇA: Evitar entrega de itens individuais que estão dentro dos kits selecionados
-    $selectedItemUnities = [];
-    if ($request->has('atribuicao')) {
-        foreach ($request->atribuicao as $item_reserve_id => $unities) {
-            // Junta todos os IDs dos itens individuais escolhidos num único array
-            $selectedItemUnities = array_merge($selectedItemUnities, $unities);
+        // Junta todos os IDs dos itens individuais escolhidos
+        $selectedItemUnities = [];
+        if ($request->has('atribuicao')) {
+            foreach ($request->atribuicao as $item_reserve_id => $unities) {
+                $selectedItemUnities = array_merge($selectedItemUnities, $unities);
+            }
         }
-    }
 
-    $selectedKitUnities = [];
-    if ($request->has('atribuicao_kit')) {
-        foreach ($request->atribuicao_kit as $kit_reserve_id => $unities) {
-            // Junta todos os IDs das malas escolhidas num único array
-            $selectedKitUnities = array_merge($selectedKitUnities, $unities);
+        // Junta todos os IDs das malas escolhidas
+        $selectedKitUnities = [];
+        if ($request->has('atribuicao_kit')) {
+            foreach ($request->atribuicao_kit as $kit_reserve_id => $unities) {
+                $selectedKitUnities = array_merge($selectedKitUnities, $unities);
+            }
         }
-    }
 
-    // Se ele escolheu peças individuais E malas ao mesmo tempo, cruzamos os dados
-    if (!empty($selectedItemUnities) && !empty($selectedKitUnities)) {
-        
-        // Vai procurar se algum dos Itens escolhidos pertence a algum dos Kits escolhidos
-        $conflitoFisico = \App\Models\ItemUnity::whereIn('id', $selectedItemUnities)
-                    ->whereIn('kit_unity_id', $selectedKitUnities)
-                    ->exists();
+        // Remove valores vazios (linhas deixadas em branco)
+        $selectedItemUnities = array_values(array_filter($selectedItemUnities, fn($v) => !empty($v)));
+        $selectedKitUnities  = array_values(array_filter($selectedKitUnities, fn($v) => !empty($v)));
 
-        if ($conflitoFisico) {
-            return redirect()->back()->with('toast_error', 'Erro de Atribuição: Está a tentar entregar uma peça individual que já se encontra dentro de uma das Malas selecionadas!');
-        }
-    }
-
-
-        if (!$request->has('atribuicao') && (!$request->has('atribuicao_kit'))) {
+        // Tem de haver pelo menos uma unidade
+        if (empty($selectedItemUnities) && empty($selectedKitUnities)) {
             return back()->with('toast_error', 'Selecione pelo menos uma unidade para entregar.');
         }
 
+        // 1. CONFLITO: peça individual que já está dentro de uma das malas selecionadas
+        if (!empty($selectedItemUnities) && !empty($selectedKitUnities)) {
+            $conflitoFisico = \App\Models\ItemUnity::whereIn('id', $selectedItemUnities)
+                        ->whereIn('kit_unity_id', $selectedKitUnities)
+                        ->exists();
+
+            if ($conflitoFisico) {
+                return redirect()->back()->with('toast_error', 'Erro de Atribuição: Está a tentar entregar uma peça individual que já se encontra dentro de uma das Malas selecionadas!');
+            }
+        }
+
+        // 2. DUPLICADOS: a mesma unidade escolhida mais do que uma vez nesta reserva
+        if (count($selectedItemUnities) !== count(array_unique($selectedItemUnities))) {
+            return redirect()->back()->with('toast_error', 'Erro de Atribuição: selecionou o mesmo item mais do que uma vez nesta reserva.');
+        }
+        if (count($selectedKitUnities) !== count(array_unique($selectedKitUnities))) {
+            return redirect()->back()->with('toast_error', 'Erro de Atribuição: selecionou a mesma mala (Kit) mais do que uma vez nesta reserva.');
+        }
+
+        // 3. JÁ ATRIBUÍDO: unidade já entregue noutra reserva em curso (estados 4 e 7)
+        $reservasAtivasIds = Reserve::whereIn('reserve_state_id', [4, 7])
+            ->where('id', '!=', $id)
+            ->pluck('id');
+
+        if (!empty($selectedItemUnities)) {
+            $itemReservesAtivas = ItemReserve::whereIn('reserve_id', $reservasAtivasIds)->pluck('id');
+            $itensOcupados = DB::table('item_unity_reserve')
+                ->whereIn('item_reserve_id', $itemReservesAtivas)
+                ->whereIn('item_unity_id', $selectedItemUnities)
+                ->exists();
+
+            if ($itensOcupados) {
+                return redirect()->back()->with('toast_error', 'Erro de Atribuição: um dos itens selecionados já se encontra atribuído a outra reserva em curso.');
+            }
+        }
+
+        if (!empty($selectedKitUnities)) {
+            $kitReservesAtivas = KitReserve::whereIn('reserve_id', $reservasAtivasIds)->pluck('id');
+            $kitsOcupados = DB::table('kit_unity_reserve')
+                ->whereIn('kit_reserve_id', $kitReservesAtivas)
+                ->whereIn('kit_unity_id', $selectedKitUnities)
+                ->exists();
+
+            if ($kitsOcupados) {
+                return redirect()->back()->with('toast_error', 'Erro de Atribuição: uma das malas (Kit) selecionadas já se encontra atribuída a outra reserva em curso.');
+            }
+        }
+
+        // Tudo validado -> grava
         DB::transaction(function () use ($request, $id) {
-            
+
             if ($request->has('atribuicao')) {
                 foreach ($request->atribuicao as $reserve_item_id => $unity_ids) {
                     foreach ($unity_ids as $unity_id) {
@@ -391,6 +480,48 @@ class ReserveController extends Controller
         }
     }
 
+    public function cancel($id)
+    {
+        if (Auth::user()->user_type_id != 1 && Auth::user()->user_type_id != 2) {
+            return redirect('/');
+        }
 
+        $reserve = Reserve::findOrFail($id);
+
+        // Não deixar cancelar reservas já concluídas, devolvidas ou já canceladas
+        if (in_array($reserve->reserve_state_id, [5, 6, 8, 9, 10])) {
+            return back()->with('toast_error', 'Esta reserva já está concluída, devolvida ou cancelada — não pode ser cancelada.');
+        }
+
+        DB::transaction(function () use ($reserve) {
+
+            // 1. Libertar unidades de ITENS atribuídas (remover da pivot)
+            $itemReserveIds = ItemReserve::where('reserve_id', $reserve->id)->pluck('id');
+            DB::table('item_unity_reserve')->whereIn('item_reserve_id', $itemReserveIds)->delete();
+
+            // 2. Libertar unidades de KITS atribuídas
+            $kitReserveIds = KitReserve::where('reserve_id', $reserve->id)->pluck('id');
+            DB::table('kit_unity_reserve')->whereIn('kit_reserve_id', $kitReserveIds)->delete();
+
+            // 3. Reverter o custo no Centro de Custos (se já tinha sido aplicado)
+            if ($reserve->cost_center_id && $reserve->cost > 0) {
+                $centro = CostCenter::find($reserve->cost_center_id);
+                if ($centro) {
+                    $centro->total_cost = max(0, $centro->total_cost - $reserve->cost);
+                    if (!$reserve->is_paid) {
+                        $centro->total_debt = max(0, $centro->total_debt - $reserve->cost);
+                    }
+                    $centro->save();
+                }
+            }
+
+            // 4. Marcar como Cancelada
+            $reserve->reserve_state_id = 10;
+            $reserve->cost = 0;
+            $reserve->save();
+        });
+
+        return redirect()->route('reserves.all')->with('toast_success', 'Reserva cancelada. As unidades atribuídas voltaram a ficar disponíveis.');
+    }
     
 }

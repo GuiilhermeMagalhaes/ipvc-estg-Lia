@@ -152,7 +152,6 @@ public function show($id)
 
         // 3. Os Itens Livres (Para adicionar à mala, estes sim devem continuar filtrados para não juntares lixo/peças avariadas)
         $itensLivres = ItemUnity::with('item')
-                                ->whereNull('kit_unity_id')
                                 ->whereIn('item_unity_state_id', [1, 2, 4]) 
                                 ->get();
 
@@ -379,7 +378,6 @@ public function createUnities(Request $request)
     
 
     $itensLivres = ItemUnity::with('item')
-        ->whereNull('kit_unity_id')
         ->whereIn('item_unity_state_id', [1, 2, 4]) 
         ->get();
 

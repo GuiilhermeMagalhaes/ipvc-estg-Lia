@@ -190,6 +190,19 @@
             </div>
             @endif
 
+            {{-- Cancelar Reserva (exceto se já concluída/devolvida/cancelada) --}}
+            @if (!in_array($reserve->reserveState->id, [5, 6, 8, 9, 10]))
+            <div class="mt-3 mb-3">
+                <form action="{{ route('reserve.admincancel', $reserve->id) }}" method="post"
+                      onsubmit="return confirm('Tem a certeza que quer cancelar esta reserva? As unidades atribuídas voltam a ficar disponíveis.');">
+                    @csrf
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-ban"></i> Cancelar Reserva
+                    </button>
+                </form>
+            </div>
+            @endif
+
             {{-- Estado 2: Autorizada - Atribuição de Equipamento (Entrega) --}}
             {{-- FORMULÁRIO DE ENTREGA COMPLETO (KITS + ITENS) --}}
 @if ($reserve->reserveState->id == 2)
@@ -203,38 +216,49 @@
             <div class="row">
                 
                 {{-- A. ATRIBUIR KITS --}}
-                    @foreach ($reserve_kits as $rk)
+                @foreach ($reserve_kits as $rk)
                         @php
                             $assignedKitCount = \Illuminate\Support\Facades\DB::table('kit_unity_reserve')
                                             ->where('kit_reserve_id', $rk->id)->count();
                             $quantidadeKitPedida = $rk->quantity ?? 1;
                             $toAssignKit = $quantidadeKitPedida - $assignedKitCount;
 
-                            // 1. LÓGICA DE SEGURANÇA: Criar uma "lista negra" de Kits Incompletos
-                            // Procura todos os itens que pertencem a um kit e que NÃO estão disponíveis (!= 1)
+                            $kitAtual = $kits->firstWhere('id', $rk->kit_id);
+
+                            // Kits incompletos (alguma peça interna não está disponível)
                             $kitsIncompletos = \App\Models\ItemUnity::whereNotNull('kit_unity_id')
                                 ->where('item_unity_state_id', '!=', 1)
                                 ->pluck('kit_unity_id')
                                 ->toArray();
 
-                            // 2. Buscar apenas os Kits físicos que estão no estado 1 (Disponível) 
-                            // E que NÃO estão na "lista negra" de kits incompletos
+                            // Malas disponíveis para atribuir
                             $kitsDisponiveis = \App\Models\KitUnity::where('kit_id', $rk->kit_id)
                                 ->where('kit_unity_state_id', 1)
                                 ->whereNotIn('id', $kitsIncompletos)
+                                ->whereNotIn('id', $kitUnitiesOcupadas)
                                 ->get();
                         @endphp
 
                         @if ($toAssignKit > 0)
+                            @if ($kitsDisponiveis->count() < $toAssignKit)
+                            <div class="col-12">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <strong>{{ optional($kitAtual)->name }} (Kit):</strong>
+                                    foram pedidas {{ $toAssignKit }} mala(s), mas só há {{ $kitsDisponiveis->count() }} disponível(is) para atribuir.
+                                    As restantes estão <strong>incompletas</strong> (uma peça está em manutenção ou já foi entregue individualmente noutra reserva) ou já atribuídas a outra reserva em curso.
+                                </div>
+                            </div>
+                            @endif
+
                             @for ($i = 0; $i < $toAssignKit; $i++)
                             <div class="col-md-4 mb-3" style="background-color: #f8f9fa; padding: 10px; border-radius: 8px;">
                                 <label class="text-primary">
-                                    @foreach($kits as $k) @if($k->id == $rk->kit_id) <strong><i class="fas fa-box"></i> {{ $k->name }} (KIT)</strong> @endif @endforeach
+                                    <strong><i class="fas fa-box"></i> {{ optional($kitAtual)->name }} (KIT)</strong>
                                     <br><small class="text-dark">Unid. {{ $i + 1 }}/{{ $toAssignKit }}</small>
                                 </label>
                                 <select name="atribuicao_kit[{{ $rk->id }}][]" class="form-control border-primary" required>
                                     <option value="">-- Escolha LIA do Kit --</option>
-                                    {{-- Agora usamos a variável $kitsDisponiveis perfeitamente limpa --}}
                                     @foreach($kitsDisponiveis as $unity)
                                         <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }}</option>
                                     @endforeach
@@ -250,22 +274,38 @@
                         $assignedCount = \Illuminate\Support\Facades\DB::table('item_unity_reserve')
                                         ->where('item_reserve_id', $ri->id)
                                         ->count();
-                        
+
                         $quantidadePedida = $ri->quantity ?? 1;
                         $toAssign = $quantidadePedida - $assignedCount;
+
+                        // Unidades realmente disponíveis para atribuir a este item
+                        $unidadesDisponiveis = \App\Models\ItemUnity::where('item_id', $ri->item_id)
+                                        ->where('item_unity_state_id', 1)
+                                        ->whereNotIn('id', $itemUnitiesIndisponiveis)
+                                        ->get();
                     @endphp
 
                     @if ($toAssign > 0)
+                        @if ($unidadesDisponiveis->count() < $toAssign)
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>{{ $ri->item->nome }} (Item):</strong>
+                                foram pedidas {{ $toAssign }} unidade(s), mas só há {{ $unidadesDisponiveis->count() }} unidade(s) solta(s) disponível(is) para atribuir.
+                                As restantes estão <strong>dentro de um kit desta reserva</strong> ou já atribuídas a outra reserva em curso — por isso não podem ser entregues individualmente.
+                            </div>
+                        </div>
+                        @endif
+
                         @for ($i = 0; $i < $toAssign; $i++)
                         <div class="col-md-4 mb-3">
                             <label>
                                 <strong>{{ $ri->item->nome }} (Item)</strong>
                                 <br><small>Unid. {{ $i + 1 }}/{{ $toAssign }}</small>
                             </label>
-                            {{-- Repara no nome: atribuicao --}}
                             <select name="atribuicao[{{ $ri->id }}][]" class="form-control" required>
                                 <option value="">-- Escolha LIA do Item --</option>
-                                @foreach(\App\Models\ItemUnity::where('item_id', $ri->item_id)->where('item_unity_state_id', 1)->get() as $unity)
+                                @foreach($unidadesDisponiveis as $unity)
                                     <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }} (Ref: {{ $ri->item->ipvc_ref }})</option>
                                 @endforeach
                             </select>
