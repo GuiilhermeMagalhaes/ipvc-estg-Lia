@@ -1,74 +1,49 @@
 <!DOCTYPE html>
 <html lang="pt">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta charset="utf-8">
+    <title>Relatório de Equipamentos Disponíveis</title>
     <style>
-        .header-container {
-            display: flex;
-            justify-content: space-between;
-            position: relative; /* Para posicionar o h2 de forma absoluta relativo a este container */
-        }
-
-        .left,
-        .right {
-            width: 100%;
-        }
-
-        .right {
-            text-align: right;
-        }
-
-        .absolute-center {
-            position: absolute;
-            top: 22%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #333; }
+        h1 { text-align: center; font-size: 18px; margin-bottom: 4px; }
+        .subtitulo { text-align: center; color: #777; margin-bottom: 20px; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #fafafa; }
+        .vazio { text-align: center; color: #999; padding: 20px; }
     </style>
 </head>
-
 <body>
-    <div class="container">
-        <div class="header-container">
-            <div class="left">
-                <img src="{{'data:image/png;base64,'.base64_encode(file_get_contents(public_path('images/default.png')))}}" width="250" height="100">
-            </div>
-            <div class="right">
-                <h4>Técnico Responsável</h4>
-                <p>
-                    {{ Auth::user()->name }}<br>
-                    {{ Auth::user()->email }}<br>
-                    {{ Auth::user()->phone }}<br>
-                    lia.estg.ipvc.pt
-                </p>
-            </div>
-            <div class="absolute-center">
-                <h3 style="margin-top: 0;">Relatório de Equipamentos Disponíveis - Laboratório de Interação e Audiovisuais (L 3.6)</h3>
-            </div>
-        </div>
-        <p>
-            
-        </p>
+    <h1>Relatório de Equipamentos Disponíveis</h1>
+    <p class="subtitulo">Gerado em {{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</p>
 
-        <h3 style="text-align:center;">Equipamentos</h3>
-        <ul>
-            @foreach ($itens as $item)
-            <li>Item: {{ $item->nome }} - {{ $item->model }} - {{ $item->serial_number }} - {{ $item->lia_code}}</li>
+    @if($unidades->count() > 0)
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Modelo</th>
+                <th>Ref. IPVC</th>
+                <th>Código LIA</th>
+                <th>Preço / dia</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($unidades as $unidade)
+            <tr>
+                <td>{{ $unidade->item->nome ?? '—' }}</td>
+                <td>{{ $unidade->item->model ?? '—' }}</td>
+                <td>{{ $unidade->item->ipvc_ref ?? '—' }}</td>
+                <td>{{ $unidade->lia_code }}</td>
+                <td>{{ number_format($unidade->item->price_day, 2, ',', '.') }} €</td>
+            </tr>
             @endforeach
-        </ul>
-        <br>
-        <p>
-            Observações:__________________________________________________________________________
-            _____________________________________________________________________________________
-            _____________________________________________________________________________________
-        </p>
-        <br>
-        <pre>Técnico LIA:___________________<br>Data:__/__/____</pre>
-    </div>
+        </tbody>
+    </table>
+    <p style="margin-top: 15px;"><strong>Total de unidades disponíveis:</strong> {{ $unidades->count() }}</p>
+    @else
+    <p class="vazio">Não existem equipamentos disponíveis de momento.</p>
+    @endif
 </body>
-
 </html>

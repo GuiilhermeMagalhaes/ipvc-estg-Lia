@@ -19,6 +19,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Concerns\FromView;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use App\Models\ItemUnity;
 
 
 
@@ -117,25 +118,29 @@ class HomeController extends Controller
         return redirect('/');
     }
 
-    public function PDFItensDisp()
+   public function PDFItensDisp()
     {
-        // Recupera os itens com estado 1 e ordena por nome
-        $itens = Item::where('item_state_id', '=', 1)
-            ->orderBy('nome', 'asc') // Adiciona a ordenação por nome em ordem ascendente
-            ->get();
-        // Carrega a visualização do PDF com os itens
-        $pdf = PDF::loadview('admin.reports.PDFitensdisp', compact('itens'));
-        // Retorna o download do PDF gerado
+        $unidades = \App\Models\ItemUnity::with('item')
+            ->where('item_unity_state_id', 1) // 1 = Disponível
+            ->whereHas('item')
+            ->get()
+            ->sortBy(fn($u) => mb_strtolower($u->item->nome ?? ''))
+            ->values();
+
+        $pdf = PDF::loadview('admin.reports.PDFitensdisp', compact('unidades'));
         return $pdf->download('RelatorioEquipamentosDisponiveis.pdf');
     }
 
-
     public function PDFItensInd()
     {
-        $itens = Item::where('item_state_id', '=', 2)
-            ->orderBy('nome', 'asc')
-            ->get();
-        $pdf = PDF::loadview('admin.reports.PDFitensind', compact('itens'));
+        $unidades = \App\Models\ItemUnity::with('item')
+            ->where('item_unity_state_id', 2) // 2 = Oculto/Indisponível
+            ->whereHas('item')
+            ->get()
+            ->sortBy(fn($u) => mb_strtolower($u->item->nome ?? ''))
+            ->values();
+
+        $pdf = PDF::loadview('admin.reports.PDFitensind', compact('unidades'));
         return $pdf->download('RelatorioEquipamentosIndisponiveis.pdf');
     }
 
