@@ -54,15 +54,22 @@
                             {{\Carbon\Carbon::parse($reserve->end_date)->format('Y/m/d')}}
                         </td>
                         <td>
-                            <?php 
-                                $todaydate = date('Y-m-d');
-                                $seconds_diff = strtotime($reserve->end_date) - strtotime($todaydate);
-                                $days_diff = floor($seconds_diff/3600/24);
-                            ?>
-                            {{\Carbon\Carbon::parse($days_diff)->format('Y/m/d')}}
+                            @php
+                                $hoje = \Carbon\Carbon::today();
+                                $fim  = \Carbon\Carbon::parse($reserve->end_date)->startOfDay();
+                                $diasAteFim = $hoje->diffInDays($fim, false); // negativo se já terminou
+                            @endphp
+
+                            @if ($diasAteFim > 0)
+                                {{ $diasAteFim }} dia(s)
+                            @elseif ($diasAteFim === 0)
+                                Termina hoje
+                            @else
+                                {{ abs($diasAteFim) }} dia(s) em atraso
+                            @endif
                         </td>
                         <td>
-                            {{ $reserve->ciclica->dia_semana }}
+                            {{ $reserve->ciclica->dia_semana ?? '—' }}
                         </td>
                         <td>
                             {{ $reserve->reserveState->description }}
