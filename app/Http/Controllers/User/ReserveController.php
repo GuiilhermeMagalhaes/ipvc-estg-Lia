@@ -448,4 +448,24 @@ public function removeItem($id)
 
     return redirect('/')->with('success', 'Reserva efetuada com sucesso!');
 }
+
+public function cancelarMinhaReserva($id)
+    {
+        $reserve = \App\Models\Reserve::findOrFail($id);
+
+        // Só o dono da reserva a pode cancelar
+        if ($reserve->user_id != \Illuminate\Support\Facades\Auth::id()) {
+            return back()->with('toast_error', 'Não tem permissão para cancelar esta reserva.');
+        }
+
+        // Só é possível cancelar enquanto está pendente (ainda não foi processada)
+        if ($reserve->reserve_state_id != 1) {
+            return back()->with('toast_error', 'Só pode cancelar reservas que ainda estão pendentes.');
+        }
+
+        $reserve->reserve_state_id = 10; // Cancelada
+        $reserve->save();
+
+        return back()->with('toast_success', 'Reserva cancelada com sucesso!');
+    }
 }
