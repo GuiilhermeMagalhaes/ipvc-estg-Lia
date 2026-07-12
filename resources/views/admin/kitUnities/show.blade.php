@@ -19,7 +19,7 @@
         <img id="img" 
              src="../../{{ $kit->image }}" 
              class="img-fluid rounded shadow-sm" 
-             style="max-width: 400px; width: 100%; height: 310px; object-fit: contain;">
+             style="max-width: 400px; width: 100%; height: 300px; object-fit: contain;">
     </div>
 </div>
 
@@ -105,7 +105,7 @@
                 {{ $itemUnity->itemUnityState->description ?? 'Estado ' . $itemUnity->item_unity_state_id }}
             </span>
 
-            {{-- AQUI ESTÁ A PARTE QUE MOSTRA O PORQUÊ PARA OS ITENS DENTRO DA MALA --}}
+            
             @if(!empty($itemUnity->observacoes) && in_array($itemUnity->item_unity_state_id, [2, 4]))
                 <span class="d-block text-muted mt-1 small" style="line-height: 1.2;">
                     <i class="fas fa-exclamation-triangle text-warning"></i> {{ $itemUnity->observacoes }}

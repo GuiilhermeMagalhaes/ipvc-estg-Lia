@@ -28,7 +28,7 @@ class PerfilController extends Controller
     public function reserves()
     {
 
-        $reservas = Reserve::all();
+        $reservas = Reserve::orderBy('created_at', 'desc')->get();
 
         foreach ($reservas as $reserve) {
             if ($reserve->reserve_state_id == 7) {

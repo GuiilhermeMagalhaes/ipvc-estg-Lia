@@ -107,7 +107,7 @@
                             <b>Centro de custos: </b>{{ $reserve->costCenter->name }}
                         </li>
                         <li class="list-group-item">
-                            <b>Custo Total ({{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }}): </b>
+                            <b>Custo Estimado ({{ $dias }} {{ $dias == 1 ? 'dia' : 'dias' }}): </b>
                             <span class="text-info font-weight-bold">{{ number_format($reserve->estimated_cost, 2, ',', '.') }} €</span>
                         </li>
 

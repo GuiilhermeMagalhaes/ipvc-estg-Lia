@@ -82,4 +82,18 @@ class Reserve extends Model
     {
         return $this->belongsTo(Ciclica::class);
     }
+
+
+    public function itemUnities()
+    {
+        // Faz a ponte entre as tabelas usando o ItemReserve intermédio ou diretamente via pivot se configurado
+        return $this->belongsToMany(ItemUnity::class, 'item_unity_reserve', 'item_reserve_id', 'item_unity_id');
+    }
+
+    public function kitUnities()
+    {
+        return $this->belongsToMany(KitUnity::class, 'kit_unity_reserve', 'kit_reserve_id', 'kit_unity_id');
+    }
+
+    
 }

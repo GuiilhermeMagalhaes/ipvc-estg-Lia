@@ -30,69 +30,72 @@
                     <h5>Data de Fim</h5>
                     <p>{{ \Carbon\Carbon::createFromFormat('Y-m-d', session()->get('reserve.end_date'))->format('d-m-Y') }}</p>
                 </div>
+                
+                {{-- TABELA DE KITS --}}
                 @if (session()->has('reserve.kits') && count(session()->get('reserve.kits')) > 0)
                 <div class="callout callout-info" id="kits">
                     <h5>Kits para Reserva</h5>
-                    <table class="table">
+                    <table class="table style-fixed" style="table-layout: fixed; width: 100%;">
                         <thead>
-                             <tr>
-                            <th>Nome</th>
-                            <th>Preço / dia</th>
-                            <th>Quantidade</th>
-                            <th></th>
+                            <tr>
+                                <th style="width: 45%;">Nome</th>
+                                <th style="width: 25%;">Preço / dia</th>
+                                <th style="width: 15%;">Quantidade</th>
+                                <th style="width: 15%;"></th>
                             </tr>
                         </thead>
-                            <tbody>
-                                @foreach (session()->get('reserve.kits') as $kitId => $kitData)
-                                    <tr>
-                                        <td>{{ $kitData['name'] }}</td>
-                                        
-                                        <td>{{ number_format($kitData['price_day'], 2, ',', '.') }} € / dia </td>
-                                        <td>{{ $kitData['quantity'] }}</td>
-                                        <td>
-                                            <form action="{{ route('kit.remove', ['id' => $kitId]) }}" method="post">
-                                                @csrf
-                                                @method('POST')
-                                                <button type="submit" class="btn btn-outline-dark mt-auto" style="width: 140px;">Retirar</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
+                        <tbody>
+                            @foreach (session()->get('reserve.kits') as $kitId => $kitData)
+                                <tr>
+                                    <td class="text-truncate" style="max-width: 0; overflow: hidden; text-overflow: ellipsis;">{{ $kitData['name'] }}</td>
+                                    <td>{{ number_format($kitData['price_day'], 2, ',', '.') }} € / dia</td>
+                                    <td>{{ $kitData['quantity'] }}</td>
+                                    <td>
+                                        <form action="{{ route('kit.remove', ['id' => $kitId]) }}" method="post" class="m-0">
+                                            @csrf
+                                            @method('POST')
+                                            <button type="submit" class="btn btn-outline-dark btn-sm float-end" style="width: 90px;">Retirar</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
                     </table>  
                 </div>
-                 @endif
+                @endif
+
+                {{-- TABELA DE ITENS --}}
                 @if (session()->has('reserve.items') && count(session()->get('reserve.items')) > 0)
-               <div class="callout callout-info" id="itens">
-    <h5>Itens para Reserva</h5>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Preço / dia</th>
-                <th>Quantidade</th>
-                <th></th>
-            </tr>
-        </thead>
-            <tbody>
-                @foreach (session()->get('reserve.items') as $itemId => $item)
-                    <tr>
-                        <td>{{ $item['name'] }}</td>
-                        <td>{{ number_format($item['price'], 2, ',', '.') }} € / dia</td>
-                        <td>{{ $item['quantity'] }}</td>
-                        <td>
-                            <form action="{{ route('item.remove', ['id' => $itemId]) }}" method="post">
-                                @csrf
-                                @method('POST')
-                                <button type="submit" class="btn btn-outline-dark mt-auto float-end">Retirar</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-    </table>
-</div>
-@endif
+                <div class="callout callout-info" id="itens">
+                    <h5>Itens para Reserva</h5>
+                    <table class="table style-fixed" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 45%;">Nome</th>
+                                <th style="width: 25%;">Preço / dia</th>
+                                <th style="width: 15%;">Quantidade</th>
+                                <th style="width: 15%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (session()->get('reserve.items') as $itemId => $item)
+                                <tr>
+                                    <td class="text-truncate" style="max-width: 0; overflow: hidden; text-overflow: ellipsis;">{{ $item['name'] }}</td>
+                                    <td>{{ number_format($item['price'], 2, ',', '.') }} € / dia</td>
+                                    <td>{{ $item['quantity'] }}</td>
+                                    <td>
+                                        <form action="{{ route('item.remove', ['id' => $itemId]) }}" method="post" class="m-0">
+                                            @csrf
+                                            @method('POST')
+                                            <button type="submit" class="btn btn-outline-dark btn-sm float-end" style="width: 90px;">Retirar</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
             </div>
         </div>
 
@@ -184,7 +187,6 @@
         ]
     });
 
-    // Botão para iniciar o tutorial
     document.getElementById('start-tutorial').addEventListener('click', function () {
         tour.start();
     });
@@ -227,5 +229,4 @@
         $('[data-toggle="popover"]').popover();
     });
     </script>
-
 @endsection

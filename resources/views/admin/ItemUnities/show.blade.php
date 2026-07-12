@@ -18,7 +18,7 @@
         <img id="img" 
              src="../../{{ $item->image }}" 
              class="img-fluid rounded shadow-sm" 
-             style="max-width: 400px; width: 100%; height: 310px; object-fit: contain;">
+             style="max-width: 400px; width: 100%; height: 300px; object-fit: contain;">
     </div>
 </div>
 

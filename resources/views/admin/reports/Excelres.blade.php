@@ -39,22 +39,49 @@
                         {{ \Carbon\Carbon::parse($reserva->return_date)->format('d/m/Y') }}
                     @endif
                     </td>
-                    <td>
-                        @foreach ($reservas_itens as $reservas_item)
-                        @foreach ($itens as $item)
-                        @if($reservas_item->reserve_id == $reserva->id && $item->id == $reservas_item->item_id)
-                            <li>Item: {{ $item->nome }}; Código Lia: {{ $item->lia_code }}</li><br>
-                        @endif
-                        @endforeach
+                   <td>
+                        {{-- 1. PROCESSAR OS ITENS PEDIDOS --}}
+                        @foreach ($reserva->itemReserves as $itemReserve)
+                            {{-- Verificamos se este item específico já tem unidades físicas atribuídas na tabela pivot --}}
+                            @if ($itemReserve->itemUnityReserves->isNotEmpty())
+                                {{-- Se tem unidades associadas, listamos cada uma com o respetivo Código LIA --}}
+                                @foreach ($itemReserve->itemUnityReserves as $unityReserve)
+                                    <li>
+                                        Item: {{ $itemReserve->item->nome }}; 
+                                        Código Lia: {{ $unityReserve->itemUnity->lia_code }}
+                                    </li><br>
+                                @endforeach
+                            @else
+                                {{-- Se ainda não tem unidades associadas, mostra a quantidade solicitada --}}
+                                <li>
+                                    Item: {{ $itemReserve->item->nome }} 
+                                    (Qtd: {{ $itemReserve->quantity }})
+                                    <span style="color: gray; font-style: italic;">- Aguardar atribuição de unidade (Sem LIA)</span>
+                                </li><br>
+                            @endif
                         @endforeach
 
-                        @foreach ($reservas_kits as $reservas_kit)
-                        @foreach ($kits as $kit)
-                        @if($reservas_kit->reserve_id == $reserva->id && $kit->id == $reservas_kit->kit_id)
-                            <li>Kit: {{ $kit->description }}; Código Lia: {{ $kit->lia_code }}</li><br>
-                        @endif
+                        {{-- 2. PROCESSAR OS KITS PEDIDOS --}}
+                        @foreach ($reserva->kitReserves as $kitReserve)
+                            {{-- Verificamos se este kit específico já tem malas físicas atribuídas na tabela pivot --}}
+                            @if ($kitReserve->kitUnityReserves->isNotEmpty())
+                                {{-- Se tem malas associadas, listamos cada uma com o respetivo Código LIA --}}
+                                @foreach ($kitReserve->kitUnityReserves as $unityReserve)
+                                    <li>
+                                        Kit: {{ $kitReserve->kit->name }}; 
+                                        Código Lia: {{ $unityReserve->kitUnity->lia_code }}
+                                    </li><br>
+                                @endforeach
+                            @else
+                                {{-- Se ainda não tem malas associadas, mostra a quantidade solicitada --}}
+                                <li>
+                                    Kit: {{ $kitReserve->kit->name }} 
+                                    (Qtd: {{ $kitReserve->quantity }})
+                                    <span style="color: gray; font-style: italic;">- Aguardar atribuição de unidade (Sem LIA)</span>
+                                </li><br>
+                            @endif
                         @endforeach
-                        @endforeach
+                    </td>
                 </tr>
             @endforeach
         </tbody>

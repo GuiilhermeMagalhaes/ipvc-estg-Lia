@@ -34,7 +34,7 @@
             <tr>
                 <td>{{ $unidade->item->nome ?? '—' }}</td>
                 <td>{{ $unidade->item->model ?? '—' }}</td>
-                <td>{{ $unidade->item->ipvc_ref ?? '—' }}</td>
+                <td>{{ $unidade->ipvc_ref ?? '—' }}</td>
                 <td>{{ $unidade->lia_code }}</td>
                 <td>{{ number_format($unidade->item->price_day, 2, ',', '.') }} €</td>
             </tr>
