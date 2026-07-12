@@ -52,10 +52,23 @@
                             <td style="vertical-align: middle">
                                 {{ $reserve->reserveState->description }}
                             </td>
-                            <td>
-                                <a href="#" class="open-modal" data-reserve-id="{{ $reserve->id }}">
-                                    <i class="bi bi-plus-circle text-dark" style="font-size: 1.5rem;"></i>
-                                </a>
+                            <td style="vertical-align: middle;">
+                                <div class="d-flex align-items-center justify-content-end">
+                                    <a href="#" class="open-modal mr-3" data-reserve-id="{{ $reserve->id }}" title="Ver detalhes">
+                                        <i class="bi bi-plus-circle text-dark" style="font-size: 1.5rem;"></i>
+                                    </a>
+                            </td>
+                            <td style="vertical-align: middle;">
+                                    @if ($reserve->reserve_state_id == 1)
+                                    <form action="{{ route('reserve.usercancel', $reserve->id) }}" method="post" class="d-inline m-0"
+                                          onsubmit="return confirm('Tem a certeza que quer cancelar esta reserva?');">
+                                        @csrf
+                                        <button type="submit" class="btn p-0 border-0 bg-transparent" title="Cancelar reserva">
+                                            <i class="bi bi-x-circle text-danger" style="font-size: 1.5rem;"></i>
+                                        </button>
+                                    </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                         @endif

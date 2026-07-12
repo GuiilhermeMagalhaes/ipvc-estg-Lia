@@ -192,6 +192,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/remove-item/{id}', [ReserveController::class, 'removeItem'])->name('item.remove');
         Route::post('/reserve-cancel', [ReserveController::class, 'cancelReserve'])->name('reserve.cancel');
         Route::post('/reserve-confirm', [ReserveController::class, 'confirmReserve'])->name('reserve.confirm');
+        Route::post('/minhas-reservas/{id}/cancelar', [App\Http\Controllers\User\ReserveController::class, 'cancelarMinhaReserva'])->name('reserve.usercancel');
     });
 
     Route::prefix('lia-space')->group(function () {
