@@ -56,7 +56,7 @@ class ItemController extends Controller
                                     <div class="card h-100">
                                         <div class="card-body d-flex flex-column justify-content-center text-center">
                                             <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
                                             <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                             <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
                                             <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
@@ -442,7 +442,7 @@ class ItemController extends Controller
                                     <div class="card h-100">
                                         <div class="card-body d-flex flex-column justify-content-center text-center">
                                             <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
                                             <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                             <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
                                             <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>
@@ -815,7 +815,7 @@ public function manutencao(Request $request)
                                     <div class="card h-100">
                                         <div class="card-body d-flex flex-column justify-content-center text-center">
                                             <h1 class="card-title">' . htmlspecialchars($unidade->item->nome, ENT_QUOTES, 'UTF-8') . '</h1>
-                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->item->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
+                                            <small class="text-muted mb-2">Ref: ' . htmlspecialchars($unidade->ipvc_ref, ENT_QUOTES, 'UTF-8') . '</small>
                                             <p class="text-muted mb-2">LIA: ' . htmlspecialchars($unidade->lia_code, ENT_QUOTES, 'UTF-8') . '</p>
                                             <p class="card-text card-text-preco">' . number_format($unidade->item->price_day, 2, ',', '.') . ' € / dia</p>
                                             <a class="btn btn-primary mx-auto" style="width: 140px;" href="' . route('itens.show', ['id' => $unidade->id]) . '">VER DETALHES</a>

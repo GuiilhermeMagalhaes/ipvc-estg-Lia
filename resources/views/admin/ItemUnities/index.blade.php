@@ -21,7 +21,7 @@
             <div class="card h-100">
                 <div class="card-body d-flex flex-column justify-content-center text-center">
                     <h1 class="card-title">{{ $unidade->item->nome }}</h1>
-                    <small class="text-muted mb-2">Ref: {{ $unidade->item->ipvc_ref }}</small>
+                    <small class="text-muted mb-2">Ref: {{ $unidade->ipvc_ref }}</small>
                     <p class="text-muted mb-2">LIA: {{ $unidade->lia_code }}</p>
                     
                     <p class="card-text card-text-preco">{{ number_format($unidade->item->price_day, 2, ',', '.') }} € / dia</p>

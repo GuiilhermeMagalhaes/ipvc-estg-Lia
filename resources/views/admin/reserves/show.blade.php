@@ -306,7 +306,7 @@
                             <select name="atribuicao[{{ $ri->id }}][]" class="form-control" required>
                                 <option value="">-- Escolha LIA do Item --</option>
                                 @foreach($unidadesDisponiveis as $unity)
-                                    <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }} (Ref: {{ $ri->item->ipvc_ref }})</option>
+                                    <option value="{{ $unity->id }}">LIA: {{ $unity->lia_code }} (Ref: {{ $unity->ipvc_ref ?? 'N/A' }})</option>
                                 @endforeach
                             </select>
                         </div>

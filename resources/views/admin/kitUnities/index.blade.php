@@ -22,7 +22,7 @@
                 <div class="card-body d-flex flex-column justify-content-center text-center">
                   
                     <h5 class="card-title ">{{ $unidade->kit->name }}</h5>
-                    <small class="text-muted mb-2">Ref: {{ $unidade->kit->ipvc_ref ?? 'N/A' }}</small>
+                    <small class="text-muted mb-2">Ref: {{ $unidade->ipvc_ref ?? 'N/A' }}</small>
                     
                   
                     <p class="text-muted mb-2">LIA: {{ $unidade->lia_code }}</p>
