@@ -142,34 +142,48 @@
 </script>
 
 <style>
+    /* Força uma largura máxima no calendário para os quadrados não esticarem no ecrã inteiro */
+    #calendar {
+        max-width: 450px;
+        margin: 0 auto;
+        table-layout: fixed;
+        border-collapse: separate; 
+        border-spacing: 4px;
+    }
+
     .table td {
         border-top: none;
+        vertical-align: middle;
+        padding: 8px; /* Controla o tamanho base dos quadrados */
     }
 
     td {
         text-align: center;
+        height: 45px; /* Garante que as células ficam quadradas e simétricas */
+        width: 45px;
+        cursor: pointer;
     }
 
+    /* Efeito de hover geral para os dias comuns */
     td:hover {
         background-color: #343a40;
         color: white;
-        border-radius: 10px;
+        border-radius: 8px;
     }
 
+    /* DIAS DISPONÍVEIS: Cor alterada para o teu verde e tamanho reduzido */
     .highlight-cell {
-        background-color: #343a40;
-        color: white;
-        border-radius: 10px;
-        padding: 20px;
-        /* Reduzindo o padding para diminuir o tamanho do destaque */
+        background-color: #98ff6c !important; 
+        color: #212529 !important; /* Texto escuro para haver bom contraste com o verde claro */
+        border-radius: 8px;
+        font-weight: bold;
     }
 
+    /* Hover específico para os dias que têm o teu verde */
     .highlight-cell:hover {
-        background-color: black !important;
-        /* Fundo preto para dias com reservas */
-        color: white;
-        /* Texto branco nos dias com reservas */
-        border-radius: 10px;
+        background-color: #7ecc53 !important; /* Um verde ligeiramente mais escuro quando passas o rato */
+        color: #212529 !important;
+        border-radius: 8px;
     }
 
     .today-cell {
@@ -180,7 +194,6 @@
     .disabled-cell {
         color: #ccc;
         pointer-events: none;
-        /* Desabilita o clique */
     }
 </style>
 @endsection
