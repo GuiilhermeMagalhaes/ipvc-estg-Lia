@@ -34,17 +34,6 @@
                 <span style="color:red">{{ $errors->first('categoria_id') }}</span>
             </div>
 
-
-            <div class="form-group">
-                <label for="ipvc_ref">Referência IPVC</label>
-                <input type="text" name="ipvc_ref" class="form-control" value="{{ old('ipvc_ref', $item->ipvc_ref) }}">
-                <span style="color:red">{{$errors->first('ipvc_ref')}}</span>
-            </div>
-            <div class="form-group">
-                <label for="serial_number">Número de série</label>
-                <input type="text" name="serial_number" class="form-control" value="{{ old('serial_number', $item->serial_number) }}">
-                <span style="color:red">{{$errors->first('serial_number')}}</span>
-            </div>
             <div class="form-group">
                 <label for="preco">Preço</label>
                 <input type="number" name="preco" id="preco" class="form-control" step="0.01" value="{{ old('preco', $item->preco) }}">

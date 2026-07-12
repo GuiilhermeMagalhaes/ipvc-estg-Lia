@@ -24,11 +24,6 @@
                 <span style="color:red">{{$errors->first('description')}}</span>
             </div>
 
-            <div class="form-group">
-                <label for="ref_ipvc">Referência IPVC</label>
-                <input type="text" name="ipvc_ref" class="form-control" value="{{ old('ipvc_ref', $kit->ipvc_ref) }}">
-                <span style="color:red">{{$errors->first('ipvc_ref')}}</span>
-            </div>
 
             <div class="form-group">
                 <label for="preco">Preço (€)</label>

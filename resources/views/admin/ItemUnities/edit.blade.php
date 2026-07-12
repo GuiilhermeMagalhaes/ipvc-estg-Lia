@@ -23,7 +23,24 @@
                         @endif
                     </div>
 
-                    <div class="form-group" style="margin-top: -10px; margin-bottom: 25px;">
+                    <div class="form-group">
+                            <label>Referência IPVC</label>
+                            <input type="text" name="ipvc_ref_atuais[{{ $unidade->id }}]" class="form-control" value="{{ old('ipvc_ref_atuais.' . $unidade->id, $unidade->ipvc_ref) }}" placeholder="Ex: IPVC-XXXX">
+                            @if($errors->has("ipvc_ref_atuais." . $unidade->id))
+                                <span style="color:red; display:block;">{{ $errors->first("ipvc_ref_atuais." . $unidade->id) }}</span>
+                            @endif
+                        </div>
+
+                        {{-- Número de Série --}}
+                        <div class="form-group mb-4">
+                            <label>Número de Série (Serial Number)</label>
+                            <input type="text" name="serial_number_atuais[{{ $unidade->id }}]" class="form-control" value="{{ old('serial_number_atuais.' . $unidade->id, $unidade->serial_number) }}" placeholder="Ex: SN-XXXX">
+                            @if($errors->has("serial_number_atuais." . $unidade->id))
+                                <span style="color:red; display:block;">{{ $errors->first("serial_number_atuais." . $unidade->id) }}</span>
+                            @endif
+                        </div>
+
+                    <div class="form-group mb-5 pb-3">
                         <label>Data de Aquisição </label>
                         <input type="date" name="data_aquisicao_atuais[{{ $unidade->id }}]" class="form-control" max="{{ date('Y-m-d') }}"
        value="{{ old('data_aquisicao_atuais.' . $unidade->id, $unidade->data_aquisicao ? $unidade->data_aquisicao->format('Y-m-d') : '') }}">
@@ -41,13 +58,31 @@
 
                     @for ($i = 0; $i < $novasUnidadesQtd; $i++)
                         <div class="form-group">
-                            <label class="text-dark">Novo Código LIA #{{ $unidadesAtuais->count() + $i + 1 }}</label>
+                            <label class="text-dark">Novo Código LIA da Unidade #{{ $unidadesAtuais->count() + $i + 1 }}</label>
                             <input type="text" name="novos_lias[]" class="form-control" value="{{ old('novos_lias.'.$i) }}" placeholder="Introduza o novo código LIA" required>
                             @if($errors->has("novos_lias.".$i))
                                 <span style="color:red">{{ $errors->first("novos_lias.".$i) }}</span>
                             @endif
                         </div>
-                        <div class="form-group" style="margin-top: -10px; margin-bottom: 25px;">
+
+                        <div class="form-group">
+                                <label class="text-dark">Nova Referência IPVC</label>
+                                <input type="text" name="ipvc_ref_novas[]" class="form-control" value="{{ old('ipvc_ref_novas.' . $i) }}" placeholder="Introduza a referência IPVC">
+                                @if($errors->has("ipvc_ref_novas." . $i))
+                                    <span style="color:red; display:block;">{{ $errors->first("ipvc_ref_novas." . $i) }}</span>
+                                @endif
+                            </div>
+
+                            {{-- Novo Número de Série --}}
+                            <div class="form-group mb-4">
+                                <label class="text-dark">Novo Número de Série</label>
+                                <input type="text" name="serial_number_novas[]" class="form-control" value="{{ old('serial_number_novas.' . $i) }}" placeholder="Introduza o número de série">
+                                @if($errors->has("serial_number_novas." . $i))
+                                    <span style="color:red; display:block;">{{ $errors->first("serial_number_novas." . $i) }}</span>
+                                @endif
+                            </div>
+
+                       <div class="form-group mb-5 pb-3">
                             <label class="text-dark">Data de Aquisição</label>
                             <input type="date" name="data_aquisicao_novas[]" class="form-control" max="{{ date('Y-m-d') }}" value="{{ old('data_aquisicao_novas.'.$i) }}">
                             @if($errors->has("data_aquisicao_novas.".$i))

@@ -79,8 +79,7 @@
                 <ul class="list-group shadow-sm">
                     {{-- Bloco de Identificação --}}
                     <li class="list-group-item">Categoria: {{ $item->itemCategorie->description ?? 'Sem categoria' }}</li>
-                    <li class="list-group-item">Número de Série: {{ $item->serial_number ?? 'Sem número de série'}}</li>
-                    <li class="list-group-item">Referência IPVC: {{ $item->ipvc_ref ?? 'Não definida' }}</li>
+                    
 
                     {{-- Bloco Financeiro e Ciclo de Vida --}}
                     <li class="list-group-item">Preço do Item: {{ $item->preco ? number_format($item->preco, 2, ',', '.') . ' €' : 'Não registado' }}</li>

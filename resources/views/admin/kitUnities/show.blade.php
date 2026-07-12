@@ -128,7 +128,6 @@
                 
                 <ul class="list-group shadow-sm">
                     <li class="list-group-item">Descrição: {{ $kit->description }}</li>
-                    <li class="list-group-item">Referência IPVC: {{ $kit->ipvc_ref ?? 'Não definida' }}</li>
                     <li class="list-group-item">Preço: {{ number_format($kit->price, 2, ',', '.') }} €</li>
                     <li class="list-group-item">Preço / dia : {{ number_format($kit->price_day, 2, ',', '.') }} € / dia</li>
                     

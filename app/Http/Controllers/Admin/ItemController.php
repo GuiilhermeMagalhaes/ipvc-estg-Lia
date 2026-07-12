@@ -488,8 +488,6 @@ public function update(Request $request, $id)
             'quantity'     => 'required|integer|min:' . $item->quantity,
             'categoria_id' => 'required|exists:item_categories,id',
             'image'        => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-            'ipvc_ref'     => 'nullable|string|max:190',
-            'serial_number'=> 'nullable|string|max:190',
 
             
         ], [
@@ -502,13 +500,6 @@ public function update(Request $request, $id)
                     'model.required'       => 'O item deve ter um modelo.',
                     'model.string'         => 'O modelo deve ser um texto válido.',
                     'model.max'            => 'O modelo não pode ter mais de 190 caracteres.',
-
-                    // IPVC REF
-                    'ipvc_ref.string'      => 'A referência IPVC deve ser um texto válido.',
-                    'ipvc_ref.max'         => 'A referência IPVC não pode ter mais de 190 caracteres.',
-
-                    'serial_number.string'      => 'O número de série deve ser um texto válido.',
-                    'serial_number.max'         => 'O número de série não pode ter mais de 190 caracteres.',
 
                     // PREÇO
                     'preco.required'       => 'O item deve ter um preço associado.',
@@ -601,6 +592,17 @@ public function updateUnitiesEtapa(Request $request, $id)
                 'data_aquisicao_novas'     => 'sometimes|array',
                 'data_aquisicao_novas.*'   => 'nullable|date|before_or_equal:today',
 
+
+                'ipvc_ref_atuais'        => 'nullable|array',
+                'ipvc_ref_atuais.*'      => 'nullable|string|distinct|max:190',
+                'serial_number_atuais'   => 'nullable|array',
+                'serial_number_atuais.*' => 'nullable|string|distinct|max:190',
+
+                'ipvc_ref_novas'         => 'nullable|array',
+                'ipvc_ref_novas.*'       => 'nullable|string|distinct|unique:item_unity,ipvc_ref|max:190',
+                'serial_number_novas'    => 'nullable|array',
+                'serial_number_novas.*'  => 'nullable|string|distinct|unique:item_unity,serial_number|max:190',
+
                 
             ], [
                 'lias_atuais.*.required'             => 'O código LIA não pode ficar vazio.',
@@ -612,6 +614,17 @@ public function updateUnitiesEtapa(Request $request, $id)
                 'novos_lias.*.distinct'              => 'Inseriu códigos LIA duplicados entre as novas unidades.',
                 'data_aquisicao_novas.*.date'        => 'Insira uma data de aquisição válida.',
                 'data_aquisicao_novas.*.before_or_equal' => 'A data de aquisição não pode ser no futuro.',
+
+
+                'ipvc_ref_atuais.*.distinct'      => 'Inseriu referências IPVC duplicadas nas unidades atuais.',
+                'ipvc_ref_novas.*.distinct'       => 'Inseriu referências IPVC duplicadas nas novas unidades.',
+                'ipvc_ref_novas.*.unique'         => 'Esta referência IPVC já existe no sistema.',
+                'ipvc_ref_novas.*.max'            => 'A ref IPVC não pode passar os 190 caracteres.',
+
+                'serial_number_atuais.*.distinct' => 'Inseriu números de série duplicados nas unidades atuais.',
+                'serial_number_novas.*.distinct'  => 'Inseriu números de série duplicados nas novas unidades.',
+                'serial_number_novas.*.unique'    => 'Este número de série já existe no sistema.',
+                'serial_number_novas.*.max'       => 'O número de série não pode passar os 190 caracteres.',
             ]);
 
 
@@ -626,17 +639,75 @@ public function updateUnitiesEtapa(Request $request, $id)
                 }
             }
 
-           
-            foreach ($request->lias_atuais as $unityId => $liaCode) {
-                $existeNoutro = \App\Models\ItemUnity::where('lia_code', $liaCode)
-                                    ->where('id', '!=', $unityId) 
-                                    ->exists();
-                if ($existeNoutro) {
-                    return redirect()->back()
-                        ->withInput()
-                        ->withErrors(['lias_atuais.'.$unityId => 'Este código LIA já está registado noutro item do sistema.']);
+
+            if ($request->has('ipvc_ref_novas') && $request->has('ipvc_ref_atuais')) {
+                foreach ($request->ipvc_ref_novas as $novoIpvc) {
+                    if (!empty($novoIpvc) && in_array($novoIpvc, $request->ipvc_ref_atuais)) {
+                        return redirect()->back()->withInput()->withErrors(['ipvc_ref_novas' => 'Inseriu referências IPVC duplicadas entre as unidades novas e atuais.']);
+                    }
                 }
             }
+
+            // Validar Serial Number (Ignorando nulls)
+            if ($request->has('serial_number_novas') && $request->has('serial_number_atuais')) {
+                foreach ($request->serial_number_novas as $novoSerial) {
+                    if (!empty($novoSerial) && in_array($novoSerial, $request->serial_number_atuais)) {
+                        return redirect()->back()->withInput()->withErrors(['serial_number_novas' => 'Inseriu números de série duplicados entre as unidades novas e atuais.']);
+                    }
+                }
+            }
+                
+           if ($request->has('lias_atuais')) {
+        foreach ($request->lias_atuais as $unityId => $liaCode) {
+            
+            // Validar LIA na BD
+            $existeLia = \App\Models\ItemUnity::where('lia_code', $liaCode)->where('id', '!=', $unityId)->exists();
+            if ($existeLia) {
+                return redirect()->back()->withInput()->withErrors(['lias_atuais.'.$unityId => 'Este código LIA já está registado noutro item do sistema.']);
+            }
+
+            // Validar IPVC REF na BD
+            $ipvcRef = $request->ipvc_ref_atuais[$unityId] ?? null;
+            if (!empty($ipvcRef)) {
+                $existeIpvc = \App\Models\ItemUnity::where('ipvc_ref', $ipvcRef)->where('id', '!=', $unityId)->exists();
+                if ($existeIpvc) {
+                    return redirect()->back()->withInput()->withErrors(['ipvc_ref_atuais.'.$unityId => 'Esta ref IPVC já está registada noutro item do sistema.']);
+                }
+            }
+
+            // Validar Serial Number na BD
+            $serial = $request->serial_number_atuais[$unityId] ?? null;
+            if (!empty($serial)) {
+                $existeSerial = \App\Models\ItemUnity::where('serial_number', $serial)->where('id', '!=', $unityId)->exists();
+                if ($existeSerial) {
+                    return redirect()->back()->withInput()->withErrors(['serial_number_atuais.'.$unityId => 'Este número de série já está registado noutro item do sistema.']);
+                }
+            }
+        }
+    }
+
+    // 4. VERIFICAÇÃO ADICIONAL: NOVOS IPVC/SERIAL NA BD (Evita duplicados ao criar novos)
+    if ($request->has('ipvc_ref_novas')) {
+        foreach ($request->ipvc_ref_novas as $index => $novoIpvc) {
+            if (!empty($novoIpvc)) {
+                $existeIpvcNovo = \App\Models\ItemUnity::where('ipvc_ref', $novoIpvc)->exists();
+                if ($existeIpvcNovo) {
+                    return redirect()->back()->withInput()->withErrors(['ipvc_ref_novas.'.$index => 'Esta nova ref IPVC já existe no sistema.']);
+                }
+            }
+        }
+    }
+
+    if ($request->has('serial_number_novas')) {
+        foreach ($request->serial_number_novas as $index => $novoSerial) {
+            if (!empty($novoSerial)) {
+                $existeSerialNovo = \App\Models\ItemUnity::where('serial_number', $novoSerial)->exists();
+                if ($existeSerialNovo) {
+                    return redirect()->back()->withInput()->withErrors(['serial_number_novas.'.$index => 'Este novo número de série já existe no sistema.']);
+                }
+            }
+        }
+    }
 
 
            
@@ -650,8 +721,6 @@ public function updateUnitiesEtapa(Request $request, $id)
             $item->update([
                 'nome' => $dadosItem['nome'],
                 'model' => $dadosItem['model'],
-                'ipvc_ref' => $dadosItem['ipvc_ref'] ?? null,
-                'serial_number' => $dadosItem['serial_number'] ?? null,
                 'preco' => $dadosItem['preco'],
                 'price_day' => $dadosItem['price_day'] ?? null,
                 'quantity' => $dadosItem['quantity'],
@@ -668,7 +737,9 @@ public function updateUnitiesEtapa(Request $request, $id)
                 if ($unity) {
                     $unity->update([
                         'lia_code'       => $liaCode,
-                        'data_aquisicao' => $request->data_aquisicao_atuais[$unityId] ?? null 
+                        'data_aquisicao' => $request->data_aquisicao_atuais[$unityId] ?? null,
+                        'ipvc_ref'       => $request->ipvc_ref_atuais[$unityId] ?? null,
+                        'serial_number'  => $request->serial_number_atuais[$unityId] ?? null
                     ]);
                 }
             }
@@ -681,6 +752,8 @@ public function updateUnitiesEtapa(Request $request, $id)
                     'item_id'             => $item->id,
                     'lia_code'            => $novoLia,
                     'data_aquisicao'      => $request->data_aquisicao_novas[$index] ?? null, 
+                    'ipvc_ref'            => $request->ipvc_ref_novas[$index] ?? null,
+                    'serial_number'       => $request->serial_number_novas[$index] ?? null,
                     'item_unity_state_id' => 1 
                 ]);
             }
@@ -691,8 +764,10 @@ public function updateUnitiesEtapa(Request $request, $id)
 
             return redirect()->route('itens.index')->with('toast_success', 'Item e unidades gravados com sucesso!');
         }
+
         return redirect('/');
 }
+
 
 public function manutencao(Request $request)
 {

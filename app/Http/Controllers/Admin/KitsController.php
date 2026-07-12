@@ -547,7 +547,7 @@ public function update(Request $request, $id)
         'description' => 'required|string|max:1100',
         'price' => 'required|numeric|min:0',
         'price_day' => 'required|numeric|min:0',
-        'ipvc_ref'    => 'nullable|string|max:190',
+        //'ipvc_ref'    => 'nullable|string|max:190',
         'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
 
     ], [
@@ -569,8 +569,8 @@ public function update(Request $request, $id)
             'price_day.numeric'    => 'O preço por dia deve ser um número válido.',
             'price_day.min'        => 'O preço por dia não pode ser inferior a 0 €.',
 
-            'ipvc_ref.string'      => 'O número de série deve ser um texto válido.',
-            'ipvc_ref.max'         => 'O número de série não pode ter mais de 190 caracteres.',
+            //'ipvc_ref.string'      => 'O número de série deve ser um texto válido.',
+            //'ipvc_ref.max'         => 'O número de série não pode ter mais de 190 caracteres.',
 
 
             'image.image'          => 'O ficheiro selecionado deve ser uma imagem.',
