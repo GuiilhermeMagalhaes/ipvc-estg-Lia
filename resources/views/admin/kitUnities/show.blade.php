@@ -48,6 +48,11 @@
                             </select>
                         </li>
 
+                        <li class="list-group-item d-flex align-items-center">
+                            <span class="mr-2">Referência IPVC: </span>
+                            <input type="text" id="ipvc_ref" name="ipvc_ref" class="form-control form-control-sm" value="{{ $unidade->ipvc_ref }}" placeholder="Ex: IPVC-XXXX" style="width: 180px; display: inline-block;">
+                        </li>
+
                        {{-- O bloco só fica visível se o estado for 2 (Oculto) --}}
                         <li class="list-group-item" id="bloco-observacoes" style="display: {{ $unidade->kit_unity_state_id == 2 ? 'block' : 'none' }};">
                             <span class="mr-2 d-block mb-2">Motivo / Observações: </span>
@@ -217,6 +222,7 @@
                 @method('PUT')
                 {{-- Inputs ocultos sincronizados com o formulário principal --}}
                 <input type="hidden" id="modal_lia_code" name="lia_code" value="{{ $unidade->lia_code }}">
+                <input type="hidden" id="modal_ipvc_ref" name="ipvc_ref" value="{{ $unidade->ipvc_ref }}">
                 <input type="hidden" id="modal_kit_state_id" name="kit_unity_state_id" value="{{ $unidade->kit_unity_state_id }}">
 
                 <div class="modal-body">
@@ -300,6 +306,7 @@
 
         // 1. VARIÁVEIS INICIAIS
         let liaOriginalValue = $('#lia_code').val();
+        let ipvcOriginalValue = $('#ipvc_ref').val();
         let obsOriginalValue = $('#observacoes').val();
 
         
@@ -340,6 +347,24 @@
         // ==========================================
         // 3. LÓGICA DO MODAL (GERIR ITENS)
         // ==========================================
+
+        $('#ipvc_ref').on('blur', function() {
+            if ($(this).val().trim() !== ipvcOriginalValue) {
+                $('#form-unidade').submit();
+            }
+        });
+
+        $('#ipvc_ref').on('keypress', function(e) {
+            if (e.which == 13) {
+                e.preventDefault();
+                $(this).blur(); 
+            }
+        });
+
+        $('#ipvc_ref').on('input change blur', function() {
+            $('#modal_ipvc_ref').val($(this).val().trim());
+        });
+
         
         function verificarItensOcultosSelecionados() {
             let itemOcultoMarcado = false;

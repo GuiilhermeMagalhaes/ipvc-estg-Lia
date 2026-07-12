@@ -55,6 +55,16 @@
                             <span class="mr-2 d-block mb-2">Motivo / Observações: </span>
                             <textarea id="observacoes" name="observacoes" class="form-control form-control-sm" rows="2" placeholder="Ex: Lente riscada, a aguardar orçamento.">{{ $unidade->observacoes }}</textarea>
                         </li>
+
+                        <li class="list-group-item d-flex align-items-center">
+                            <span>Referência IPVC: </span>
+                            <input type="text" id="ipvc_ref" name="ipvc_ref" class="form-control form-control-sm" value="{{ $unidade->ipvc_ref }}" placeholder="Ex: IPVC-XXXX" style="width: 180px; display: inline-block;">
+                        </li>
+
+                        <li class="list-group-item d-flex align-items-center">
+                            <span>Número de Série: </span>
+                            <input type="text" id="serial_number" name="serial_number" class="form-control form-control-sm" value="{{ $unidade->serial_number }}" placeholder="Ex: SN-XXXX" style="width: 180px; display: inline-block;">
+                        </li>
                         
                         <li class="list-group-item d-flex align-items-center">
                             <span style="width: 150px; display: inline-block;">Data de Aquisição: </span>
@@ -180,6 +190,9 @@
 
         let obsOriginalValue = $('#observacoes').val();
 
+        let ipvcOriginalValue = $('#ipvc_ref').val();
+        let serialOriginalValue = $('#serial_number').val();
+
         $('#observacoes').on('blur', function() {
             if ($(this).val().trim() !== (obsOriginalValue || '').trim()) {
                 $('#form-unidade').submit();
@@ -260,6 +273,36 @@
 
        
         $('#lia_code').on('keypress', function(e) {
+            if (e.which == 13) {
+                e.preventDefault();
+                $(this).blur();
+            }
+        });
+
+        // Monitorizar alterações e dar submit no Blur para o IPVC Ref
+        $('#ipvc_ref').on('blur', function() {
+            if ($(this).val() !== ipvcOriginalValue) {
+                $('#form-unidade').submit();
+            }
+        });
+
+        // Evitar submit nativo e forçar o blur ao carregar no Enter no IPVC Ref
+        $('#ipvc_ref').on('keypress', function(e) {
+            if (e.which == 13) {
+                e.preventDefault();
+                $(this).blur();
+            }
+        });
+
+        // Monitorizar alterações e dar submit no Blur para o Serial Number
+        $('#serial_number').on('blur', function() {
+            if ($(this).val() !== serialOriginalValue) {
+                $('#form-unidade').submit();
+            }
+        });
+
+        // Evitar submit nativo e forçar o blur ao carregar no Enter no Serial Number
+        $('#serial_number').on('keypress', function(e) {
             if (e.which == 13) {
                 e.preventDefault();
                 $(this).blur();

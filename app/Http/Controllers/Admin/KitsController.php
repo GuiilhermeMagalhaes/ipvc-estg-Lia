@@ -169,10 +169,13 @@ public function updateUnity(Request $request, $id)
         
         $request->validate([
             'lia_code' => 'required|string|unique:kit_unity,lia_code,' . $id,
+            'ipvc_ref' => 'nullable|string|max:190|unique:kit_unity,ipvc_ref,' . $id,
             'kit_unity_state_id' => 'required|exists:kit_unity_states,id',
         ], [
             'lia_code.required' => 'O código LIA não pode ficar vazio.',
             'lia_code.unique' => 'Este código LIA já está a ser usado noutra unidade de kit.',
+            'ipvc_ref.max' => 'A referência IPVC não pode ter mais de 190 caracteres.',
+            'ipvc_ref.unique' => 'Esta referência IPVC já está atribuída a outra unidade de kit.',
             'kit_unity_state_id.required' => 'O estado da unidade é obrigatório.',
             'kit_unity_state_id.exists' => 'O estado selecionado é inválido.'
         ]);
@@ -223,6 +226,7 @@ public function updateUnity(Request $request, $id)
             $unidade->update([
                 'lia_code' => $request->input('lia_code'),
                 'kit_unity_state_id' => $estadoKit,
+                'ipvc_ref' => $request->input('ipvc_ref'),
                 'observacoes' => $request->input('observacoes', null)
             ]);
         });

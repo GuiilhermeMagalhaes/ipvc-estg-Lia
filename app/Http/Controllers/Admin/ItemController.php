@@ -105,18 +105,25 @@ class ItemController extends Controller
                 'lia_code' => 'required|string|unique:item_unity,lia_code,' . $id,
                 'item_unity_state_id' => 'required|exists:item_unity_states,id',
                 'data_aquisicao' => 'nullable|date|before_or_equal:today',
+                'ipvc_ref'            => 'nullable|string|max:190|unique:item_unity,ipvc_ref,' . $id,
+                'serial_number'       => 'nullable|string|max:190|unique:item_unity,serial_number,' . $id,
             ], [
                 'lia_code.required' => 'O código LIA não pode ficar vazio.',
                 'lia_code.unique' => 'Este código LIA já está a ser usado noutra unidade.',
                 'data_aquisicao.date' => 'O formato da data de aquisição é inválido.',
                 'data_aquisicao.before_or_equal' => 'A data de aquisição não pode ser uma data futura.',
+                'ipvc_ref.unique'                 => 'Esta referência IPVC já está a ser usada noutra unidade.',
+                'ipvc_ref.max'                    => 'A referência IPVC não pode ultrapassar os 190 caracteres.',
+                'serial_number.unique'            => 'Este número de série já está a ser usado noutra unidade.',
+                'serial_number.max'               => 'O número de série não pode ultrapassar os 190 caracteres.',
             ]);
 
             $unidade = ItemUnity::with('kitUnity.kit')->find($id);
             
             if ($unidade) {
                 // 1. Atualiza a peça individual
-                $unidade->update($request->only(['lia_code', 'item_unity_state_id', 'data_aquisicao','observacoes']));
+                $unidade->update($request->only(['lia_code', 'item_unity_state_id', 'data_aquisicao', 'ipvc_ref', 
+                'serial_number','observacoes']));
 
                 // 2. NOVA LÓGICA DE SINCRONIZAÇÃO COM A MALA (KIT)
                 if ($unidade->kit_unity_id) {
