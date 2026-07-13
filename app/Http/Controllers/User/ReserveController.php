@@ -117,7 +117,7 @@ class ReserveController extends Controller
     $reservasOcupantes = DB::table('item_reserve')
         ->join('reserves', 'item_reserve.reserve_id', '=', 'reserves.id')
         ->where('item_reserve.item_id', $item->id)
-        ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+        ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
         ->where(function ($q) use ($startDate, $endDate) {
             $q->whereBetween('reserves.start_date', [$startDate, $endDate])
               ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
@@ -207,7 +207,7 @@ class ReserveController extends Controller
     $reservasOcupantes = DB::table('kit_reserve')
         ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
         ->where('kit_reserve.kit_id', $kit->id)
-        ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+        ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
         ->where(function ($q) use ($startDate, $endDate) {
             $q->whereBetween('reserves.start_date', [$startDate, $endDate])
               ->orWhereBetween('reserves.end_date', [$startDate, $endDate])

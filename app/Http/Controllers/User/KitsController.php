@@ -86,7 +86,7 @@ class KitsController extends Controller
 
             $reservasOcupantes = DB::table('kit_reserve')
                 ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
-                ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+                ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('reserves.start_date', [$startDate, $endDate])
                       ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
@@ -215,7 +215,7 @@ class KitsController extends Controller
         $reservas = DB::table('kit_reserve')
             ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
             ->where('kit_reserve.kit_id', $id)
-            ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+            ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
             ->whereDate('reserves.end_date', '>=', $today)
             ->select('reserves.start_date', 'reserves.end_date', 'kit_reserve.quantity', 'reserves.ciclica_id')
             ->get();
