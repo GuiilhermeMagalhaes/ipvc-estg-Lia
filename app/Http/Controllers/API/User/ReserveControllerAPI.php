@@ -209,7 +209,12 @@ class ReserveControllerAPI extends Controller
             if ($endDate->dayOfWeek === $diaSemanaAlvo) {
                 $numero_dias++;
             }
-            if ($numero_dias == 0) $numero_dias = 1;
+            if ($ciclicaId !== 1 && empty($periodoDatas)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'O dia de semana selecionado não existe dentro do período de datas fornecido.'
+                ], 422);
+            }
         }
 
         $custo_estimado = 0;
