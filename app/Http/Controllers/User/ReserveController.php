@@ -397,7 +397,9 @@ public function removeItem($id)
         if ($endDate->dayOfWeek === $diaSemanaAlvo) {
             $numero_dias++;
         }
-        if ($numero_dias == 0) $numero_dias = 1;
+        if ($numero_dias == 0) {
+            return back()->with('toast_error', 'O dia de semana cíclico selecionado não ocorre nenhuma vez no período de datas configurado.');
+        }
     }
 
     $custo_estimado = 0;
