@@ -9,7 +9,7 @@ class KitAvailabilityService
         $reservas = DB::table('kit_reserve')
             ->join('reserves', 'kit_reserve.reserve_id', '=', 'reserves.id')
             ->where('kit_reserve.kit_id', $kitId)
-            ->whereIn('reserves.reserve_state_id', [1, 2, 7])
+            ->whereIn('reserves.reserve_state_id', [1, 2, 4, 7])
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('reserves.start_date', [$startDate, $endDate])
                     ->orWhereBetween('reserves.end_date', [$startDate, $endDate])
