@@ -49,6 +49,23 @@ class ReserveController extends Controller
             return redirect()->to('/reserve')->with('toast_error', 'As datas escolhidas não são válidas!');
         }
 
+        $ciclicaId = (int) $request->input('ciclica_id', 1); // Se não enviar, assume 1 (Normal)
+
+        if ($ciclicaId > 1) {
+            $startDate = \Carbon\Carbon::parse($request->start_date);
+            $endDate = \Carbon\Carbon::parse($request->end_date);
+            $periodoDatas = [];
+
+            for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+                if ($date->dayOfWeek === ($ciclicaId - 2)) {
+                    $periodoDatas[] = $date->format('Y-m-d');
+                }
+            }
+
+            if (empty($periodoDatas)) {
+                return redirect()->back()->withInput()->with('toast_error', 'O dia de semana selecionado não existe no período escolhido!');
+            }
+        }
 
         $reserve = [
             "user_id" => Auth::id(),
@@ -82,6 +99,11 @@ class ReserveController extends Controller
     public function addItem(Request $request, $id)
 {
     $item = Item::findOrFail($id);
+
+
+        if (is_null($item->price_day)) {
+            return back()->with('toast_error', "O item '{$item->nome}' não tem preço diário definido. Contacte o administrador.");
+        }
 
     if (!session()->has('reserve')) {
         return redirect()->route('reserve.index')->with('warning', 'Deve iniciar uma reserva para poder adicionar itens!');
@@ -177,6 +199,11 @@ class ReserveController extends Controller
   public function addKit(Request $request, $id)
 {
     $kit = Kit::findOrFail($id);
+
+
+        if (is_null($kit->price_day)) {
+            return back()->with('toast_error', "O kit '{$kit->name}' não tem preço diário definido. Contacte o administrador.");
+        }
 
     if (!session()->has('reserve')) {
         return redirect()->route('reserve.index')->with('warning', 'Deve iniciar uma reserva para poder adicionar kits!');
@@ -359,7 +386,7 @@ public function removeItem($id)
 
     // Lógica de contagem de dias (igual à que tens no admin)
     if ($ciclicaId == 1 || $ciclicaId == null) {
-        $numero_dias = $startDate->diffInDays($endDate);
+        $numero_dias = $startDate->diffInDays($endDate) + 1;
         if ($numero_dias == 0) $numero_dias = 1;
     } else {
         $diaSemanaAlvo = $ciclicaId - 2;
@@ -375,16 +402,22 @@ public function removeItem($id)
 
     $custo_estimado = 0;
 
-    // Somar preço dos itens do carrinho
     foreach ($items as $itemData) {
-        // Usamos o preço por dia guardado na sessão multiplicando pelos dias e quantidade
+        if (is_null($itemData['price'])) {
+            return back()->with('toast_error', "O item '{$itemData['name']}' não tem um preço válido. Remova-o ou contacte o administrador.");
+        }
         $custo_estimado += ($itemData['price'] * $numero_dias * $itemData['quantity']);
     }
+    
 
-    // Somar preço dos kits do carrinho
+    // Somar preço dos kits do carrinho com validação de nulos
     foreach ($kits as $kitData) {
+        if (is_null($kitData['price_day'])) {
+            return back()->with('toast_error', "O kit '{$kitData['name']}' não tem um preço válido. Remova-o ou contacte o administrador.");
+        }
         $custo_estimado += ($kitData['price_day'] * $numero_dias * $kitData['quantity']);
     }
+
 
     
     // PASSO 2: Início da Transação de Segurança

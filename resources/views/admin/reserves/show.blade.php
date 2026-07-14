@@ -51,7 +51,7 @@
                     $dias = 0;
 
                     if ($reserve->ciclica_id == 1 || $reserve->ciclica_id == null) {
-                        $dias = $start->diffInDays($end);
+                        $dias = $start->diffInDays($end) + 1;
                         if ($dias == 0) $dias = 1;
                     } else {
                         $diaSemanaAlvo = $reserve->ciclica_id - 2;
