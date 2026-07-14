@@ -20,7 +20,7 @@
                         
                         <li class="list-group-item">
                             <b>ID Utilizador:</b>
-                            <div class="float-right text-muted font-weight-bold">#{{ $reserve->user->id }}</div>
+                            <div class="float-right text-muted font-weight-bold">{{ $reserve->user->id }}</div>
                         </li>
                         <li class="list-group-item">
                             <b>Nº Aluno:</b>

@@ -23,6 +23,7 @@ class DisponibilidadeController extends Controller
 
             // Obter todos os horários
             $horarios = Disponibilidade::all();
+            
 
             // Agrupar os horários pelo campo 'entredatas'
             $agrupados = [];
@@ -218,7 +219,13 @@ class DisponibilidadeController extends Controller
 
             $horarios = [];
 
+            $datasCriadas = [];
+
             for ($date = $dataInicio; $date->lte($dataFim); $date->addDay()) {
+
+            if ($date->isWeekend()) {
+                continue;
+            }
                 $existingHorario = Disponibilidade::where('data', $date->toDateString())->first();
 
                 if (!$existingHorario) {

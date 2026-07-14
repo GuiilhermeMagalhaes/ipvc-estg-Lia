@@ -34,8 +34,9 @@ class ItemControllerAPI extends Controller
 
             // CENÁRIO 1: TAB "KITS"
             if ($categoriaId === 'Kits') {
-                $queryKits = Kit::has('kitUnities');
-
+                $queryKits = Kit::whereHas('kitUnities', function ($query) use ($estadoDisponivelId) {
+                     $query->where('kit_unity_state_id',$estadoDisponivelId);
+                });
 
                 if (!empty($search)) {
                     $queryKits->where('name', 'like', "%{$search}%");
@@ -69,10 +70,15 @@ class ItemControllerAPI extends Controller
             else {
                 // Destaques Horizontais (Kits)
                 if ($request->query('page', 1) == 1 && $categoriaId === 'Todos' && empty($search)) {
-                    $kitsDestaqueRaw = Kit::has('kitUnities')
+                     $kitsDestaqueRaw = Kit::whereHas('kitUnities', function ($query) use ($estadoDisponivelId) {
+                        $query->where('kit_unity_state_id', $estadoDisponivelId);
+                    })
                         ->withCount(['kitUnities' => function ($query) use ($estadoDisponivelId) {
                             $query->where('kit_unity_state_id', $estadoDisponivelId);
                         }])->get();
+
+
+                       
 
                     $kitsDestaque = collect($kitsDestaqueRaw)->map(function ($kit) use ($startCarbon, $endCarbon, $estadosBloqueantes) {
                         $totalFisico = $kit->kit_unities_count;
@@ -85,7 +91,9 @@ class ItemControllerAPI extends Controller
                 }
 
                 // Equipamentos Individuais
-                $queryItens = Item::has('itemUnities')
+                $queryItens = Item::whereHas('itemUnities', function ($query) use ($estadoDisponivelId) {
+                    $query->where('item_unity_state_id', $estadoDisponivelId);
+                })
                     ->withCount(['itemUnities' => function ($query) use ($estadoDisponivelId) {
                         $query->where('item_unity_state_id', $estadoDisponivelId);
                     }]);
