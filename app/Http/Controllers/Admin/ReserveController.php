@@ -363,7 +363,7 @@ class ReserveController extends Controller
             if ($kit_unidade) {
                 $isKitBroken = in_array($kit_unidade->id, $brokenKits) || in_array($kit_unidade->id, $kitsIncompletos);
                 
-                $kit_unidade->kit_unity_state_id = $isKitBroken ? 4 : 1; 
+                $kit_unidade->kit_unity_state_id = $isKitBroken ? 2 : 1; 
                 
                 // NOVA LÓGICA: Atualiza as observações da Mala
                 if ($isKitBroken) {
