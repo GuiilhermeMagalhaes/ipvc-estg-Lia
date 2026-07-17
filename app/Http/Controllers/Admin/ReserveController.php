@@ -177,6 +177,11 @@ class ReserveController extends Controller
         $reserve->reserve_state_id = 2;
         $reserve->save();
 
+        // Notificar o requisitante por email
+        if ($reserve->user) {
+            $reserve->user->notify(new \App\Notifications\ReservaAutorizada($reserve));
+        }
+
         return back()->with('toast_success', 'Reserva autorizada com sucesso!');
     }
 
